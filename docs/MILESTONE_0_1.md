@@ -34,14 +34,14 @@ Run `npm test`, `npm run check:backend`, and `npm run check`. Backend suites use
 
 The CI workflow runs real Postgres migration/concurrency tests and Rust unit/WASM builds. Local environment cannot run Postgres or Cargo and cannot reach the package registry through its current proxy. These tests must be reported separately from locally passed suites; a workflow file alone is not evidence of passing tests.
 
-Observed local run: 26 authorization/encoding/RPC/session tests and 7 HTTP/contract-confirmation tests passed. Existing frontend syntax/domain checks also passed. Postgres transaction tests and Rust tests were not run locally.
+Observed local run: 27 authorization/encoding/RPC/session tests, 7 HTTP/contract-confirmation tests, and 2 Redis-boundary tests passed. Existing frontend syntax/domain checks also passed. Postgres transaction tests and Rust tests were not run locally.
 
 ## Pending external release gates
 
 - Neon Postgres and Redis resources are not provisioned for Scrim. The connected Vercel API exposes inspection, but not Marketplace resource creation; local CLI installation cannot reach the proxy. Production API returns 503 until its dependencies are configured.
 - Human-created account IDs and human-approved testnet deployment are pending. No account names, private keys, transaction signatures, or chain deployments have been generated.
 - Testnet transaction/contract integration verification is pending. Milestone 1 is not release-complete until contract compilation, tests, deployment, and a real wallet round trip pass.
-- CI and remote preview results must be appended once observed.
+- First observed CI run on commit `e57b4241c40b1b65ac01d6bc8f90b474895ac251`: real Postgres migration and concurrency/rollback integration test passed; Rust contract unit tests passed. WASM build was still running at that observation. Later revisions must be checked independently.
 
 ## Deviations and limits
 

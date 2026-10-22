@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { randomUUID, createHash } from 'node:crypto';
 import { AuthorizationResolver } from '../../packages/auth/src/resolver.mjs';
 import { IdentityService } from '../../packages/auth/src/service.mjs';
-import { timestampNs, nep413Hash, nep641Hash } from '../../packages/auth/src/encoding.mjs';
+import { timestampNs, nep413Hash, nep641Hash, fromBase58 } from '../../packages/auth/src/encoding.mjs';
 import { treasuryConfig, hash, ScrimError } from '../../packages/protocol/src/index.mjs';
 import { NearRpc } from '../../packages/auth/src/rpc.mjs';
 import { keys,signed,envelope,fakeRpc,TestRepository } from './helpers.mjs';
@@ -28,11 +28,12 @@ test('wrong recipient cannot authenticate',async()=>{const s=setup(),c=await s.i
 test('concurrent replay creates exactly one session',async()=>{const s=setup(),c=await s.identity.issue({account:'alice.testnet'}),input={id:c.id,state:c.state,signed:signed(s.key,await s.repo.challenge(c.id))};const out=await Promise.allSettled([s.identity.authorize(input),s.identity.authorize(input)]);assert.equal(out.filter(x=>x.status==='fulfilled').length,1);assert.equal(s.repo.sessions.size,1);});
 test('expired challenge and wrong state are rejected',async()=>{const s=setup(),c=await s.identity.issue({account:'alice.testnet'}),row=await s.repo.challenge(c.id),sig=signed(s.key,row);await assert.rejects(s.identity.authorize({id:c.id,state:'incorrect',signed:sig}));row.expiresAt=Date.now()-1;await assert.rejects(s.identity.authorize({id:c.id,state:c.state,signed:sig}));});
 test('function-call key cannot authenticate',async()=>{const s=setup();s.rpc.accessKey=async()=>({permission:{FunctionCall:{receiver_id:'scrim.testnet'}}});await assert.rejects(login(s),/full_access_key_required/);});
-test('removed keys are rejected even on implicit IDs',async()=>{const s=setup();s.rpc.accessKey=async()=>{throw new ScrimError('UNKNOWN_ACCESS_KEY',401)};await assert.rejects(login(s),/UNKNOWN_ACCESS_KEY/);});
+test('removed keys are rejected on existing implicit IDs',async()=>{const s=setup(),id=fromBase58(s.key.publicKey.slice(8)).toString('hex');s.rpc.accessKey=async()=>{throw new ScrimError('UNKNOWN_ACCESS_KEY',401)};await assert.rejects(s.resolver.verify(id,envelope(s.key,'x',{signer_id:id}),'x'));});
+test('only the deriving key may authorize a nonexistent implicit account',async()=>{const s=setup(),id=fromBase58(s.key.publicKey.slice(8)).toString('hex');s.rpc.accessKey=async()=>{throw new ScrimError('UNKNOWN_ACCOUNT',401)};await s.resolver.verify(id,envelope(s.key,'x',{signer_id:id}),'x');await assert.rejects(s.resolver.verify('alice.testnet',envelope(s.key,'x'),'x'));});
 test('NEP-641 keyed authorization and exact payload resolution',async()=>{const s=setup();assert.equal((await s.resolver.verify('alice.testnet',envelope(s.key,'payload'),'payload')).hash,'pinned-final-block');await assert.rejects(s.resolver.verify('alice.testnet',envelope(s.key,'other'),'payload'),/payload_mismatch/);});
 for(const [name,overrides] of [['network',{chain_id:'mainnet'}],['signer',{signer_id:'bob.testnet'}],['path',{path:['team.testnet']}],['future time',{timestamp:new Date(Date.now()+60000).toISOString()}]])test(`NEP-641 rejects wrong ${name}`,async()=>{const s=setup();await assert.rejects(s.resolver.verify('alice.testnet',envelope(s.key,'payload',overrides),'payload'));});
 test('contract wallet resolves all members at a single pinned block with bottom-up path',async()=>{
-  const s=setup(),calls=[];s.rpc.resolve=async(id,path,_auth,block)=>{calls.push({id,path,block});return id==='team.testnet'?{payload:'root',pending:[{account_id:'alice.testnet',authorization:envelope(s.key,'member',{path:['team.testnet']}),expect:'member'}]}:{payload:'member'};};
+  const s=setup(),calls=[];s.rpc.resolve=async(id,path,_auth,block)=>{calls.push({id,path,block});assert.equal(id,'team.testnet');return {payload:'root',pending:[{account_id:'alice.testnet',authorization:envelope(s.key,'member',{path:['team.testnet']}),expect:'member'}]};};
   await s.resolver.verify('team.testnet','opaque','root');assert.equal(calls[0].block.hash,'pinned-final-block');
 });
 test('contract delegation substitution fails',async()=>{const s=setup();s.rpc.resolve=async(id)=>id==='team.testnet'?{payload:'root',pending:[{account_id:'alice.testnet',authorization:'opaque',expect:'approved'}]}:{payload:'substituted'};await assert.rejects(s.resolver.verify('team.testnet','opaque','root'),/payload_mismatch/);});

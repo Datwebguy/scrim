@@ -16,6 +16,7 @@ export function timestampNs(value) {
   const m = /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)(?:\.(\d{1,9}))?Z$/.exec(value);
   requireThat(m, 'invalid_timestamp');
   const ms = Date.parse(m[1] + 'Z'); requireThat(Number.isFinite(ms), 'invalid_timestamp');
+  requireThat(new Date(ms).toISOString().slice(0,19) === m[1], 'invalid_timestamp');
   return BigInt(ms) * 1000000n + BigInt((m[2] ?? '').padEnd(9, '0'));
 }
 export function nep641Hash(msg) {

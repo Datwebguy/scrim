@@ -17,7 +17,7 @@ export class TreasuryService {
     requireThat(canonical(config)===canonical(expected),'contract_config_mismatch',409);
     const tx=await this.rpc.call('tx',{tx_hash:transactionHash,sender_account_id:actor,wait_until:'FINAL'});
     const statuses=[tx.status,...(tx.receipts_outcome??[]).map(x=>x.outcome.status)];
-    requireThat(tx.final_execution_status==='FINAL' && statuses.every(s=>s && !s.Failure) && tx.transaction.receiver_id===intent.config.contractAccountId && tx.transaction.signer_id===actor,'transaction_not_final_or_failed',409);
+    requireThat(tx.final_execution_status==='FINAL' && statuses.every(s=>s && (Object.hasOwn(s,'SuccessValue') || Object.hasOwn(s,'SuccessReceiptId'))) && tx.transaction.receiver_id===intent.config.contractAccountId && tx.transaction.signer_id===actor,'transaction_not_final_or_failed',409);
     // Confirm an actual init call to this contract with this exact approved config commitment.
     requireThat(tx.transaction.actions.some(a=>a.FunctionCall?.method_name==='new' && JSON.parse(Buffer.from(a.FunctionCall.args,'base64').toString()).config_hash===intent.configHash),'initialization_not_found',409);
     return this.repo.confirm(intent,transactionHash,block.hash);

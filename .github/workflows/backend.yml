@@ -36,4 +36,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: treasury-policy-wasm
-          path: contracts/treasury-policy/target/wasm32-unknown-unknown/release/scrim_treasury_policy.wasm
+          path: |
+            contracts/treasury-policy/target/wasm32-unknown-unknown/release/scrim_treasury_policy.wasm
+            contracts/treasury-policy/Cargo.lock

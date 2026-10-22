@@ -1,0 +1,6 @@
+{
+  "development": { "network": "testnet", "originEnvironmentVariable": "SCRIM_ORIGIN", "isolatedDatabase": true, "isolatedRedis": true },
+  "staging": { "network": "testnet", "isolatedDatabase": true, "isolatedRedis": true },
+  "production": { "network": "mainnet", "isolatedDatabase": true, "isolatedRedis": true },
+  "accountRoles": { "deployment": null, "treasuryAdministration": null, "payout": null, "testnetDeployment": null }
+}

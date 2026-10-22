@@ -26,7 +26,7 @@ Run `npm install --ignore-scripts`, then `npm run db:migrate` against the select
 1. Run CI backend tests with real Postgres and Rust contract tests. Review results and any deviations in `MILESTONE_0_1.md`.
 2. Download the tested WASM artifact. Review its source, hash, contract interface, compiler/SDK versions, and network. A release must retain the tested Cargo.lock and dependency provenance.
 3. The human creates the treasury contract account and signer accounts, supplies all public IDs, and funds its storage. The deployment account is release authority, not an extra governance signer.
-4. An authorized human signs the reviewed deploy/init transactions. Initializer must be one of the supplied treasury signers. Defaults: individual 1-of-1, team 2-of-3.
+4. An authorized human signs one deploy-and-init action batch with the contract account's deployment key. Initialization requires that authority, preventing an initialization race. Init arguments name distinct governance signers; the contract account cannot be its own signer. Defaults: individual 1-of-1, team 2-of-3.
 5. Human removes access keys from the instantiated treasury contract account after checking its signers and threshold. Remaining keys bypass contract governance; the API rejects such a treasury. Do not lock a contract without verifying recovery/signers and storage funding first.
 6. Add only the reviewed WASM code hash to `TREASURY_CODE_HASH_ALLOWLIST`. The API checks code, no remaining keys, full config, and final transaction outcome at chain confirmation.
 7. Exercise signed login, treasury creation, config proposal, threshold approval, execution, expiry, and duplicate-approval rejection on testnet. Record transaction IDs, contract ID, WASM hash, network, and final block hashes.

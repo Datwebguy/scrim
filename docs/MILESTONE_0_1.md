@@ -16,7 +16,7 @@
 
 | Method | Authority | Effect |
 | --- | --- | --- |
-| `new(kind, signer_accounts, threshold, policy_commitment, config_hash)` | Direct transaction from an initial signer | One-time initialization |
+| `new(kind, signer_accounts, threshold, policy_commitment, config_hash)` | Contract-account authority in a human-signed deploy/init batch | One-time initialization naming distinct governance signers; external initialization rejected |
 | `get_config()` | Read-only | Public signer/threshold/commitment config |
 | `get_policy_version()` | Read-only | Current governance revision |
 | `list_proposal_ids()` / `get_proposal(proposal_id)` | Read-only | Review the exact proposed config, expiry, and approvals before signing |

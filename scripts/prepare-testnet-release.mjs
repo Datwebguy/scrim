@@ -16,9 +16,11 @@ export function prepareRelease({wasm,manifest,contractAccountId,ownerAccountId})
     network:'testnet',sourceCommit:manifest.sourceCommit,codeHash:actual.nearCodeHash,sha256:actual.sha256,
     reviewRequired:true,signing:'human_wallet_only',policyCommitmentOnly:true,policy,config,configHash,
     steps:[
-      {order:1,signerId:contractAccountId,receiverId:contractAccountId,action:'DeployContract',artifact:'scrim_treasury_policy.wasm',expectedCodeHash:actual.nearCodeHash},
-      {order:2,signerId:ownerAccountId,receiverId:contractAccountId,action:'FunctionCall',methodName:'new',args:initArgs,gas:'30000000000000',deposit:'0'},
-      {order:3,action:'ReadAndReview',methods:['get_config','get_policy_version'],requiredOwner:ownerAccountId,requiredThreshold:1},
+      {order:1,signerId:contractAccountId,receiverId:contractAccountId,action:'AtomicActionBatch',actions:[
+        {type:'DeployContract',artifact:'scrim_treasury_policy.wasm',expectedCodeHash:actual.nearCodeHash},
+        {type:'FunctionCall',methodName:'new',args:initArgs,gas:'30000000000000',deposit:'0'},
+      ]},
+      {order:2,action:'ReadAndReview',methods:['get_config','get_policy_version'],requiredOwner:ownerAccountId,requiredThreshold:1},
     ],
     afterReview:'Do not remove access keys until the owner, threshold, and a real signed config operation have been verified. Key removal requires a separate explicit human decision.',
   };

@@ -26,11 +26,11 @@ node scripts/prepare-testnet-release.mjs PATH_TO_WASM PATH_TO_MANIFEST CONTRACT_
 
 Supply the actual human-created account IDs. The command has no signer, private-key input, wallet call, RPC write, or transaction submission path. It prints these separate steps:
 
-1. Human signs a DeployContract action from the contract account to itself, using exactly the manifest's WASM bytes.
-2. Human signs `new` from the distinct owner account to the contract account. Review 1-of-1 owner, policy/config commitments, and testnet network. Initial policy is a commitment to an inactive request-only configuration; this contract does not yet execute payments or agent policy.
-3. Read `get_config` and `get_policy_version`, verify the expected owner and threshold, then exercise a separately human-signed config operation.
+1. Human signs one action batch from the contract account to itself containing DeployContract and `new`, using exactly the manifest's WASM bytes and reviewed initialization arguments. Initialization requires the contract account's transaction authority to prevent a front-running initializer.
+2. The init arguments name the distinct owner as the 1-of-1 governance signer. The deploying account cannot be its own governance signer. Review policy/config commitments and testnet network. Initial policy is a commitment to an inactive request-only configuration; this contract does not yet execute payments or agent policy.
+3. Read `get_config` and `get_policy_version`, verify the expected owner and threshold, then exercise a separately human-signed config operation from the owner account.
 
-Do not combine deployment and initialization as a contract-account-signed transaction: the signer would be the contract itself, defeating owner role separation. Do not remove keys until the distinct owner has been verified through a real signed governance operation. Key removal is a separate explicit human decision after recovery/access review.
+Deployment and initialization must be one batch; the role separation is between deployment authority and the governance signers named in the init arguments. Do not remove keys until the distinct owner has been verified through a real signed governance operation. Key removal is a separate explicit human decision after recovery/access review.
 
 The API does not report the treasury active while contract access keys remain. After the human lock-down step, reviewed code-hash allowlisting and final initialization confirmation are required.
 

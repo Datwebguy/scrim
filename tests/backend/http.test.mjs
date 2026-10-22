@@ -32,7 +32,7 @@ const config={kind:'individual',contractAccountId:'existing-contract.testnet',si
 function treasuryHarness(){
   const intent={id:'id',actor:'alice.testnet',status:'awaiting_chain_confirmation',config,configHash:'b'.repeat(64)};
   const chainConfig={kind:config.kind,signer_accounts:config.signerAccounts,threshold:1,policy_commitment:config.policyCommitment,config_hash:intent.configHash};
-  const rpc={finalBlock:async()=>({hash:'final'}),query:async(p)=>p.request_type==='view_account'?{code_hash:'reviewed-code'}:{keys:[]},treasury:async()=>chainConfig,call:async()=>({final_execution_status:'FINAL',status:{SuccessValue:''},receipts_outcome:[],transaction:{receiver_id:config.contractAccountId,signer_id:'alice.testnet',actions:[{FunctionCall:{method_name:'new',args:Buffer.from(JSON.stringify({config_hash:intent.configHash})).toString('base64')}}]}})};
+  const rpc={finalBlock:async()=>({hash:'final'}),query:async(p)=>p.request_type==='view_account'?{code_hash:'reviewed-code'}:{keys:[]},treasury:async()=>chainConfig,call:async()=>({final_execution_status:'FINAL',status:{SuccessValue:''},receipts_outcome:[],transaction:{receiver_id:config.contractAccountId,signer_id:config.contractAccountId,actions:[{FunctionCall:{method_name:'new',args:Buffer.from(JSON.stringify({config_hash:intent.configHash})).toString('base64')}}]}})};
   const repo={treasury:async()=>intent,confirm:async()=>({...intent,status:'active'})};
   return {rpc,intent,service:new TreasuryService({repo,rpc,network:'testnet',approvedCodeHashes:['reviewed-code']})};
 }

@@ -1,24 +1,36 @@
 # Scrim
 
-Scrim is private payment and treasury infrastructure for people and AI agents. This repository currently contains the first product slice: a responsive treasury interface, enforceable client-side policy rules, and expiring selective disclosure proof records.
+Scrim is private payment and treasury infrastructure for people and AI agents on NEAR.
 
-## Run locally
+It combines shielded-note balances, reader-bound expiring disclosures, intent-based cross-chain settlement, enforceable agent rails, and threshold treasury approvals.
 
-Serve `dist/` with any static HTTP server. For example:
+## Product capabilities
 
-```sh
-python3 -m http.server 4173 --directory dist
-```
+- Shielded UTXO-style notes with commitments, Merkle roots, and double-spend nullifiers.
+- Solvency, receipt, and payroll-total disclosures bound to one reader and an expiry.
+- Cross-chain outcomes through NEAR Intents and Chain Signatures.
+- Agent payment policies: caps, counterparties, approval escalation, and disclosure permissions.
+- Treasury approvals, bulk payments, audit exports, and multi-treasury operations.
 
-Then open `http://localhost:4173`.
+## Repository map
 
-## Verify
+- `dist/` — responsive product website and workspace.
+- `api/` — Vercel service endpoints, including live NEAR mainnet account lookup.
+- `ARCHITECTURE.md` — contract, proof, policy, settlement, and trust boundaries.
+- `PRODUCT.md` — product definition.
+- `NEAR_TOOLS.md` — NEAR primitives used by Scrim.
+- `RESEARCH.md` — internal research notes.
+
+## Run
 
 ```sh
 npm test
 npm run check
+python3 -m http.server 4173 --directory dist
 ```
 
-## Current boundary
+Open `http://localhost:4173`.
 
-Payment intents and proofs are simulated locally in this first slice. The UI and domain rules are structured around adapters so shielded state, proof generation, NEAR Intents settlement, and Chain Signatures can be connected without moving private data into view components.
+## Development path
+
+The architecture is designed around client-held keys, contract-verified commitments and nullifiers, device-side proving, NEAR Intents settlement, Chain Signatures, and threshold treasury contracts. See [ARCHITECTURE.md](ARCHITECTURE.md) for the required boundaries and delivery sequence.

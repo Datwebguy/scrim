@@ -33,9 +33,13 @@ jobs:
         with: { targets: wasm32-unknown-unknown }
       - run: cargo test --manifest-path contracts/treasury-policy/Cargo.toml
       - run: cargo build --manifest-path contracts/treasury-policy/Cargo.toml --target wasm32-unknown-unknown --release
+      - uses: actions/setup-node@v4
+        with: { node-version: '24' }
+      - run: node scripts/release-manifest.mjs contracts/treasury-policy/target/wasm32-unknown-unknown/release/scrim_treasury_policy.wasm contracts/treasury-policy/release-manifest.json
       - uses: actions/upload-artifact@v4
         with:
           name: treasury-policy-wasm
           path: |
             contracts/treasury-policy/target/wasm32-unknown-unknown/release/scrim_treasury_policy.wasm
             contracts/treasury-policy/Cargo.lock
+            contracts/treasury-policy/release-manifest.json

@@ -65,6 +65,7 @@ impl TreasuryPolicy {
     #[init]
     pub fn new(kind: String, mut signer_accounts: Vec<AccountId>, threshold: u8, policy_commitment: String, config_hash: String) -> Self {
         validate(&kind, &mut signer_accounts, threshold, &policy_commitment, &config_hash);
+        assert!(!signer_accounts.contains(&env::current_account_id()), "Contract cannot be its own signer");
         assert_eq!(env::signer_account_id(), env::predecessor_account_id(), "Direct owner transaction required");
         assert!(signer_accounts.contains(&env::predecessor_account_id()), "Initializer must be a signer");
         Self { kind, signers: signer_accounts, threshold, policy_commitment, config_hash, version: 1, next_id: 0, proposals: BTreeMap::new() }
@@ -87,6 +88,7 @@ impl TreasuryPolicy {
     pub fn propose_config(&mut self, mut signer_accounts: Vec<AccountId>, threshold: u8, policy_commitment: String, config_hash: String, expires_at_ns: String) -> u64 {
         assert_one_yocto(); self.assert_member();
         validate(&self.kind, &mut signer_accounts, threshold, &policy_commitment, &config_hash);
+        assert!(!signer_accounts.contains(&env::current_account_id()), "Contract cannot be its own signer");
         let expiry = expires_at_ns.parse::<u64>().expect("Invalid expiry");
         assert!(expiry > env::block_timestamp() && expiry <= env::block_timestamp().checked_add(86_400_000_000_000).unwrap(), "Expiry must be within 24 hours");
         assert!(self.proposals.len() < 100, "Proposal capacity reached; clear stale proposals");
@@ -151,6 +153,10 @@ mod tests {
     }
     #[test] fn individual_default() {
         context("alice.testnet",0); let t=TreasuryPolicy::new("individual".into(),vec!["alice.testnet".parse().unwrap()],1,"a".repeat(64),"b".repeat(64)); assert_eq!(t.get_config().threshold,1);
+    }
+    #[test] #[should_panic(expected="Contract cannot be its own signer")] fn rejects_self_governance_lockout() {
+        let mut c=VMContextBuilder::new(); c.current_account_id("contract.testnet".parse().unwrap()).predecessor_account_id("contract.testnet".parse().unwrap()).signer_account_id("contract.testnet".parse().unwrap()); testing_env!(c.build());
+        TreasuryPolicy::new("individual".into(),vec!["contract.testnet".parse().unwrap()],1,"a".repeat(64),"b".repeat(64));
     }
     #[test] fn team_update_requires_existing_threshold() {
         let mut t=team(); context("alice.testnet",1); let id=t.propose_config(t.signers.clone(),3,"c".repeat(64),"d".repeat(64),"2000000000".into());

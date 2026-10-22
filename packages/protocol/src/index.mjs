@@ -22,6 +22,7 @@ export function treasuryConfig(input, actor) {
   const contractAccountId = accountId(input.contractAccountId);
   requireThat(Array.isArray(input.signerAccounts), 'missing_signers');
   const signerAccounts = input.signerAccounts.map(accountId).sort();
+  requireThat(!signerAccounts.includes(contractAccountId), 'contract_cannot_be_own_signer');
   requireThat(new Set(signerAccounts).size === signerAccounts.length && signerAccounts.includes(actor), 'invalid_signers');
   requireThat(input.kind === 'individual' ? signerAccounts.length === 1 : signerAccounts.length >= 3 && signerAccounts.length <= 25, 'invalid_signer_count');
   const threshold = input.threshold ?? (input.kind === 'individual' ? 1 : 2);

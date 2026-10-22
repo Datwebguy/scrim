@@ -7,3 +7,5 @@ contracts/**/target/
 .env.*
 !.env.example
 research-private/
+config/*.local.json
+RESEARCH.md

@@ -39,9 +39,10 @@ Observed local run: 27 authorization/encoding/RPC/session tests, 7 HTTP/contract
 ## Pending external release gates
 
 - Neon Postgres and Redis resources are not provisioned for Scrim. The connected Vercel API exposes inspection, but not Marketplace resource creation; local CLI installation cannot reach the proxy. Production API returns 503 until its dependencies are configured.
-- Human-created account IDs and human-approved testnet deployment are pending. No account names, private keys, transaction signatures, or chain deployments have been generated.
+- Human-supplied testnet deployment and distinct treasury-owner account IDs are received and recorded in ignored local configuration. Both existed with zero balance and no contract at initial query. Human funding/signing and testnet deployment are pending. No account names, private keys, transaction signatures, or chain deployments have been generated.
 - Testnet transaction/contract integration verification is pending. Milestone 1 is not release-complete until contract compilation, tests, deployment, and a real wallet round trip pass.
 - First observed CI run on commit `e57b4241c40b1b65ac01d6bc8f90b474895ac251`: real Postgres migration and concurrency/rollback integration test passed; Rust contract unit tests passed. WASM build was still running at that observation. Later revisions must be checked independently.
+- Confirmed CI on `af89a8f610a90ce2942ab45bb2537e3b795015cb`: backend, real Postgres concurrency tests, Rust unit tests, and WASM artifact build all passed in run `39835126480`. See `TESTNET_RELEASE.md` for the subsequent self-signer guard and unsigned artifact review procedure.
 
 ## Deviations and limits
 

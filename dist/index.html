@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101515">
+  <meta name="description" content="Scrim private payments and policy-controlled treasury dashboard.">
+  <title>Scrim — Private treasury</title>
+  <link rel="icon" type="image/jpeg" href="./scrim-logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="#overview" aria-label="Scrim home">
+        <img class="brand-mark logo-image" src="./scrim-logo.jpg" alt="">
+        <span>scrim</span>
+      </a>
+      <nav>
+        <a class="nav-item active" href="#overview" data-view="overview"><span class="nav-icon">⌂</span>Overview</a>
+        <a class="nav-item" href="#payments" data-view="payments"><span class="nav-icon">↗</span>Payments</a>
+        <a class="nav-item" href="#proofs" data-view="proofs"><span class="nav-icon">◇</span>Proofs <b id="proof-count">2</b></a>
+        <a class="nav-item" href="#policies" data-view="policies"><span class="nav-icon">⌘</span>Policies</a>
+      </nav>
+      <div class="side-foot">
+        <div class="privacy-state"><span class="status-dot"></span><div><strong>Shielded</strong><small>Private state active</small></div></div>
+        <button class="workspace-switcher" type="button"><span class="avatar">S</span><span><strong>Scrim Labs</strong><small>Primary treasury</small></span><span>⌄</span></button>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <button class="mobile-menu" type="button" aria-label="Open navigation">☰</button>
+        <div><span class="eyebrow">PRIVATE TREASURY</span><h1>Good morning, Alex.</h1></div>
+        <div class="top-actions"><button class="icon-button" type="button" aria-label="Notifications">◌<span></span></button><button class="connect-button" type="button"><i></i> alex.near <span>⌄</span></button></div>
+      </header>
+
+      <section class="view active" id="overview" data-page="overview">
+        <div class="balance-card">
+          <div class="balance-copy"><span class="label">TOTAL PRIVATE BALANCE <button class="eye" type="button" aria-label="Hide balance">◉</button></span><div class="balance-row"><h2 id="balance">$ 124,860.42</h2><span class="delta">↗ 4.8%</span></div><p>Across 4 shielded assets</p></div>
+          <div class="balance-actions"><button class="button primary" type="button" data-open="send-dialog">Send privately <span>↗</span></button><button class="button secondary" type="button" data-open="proof-dialog">Create proof <span>◇</span></button></div>
+          <div class="asset-strip" aria-label="Asset balances">
+            <div><span class="asset-icon near">N</span><span><strong>NEAR</strong><small>48,290.18</small></span><b>$56,402.77</b></div>
+            <div><span class="asset-icon usdc">$</span><span><strong>USDC</strong><small>42,180.00</small></span><b>$42,180.00</b></div>
+            <div><span class="asset-icon eth">◆</span><span><strong>ETH</strong><small>7.42</small></span><b>$24,011.96</b></div>
+            <div><span class="asset-icon btc">₿</span><span><strong>BTC</strong><small>0.021</small></span><b>$2,265.69</b></div>
+          </div>
+        </div>
+
+        <div class="content-grid">
+          <section class="panel activity-panel">
+            <div class="panel-head"><div><span class="eyebrow">PRIVATE ACTIVITY</span><h3>Recent movements</h3></div><button class="text-button" type="button" data-view-link="payments">View all <span>→</span></button></div>
+            <div class="activity-list" id="activity-list"></div>
+          </section>
+          <aside class="right-stack">
+            <section class="panel policy-card">
+              <div class="panel-head"><div><span class="eyebrow">AGENT POLICY</span><h3>Operator One</h3></div><span class="live-badge"><i></i> Active</span></div>
+              <div class="cap-row"><span><small>SPENT TODAY</small><strong>$ 840.00</strong></span><span><small>DAILY CAP</small><strong>$ 2,500.00</strong></span></div>
+              <div class="meter"><i style="width:33.6%"></i></div><div class="meter-label"><span>33.6% used</span><span>Resets 00:00 UTC</span></div>
+              <div class="rule-list"><div><span>✓</span> 3 approved counterparties</div><div><span>✓</span> $500 per-payment limit</div><div><span>✓</span> Approval required over $400</div></div>
+              <button class="button tertiary full" type="button" data-view-link="policies">Manage policy <span>→</span></button>
+            </section>
+            <section class="panel proof-card"><div class="proof-art" aria-hidden="true"><span></span><span></span><span></span><i>◇</i></div><div><span class="eyebrow">SELECTIVE DISCLOSURE</span><h3>Prove facts.<br>Reveal nothing else.</h3><p>Issue a time-bound proof to one named reader without exposing your account history.</p><button class="text-button" type="button" data-open="proof-dialog">Generate a proof <span>→</span></button></div></section>
+          </aside>
+        </div>
+        <div class="prototype-note"><span>i</span><p><strong>Private test environment.</strong> This build uses local demo records while settlement and proving adapters are connected. No funds move from this interface yet.</p></div>
+      </section>
+
+      <section class="view" id="payments" data-page="payments">
+        <div class="page-heading"><div><span class="eyebrow">MOVEMENT LEDGER</span><h2>Private payments</h2><p>Payment intent details are visible only to authorized participants.</p></div><button class="button primary" type="button" data-open="send-dialog">New payment ↗</button></div>
+        <section class="panel table-panel"><div class="filter-row"><button class="chip active">All</button><button class="chip">Sent</button><button class="chip">Received</button><span></span><label>Search <input id="payment-search" type="search" placeholder="Counterparty or reference"></label></div><div class="payment-table" id="payment-table"></div></section>
+      </section>
+
+      <section class="view" id="proofs" data-page="proofs">
+        <div class="page-heading"><div><span class="eyebrow">SELECTIVE DISCLOSURE</span><h2>Proofs</h2><p>Share one verifiable fact with one reader for a limited time.</p></div><button class="button primary" type="button" data-open="proof-dialog">Create proof ◇</button></div>
+        <div class="stat-grid"><div class="mini-stat"><span>ACTIVE PROOFS</span><strong id="active-proof-count">2</strong><small>Across two readers</small></div><div class="mini-stat"><span>EXPIRING SOON</span><strong>1</strong><small>Within 24 hours</small></div><div class="mini-stat"><span>REVOKED THIS MONTH</span><strong>3</strong><small>Immediately invalidated</small></div></div>
+        <section class="panel proof-list-panel"><div class="panel-head"><div><span class="eyebrow">ISSUED PROOFS</span><h3>Access registry</h3></div><span class="legend"><i></i> Live status</span></div><div id="proof-list"></div></section>
+      </section>
+
+      <section class="view" id="policies" data-page="policies">
+        <div class="page-heading"><div><span class="eyebrow">PROGRAMMABLE RAILS</span><h2>Agent policies</h2><p>Hard limits are evaluated before an agent can create a settlement intent.</p></div><button class="button secondary" type="button" id="simulate-button">Simulate payment</button></div>
+        <div class="policy-layout"><section class="panel policy-editor"><div class="panel-head"><div><span class="eyebrow">ACTIVE POLICY</span><h3>Operator One</h3></div><label class="switch"><input type="checkbox" checked><span></span></label></div><div class="form-grid"><label>Daily spending cap <span class="input-prefix">$</span><input type="number" value="2500"></label><label>Per-payment limit <span class="input-prefix">$</span><input type="number" value="500"></label><label>Approval threshold <span class="input-prefix">$</span><input type="number" value="400"></label><label>Proof expiry maximum <input type="number" value="60"><span class="input-suffix">min</span></label></div><div class="counterparty-block"><span class="field-label">APPROVED COUNTERPARTIES</span><div class="tag-list"><span>compute.near <button aria-label="Remove compute.near">×</button></span><span>storage.near <button aria-label="Remove storage.near">×</button></span><span>payroll.near <button aria-label="Remove payroll.near">×</button></span><button class="add-tag">+ Add</button></div></div><button class="button primary" id="save-policy" type="button">Save policy</button></section><aside class="panel policy-audit"><span class="eyebrow">ENFORCEMENT</span><h3>Every action is checked.</h3><div class="audit-flow"><div><i>1</i><span><strong>Intent requested</strong><small>Agent proposes an action</small></span></div><div><i>2</i><span><strong>Policy evaluated</strong><small>Limits and counterparty checked</small></span></div><div><i>3</i><span><strong>Approval collected</strong><small>When the threshold applies</small></span></div><div><i>4</i><span><strong>Settlement submitted</strong><small>Adapter signs the approved intent</small></span></div></div></aside></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="send-dialog"><form method="dialog" class="dialog-card" id="send-form"><button class="dialog-close" value="cancel" aria-label="Close">×</button><span class="eyebrow">PRIVATE PAYMENT</span><h2>Create payment intent</h2><p>Scrim checks the active policy before preparing settlement.</p><label>Counterparty<select name="counterparty" required><option value="compute.near">compute.near</option><option value="storage.near">storage.near</option><option value="payroll.near">payroll.near</option><option value="unapproved.near">unapproved.near</option></select></label><label>Amount<div class="amount-input"><span>$</span><input name="amount" type="number" min="0.01" step="0.01" value="120.00" required><b>USDC</b></div></label><label>Private memo<input name="memo" maxlength="80" value="Inference services — October"></label><div class="policy-result" id="policy-result"><span>✓</span><div><strong>Policy check passed</strong><small>Approved counterparty · within daily limit</small></div></div><button class="button primary full" type="submit">Prepare private payment ↗</button><small class="dialog-foot">Creates a local demo intent. Settlement adapter is not active.</small></form></dialog>
+
+  <dialog id="proof-dialog"><form method="dialog" class="dialog-card" id="proof-form"><button class="dialog-close" value="cancel" aria-label="Close">×</button><span class="eyebrow">SELECTIVE DISCLOSURE</span><h2>Create an expiring proof</h2><p>Only the chosen fact is disclosed to the named reader.</p><label>Fact to prove<select name="type"><option value="balance">Balance is above a threshold</option><option value="payment">A payment was made</option><option value="payroll">Payroll total matches an amount</option><option value="agent-limit">Agent stayed inside its limit</option></select></label><label>Statement<input name="fact" value="Private balance is above $100,000" required></label><label>Named reader<input name="reader" placeholder="audit.near" value="audit.near" required></label><label>Expires in<div class="range-row"><input name="expires" type="range" min="5" max="120" value="30" step="5"><output id="expiry-output">30 minutes</output></div></label><button class="button primary full" type="submit">Generate proof ◇</button><small class="dialog-foot">Proof records are simulated locally in this build.</small></form></dialog>
+
+  <div class="toast" role="status" aria-live="polite"><span>✓</span><div><strong id="toast-title">Saved</strong><small id="toast-message">Your changes are active.</small></div></div>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "@vercel/blob": "^2.1.1"
+  },
   "scripts": {
     "test": "node --test tests/*.test.js",
     "check": "node --check dist/app.js && node --check dist/core.js && node --check dist/home.js && node --check dist/console.js"

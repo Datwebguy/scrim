@@ -1,97 +1,38 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#101515">
-  <meta name="description" content="Scrim private payments and policy-controlled treasury dashboard.">
-  <title>Scrim — Private treasury</title>
-  <link rel="icon" type="image/jpeg" href="./scrim-logo.jpg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="./styles.css">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#0b0b0b">
+  <meta name="description" content="Scrim is private payment and treasury infrastructure for people and AI agents, with expiring selective disclosure proofs.">
+  <title>Scrim — Private money, provable when it matters</title>
+  <link rel="icon" type="image/jpeg" href="./scrim-logo.jpg"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="./home.css">
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar" aria-label="Primary navigation">
-      <a class="brand" href="#overview" aria-label="Scrim home">
-        <img class="brand-mark logo-image" src="./scrim-logo.jpg" alt="">
-        <span>scrim</span>
-      </a>
-      <nav>
-        <a class="nav-item active" href="#overview" data-view="overview"><span class="nav-icon">⌂</span>Overview</a>
-        <a class="nav-item" href="#payments" data-view="payments"><span class="nav-icon">↗</span>Payments</a>
-        <a class="nav-item" href="#proofs" data-view="proofs"><span class="nav-icon">◇</span>Proofs <b id="proof-count">2</b></a>
-        <a class="nav-item" href="#policies" data-view="policies"><span class="nav-icon">⌘</span>Policies</a>
-      </nav>
-      <div class="side-foot">
-        <div class="privacy-state"><span class="status-dot"></span><div><strong>Shielded</strong><small>Private state active</small></div></div>
-        <button class="workspace-switcher" type="button"><span class="avatar">S</span><span><strong>Scrim Labs</strong><small>Primary treasury</small></span><span>⌄</span></button>
-      </div>
-    </aside>
-
-    <main>
-      <header class="topbar">
-        <button class="mobile-menu" type="button" aria-label="Open navigation">☰</button>
-        <div><span class="eyebrow">PRIVATE TREASURY</span><h1>Good morning, Alex.</h1></div>
-        <div class="top-actions"><button class="icon-button" type="button" aria-label="Notifications">◌<span></span></button><button class="connect-button" type="button"><i></i> alex.near <span>⌄</span></button></div>
-      </header>
-
-      <section class="view active" id="overview" data-page="overview">
-        <div class="balance-card">
-          <div class="balance-copy"><span class="label">TOTAL PRIVATE BALANCE <button class="eye" type="button" aria-label="Hide balance">◉</button></span><div class="balance-row"><h2 id="balance">$ 124,860.42</h2><span class="delta">↗ 4.8%</span></div><p>Across 4 shielded assets</p></div>
-          <div class="balance-actions"><button class="button primary" type="button" data-open="send-dialog">Send privately <span>↗</span></button><button class="button secondary" type="button" data-open="proof-dialog">Create proof <span>◇</span></button></div>
-          <div class="asset-strip" aria-label="Asset balances">
-            <div><span class="asset-icon near">N</span><span><strong>NEAR</strong><small>48,290.18</small></span><b>$56,402.77</b></div>
-            <div><span class="asset-icon usdc">$</span><span><strong>USDC</strong><small>42,180.00</small></span><b>$42,180.00</b></div>
-            <div><span class="asset-icon eth">◆</span><span><strong>ETH</strong><small>7.42</small></span><b>$24,011.96</b></div>
-            <div><span class="asset-icon btc">₿</span><span><strong>BTC</strong><small>0.021</small></span><b>$2,265.69</b></div>
-          </div>
-        </div>
-
-        <div class="content-grid">
-          <section class="panel activity-panel">
-            <div class="panel-head"><div><span class="eyebrow">PRIVATE ACTIVITY</span><h3>Recent movements</h3></div><button class="text-button" type="button" data-view-link="payments">View all <span>→</span></button></div>
-            <div class="activity-list" id="activity-list"></div>
-          </section>
-          <aside class="right-stack">
-            <section class="panel policy-card">
-              <div class="panel-head"><div><span class="eyebrow">AGENT POLICY</span><h3>Operator One</h3></div><span class="live-badge"><i></i> Active</span></div>
-              <div class="cap-row"><span><small>SPENT TODAY</small><strong>$ 840.00</strong></span><span><small>DAILY CAP</small><strong>$ 2,500.00</strong></span></div>
-              <div class="meter"><i style="width:33.6%"></i></div><div class="meter-label"><span>33.6% used</span><span>Resets 00:00 UTC</span></div>
-              <div class="rule-list"><div><span>✓</span> 3 approved counterparties</div><div><span>✓</span> $500 per-payment limit</div><div><span>✓</span> Approval required over $400</div></div>
-              <button class="button tertiary full" type="button" data-view-link="policies">Manage policy <span>→</span></button>
-            </section>
-            <section class="panel proof-card"><div class="proof-art" aria-hidden="true"><span></span><span></span><span></span><i>◇</i></div><div><span class="eyebrow">SELECTIVE DISCLOSURE</span><h3>Prove facts.<br>Reveal nothing else.</h3><p>Issue a time-bound proof to one named reader without exposing your account history.</p><button class="text-button" type="button" data-open="proof-dialog">Generate a proof <span>→</span></button></div></section>
-          </aside>
-        </div>
-        <div class="prototype-note"><span>i</span><p><strong>Private test environment.</strong> This build uses local demo records while settlement and proving adapters are connected. No funds move from this interface yet.</p></div>
-      </section>
-
-      <section class="view" id="payments" data-page="payments">
-        <div class="page-heading"><div><span class="eyebrow">MOVEMENT LEDGER</span><h2>Private payments</h2><p>Payment intent details are visible only to authorized participants.</p></div><button class="button primary" type="button" data-open="send-dialog">New payment ↗</button></div>
-        <section class="panel table-panel"><div class="filter-row"><button class="chip active">All</button><button class="chip">Sent</button><button class="chip">Received</button><span></span><label>Search <input id="payment-search" type="search" placeholder="Counterparty or reference"></label></div><div class="payment-table" id="payment-table"></div></section>
-      </section>
-
-      <section class="view" id="proofs" data-page="proofs">
-        <div class="page-heading"><div><span class="eyebrow">SELECTIVE DISCLOSURE</span><h2>Proofs</h2><p>Share one verifiable fact with one reader for a limited time.</p></div><button class="button primary" type="button" data-open="proof-dialog">Create proof ◇</button></div>
-        <div class="stat-grid"><div class="mini-stat"><span>ACTIVE PROOFS</span><strong id="active-proof-count">2</strong><small>Across two readers</small></div><div class="mini-stat"><span>EXPIRING SOON</span><strong>1</strong><small>Within 24 hours</small></div><div class="mini-stat"><span>REVOKED THIS MONTH</span><strong>3</strong><small>Immediately invalidated</small></div></div>
-        <section class="panel proof-list-panel"><div class="panel-head"><div><span class="eyebrow">ISSUED PROOFS</span><h3>Access registry</h3></div><span class="legend"><i></i> Live status</span></div><div id="proof-list"></div></section>
-      </section>
-
-      <section class="view" id="policies" data-page="policies">
-        <div class="page-heading"><div><span class="eyebrow">PROGRAMMABLE RAILS</span><h2>Agent policies</h2><p>Hard limits are evaluated before an agent can create a settlement intent.</p></div><button class="button secondary" type="button" id="simulate-button">Simulate payment</button></div>
-        <div class="policy-layout"><section class="panel policy-editor"><div class="panel-head"><div><span class="eyebrow">ACTIVE POLICY</span><h3>Operator One</h3></div><label class="switch"><input type="checkbox" checked><span></span></label></div><div class="form-grid"><label>Daily spending cap <span class="input-prefix">$</span><input type="number" value="2500"></label><label>Per-payment limit <span class="input-prefix">$</span><input type="number" value="500"></label><label>Approval threshold <span class="input-prefix">$</span><input type="number" value="400"></label><label>Proof expiry maximum <input type="number" value="60"><span class="input-suffix">min</span></label></div><div class="counterparty-block"><span class="field-label">APPROVED COUNTERPARTIES</span><div class="tag-list"><span>compute.near <button aria-label="Remove compute.near">×</button></span><span>storage.near <button aria-label="Remove storage.near">×</button></span><span>payroll.near <button aria-label="Remove payroll.near">×</button></span><button class="add-tag">+ Add</button></div></div><button class="button primary" id="save-policy" type="button">Save policy</button></section><aside class="panel policy-audit"><span class="eyebrow">ENFORCEMENT</span><h3>Every action is checked.</h3><div class="audit-flow"><div><i>1</i><span><strong>Intent requested</strong><small>Agent proposes an action</small></span></div><div><i>2</i><span><strong>Policy evaluated</strong><small>Limits and counterparty checked</small></span></div><div><i>3</i><span><strong>Approval collected</strong><small>When the threshold applies</small></span></div><div><i>4</i><span><strong>Settlement submitted</strong><small>Adapter signs the approved intent</small></span></div></div></aside></div>
-      </section>
-    </main>
-  </div>
-
-  <dialog id="send-dialog"><form method="dialog" class="dialog-card" id="send-form"><button class="dialog-close" value="cancel" aria-label="Close">×</button><span class="eyebrow">PRIVATE PAYMENT</span><h2>Create payment intent</h2><p>Scrim checks the active policy before preparing settlement.</p><label>Counterparty<select name="counterparty" required><option value="compute.near">compute.near</option><option value="storage.near">storage.near</option><option value="payroll.near">payroll.near</option><option value="unapproved.near">unapproved.near</option></select></label><label>Amount<div class="amount-input"><span>$</span><input name="amount" type="number" min="0.01" step="0.01" value="120.00" required><b>USDC</b></div></label><label>Private memo<input name="memo" maxlength="80" value="Inference services — October"></label><div class="policy-result" id="policy-result"><span>✓</span><div><strong>Policy check passed</strong><small>Approved counterparty · within daily limit</small></div></div><button class="button primary full" type="submit">Prepare private payment ↗</button><small class="dialog-foot">Creates a local demo intent. Settlement adapter is not active.</small></form></dialog>
-
-  <dialog id="proof-dialog"><form method="dialog" class="dialog-card" id="proof-form"><button class="dialog-close" value="cancel" aria-label="Close">×</button><span class="eyebrow">SELECTIVE DISCLOSURE</span><h2>Create an expiring proof</h2><p>Only the chosen fact is disclosed to the named reader.</p><label>Fact to prove<select name="type"><option value="balance">Balance is above a threshold</option><option value="payment">A payment was made</option><option value="payroll">Payroll total matches an amount</option><option value="agent-limit">Agent stayed inside its limit</option></select></label><label>Statement<input name="fact" value="Private balance is above $100,000" required></label><label>Named reader<input name="reader" placeholder="audit.near" value="audit.near" required></label><label>Expires in<div class="range-row"><input name="expires" type="range" min="5" max="120" value="30" step="5"><output id="expiry-output">30 minutes</output></div></label><button class="button primary full" type="submit">Generate proof ◇</button><small class="dialog-foot">Proof records are simulated locally in this build.</small></form></dialog>
-
-  <div class="toast" role="status" aria-live="polite"><span>✓</span><div><strong id="toast-title">Saved</strong><small id="toast-message">Your changes are active.</small></div></div>
-  <script type="module" src="./app.js"></script>
+  <div class="announcement"><span></span> Built for private treasuries on NEAR <a href="#architecture">Explore the architecture →</a></div>
+  <header class="site-header"><a class="wordmark" href="/" aria-label="Scrim home"><img src="./scrim-logo.jpg" alt=""><strong>scrim</strong></a><button class="menu-button" aria-label="Toggle navigation" aria-expanded="false">Menu</button><nav><a href="#product">Product</a><a href="#proofs">Proofs</a><a href="#agents">Agent rails</a><a href="#architecture">Architecture</a></nav><a class="nav-cta" href="/app">Open console <span>↗</span></a></header>
+  <main>
+    <section class="hero"><div class="hero-copy reveal"><div class="kicker"><i></i> Private by default. Provable by choice.</div><h1>Your money<br>doesn’t need an<br><em>audience.</em></h1><p>Scrim gives people, teams, and AI agents a private treasury across chains. Move value quietly. Prove one fact when needed. Let the proof expire.</p><div class="hero-actions"><a class="button primary" href="/app">Enter the console <span>↗</span></a><a class="button quiet" href="#how">See how it works <span>↓</span></a></div><div class="hero-foot"><div><b>01</b><span>Shielded<br>balances</span></div><div><b>02</b><span>Intent-based<br>settlement</span></div><div><b>03</b><span>Expiring<br>proofs</span></div></div></div>
+      <div class="hero-stage reveal" aria-label="Scrim private treasury preview"><div class="orbital orbital-one"></div><div class="orbital orbital-two"></div><img class="hero-mark" src="./scrim-logo.jpg" alt="Scrim mark"><div class="float-card treasury-card"><div class="card-top"><span>PRIVATE TREASURY</span><i>LIVE</i></div><div class="private-total" data-private-balance>$ 124,860.42</div><div class="balance-meta"><span>4 shielded assets</span><button data-balance-toggle>Hide balance</button></div><div class="mini-assets"><span><i>N</i>NEAR <b>$56.4K</b></span><span><i>$</i>USDC <b>$42.1K</b></span></div></div><div class="float-card proof-chip"><i>◇</i><span><b>Proof accepted</b><small>audit.near · expires in 28m</small></span></div><div class="float-card route-chip"><span>NEAR</span><i>→</i><span>ETH</span><b>settled</b></div></div>
+    </section>
+    <section class="manifesto-strip"><div>ONE TREASURY</div><i></i><div>ANY CHAIN</div><i></i><div>NO PERMANENT DISCLOSURE</div></section>
+    <section class="problem section" id="how"><div class="section-intro reveal"><span class="section-no">01 / THE PROBLEM</span><h2>Public settlement shouldn’t mean public finances.</h2><p>Every visible balance becomes a negotiation disadvantage. Every supplier payment exposes a business relationship. Every agent transaction maps a strategy.</p></div><div class="exposure-demo reveal"><div class="demo-head"><span>PAYMENT VIEW</span><div class="segmented"><button class="active" data-ledger-view="public">Public explorer</button><button data-ledger-view="scrim">Through Scrim</button></div></div><div class="ledger" data-ledger><div class="ledger-row header"><span>FROM</span><span>TO</span><span>AMOUNT</span><span>PURPOSE</span></div><div class="ledger-row"><span>alex.near</span><span>model-lab.near</span><strong>$12,400</strong><span>Model training</span></div><div class="ledger-row"><span>alex.near</span><span>team.near</span><strong>$38,600</strong><span>October payroll</span></div><div class="ledger-row"><span>alex.near</span><span>vendor-08.near</span><strong>$7,250</strong><span>Infrastructure</span></div></div><div class="demo-caption"><span data-demo-status>Everything is visible forever.</span><small>Toggle the view to see the settlement footprint.</small></div></div></section>
+    <section class="product section" id="product"><div class="section-intro wide reveal"><span class="section-no">02 / THE PRODUCT</span><h2>Privacy that moves with the money.</h2><p>Scrim separates private state from public settlement. The result is a treasury that can cross chains without publishing the full story.</p></div><div class="pillar-grid"><article class="pillar reveal"><span class="pillar-number">A</span><div class="pillar-visual shield-visual"><div class="rings"><i></i><i></i><i></i><b>$</b></div></div><h3>Hold privately</h3><p>Balances stay in a shielded environment, visible to the owner and nobody else by default.</p><a href="/app">View the treasury →</a></article><article class="pillar reveal"><span class="pillar-number">B</span><div class="pillar-visual route-visual"><span>BTC</span><i></i><strong>N</strong><i></i><span>ETH</span><small>Intent fulfilled</small></div><h3>Settle anywhere</h3><p>NEAR Intents coordinates the outcome. Chain Signatures authorize the destination transaction.</p><a href="#architecture">Follow the route →</a></article><article class="pillar reveal"><span class="pillar-number">C</span><div class="pillar-visual proof-visual"><div><span>FOR</span><b>audit.near</b></div><div><span>FACT</span><b>Balance ≥ $100K</b></div><small><i></i> Expires in 28:14</small></div><h3>Prove selectively</h3><p>Show one named reader one specific fact. The proof carries its own expiration.</p><a href="#proofs">Explore proofs →</a></article></div></section>
+    <section class="proof-section section" id="proofs"><div class="proof-copy reveal"><span class="section-no light">03 / SELECTIVE DISCLOSURE</span><h2>Tell them exactly enough.</h2><p>Auditors, counterparties, lenders, and teams rarely need your entire financial history. Scrim produces a short-lived proof for one reader and one purpose.</p><ul><li><span>01</span>A payment was made</li><li><span>02</span>A balance exceeds a threshold</li><li><span>03</span>A payroll batch matches a total</li><li><span>04</span>An agent stayed inside its limit</li></ul></div><div class="proof-builder reveal"><div class="builder-head"><span>CREATE A PROOF</span><i>LOCAL PREVIEW</i></div><label>Fact to disclose<select><option>Balance is above a threshold</option><option>A payment was made</option><option>Agent stayed inside its limit</option></select></label><label>Named reader<input value="audit.near" aria-label="Named proof reader"></label><label>Expires after<div class="expiry-control"><input type="range" min="5" max="120" value="30" step="5" data-proof-range><output data-proof-output>30 minutes</output></div></label><div class="proof-result"><div class="seal">◇</div><span><small>PROOF STATEMENT</small><b>Private balance is above $100,000</b><em>Only audit.near · expires automatically</em></span></div><a class="button orange" href="/app#proofs">Create in console <span>↗</span></a></div></section>
+    <section class="agents section" id="agents"><div class="agents-stage reveal"><div class="agent-console"><div class="console-bar"><span>operator-one / policy.json</span><i></i><i></i><i></i></div><pre><code><span>{</span>
+  <em>"daily_cap"</em>: <b>2500</b>,
+  <em>"per_payment"</em>: <b>500</b>,
+  <em>"approved"</em>: [
+    <strong>"compute.near"</strong>,
+    <strong>"storage.near"</strong>
+  ],
+  <em>"proof_expiry_max"</em>: <b>60</b>
+<span>}</span></code></pre><div class="agent-event"><span>09:42:18</span><b>PAY 120 USDC → compute.near</b><i>ALLOWED</i></div><div class="agent-event blocked"><span>09:44:02</span><b>PAY 820 USDC → unknown.near</b><i>BLOCKED</i></div></div></div><div class="agents-copy reveal"><span class="section-no">04 / AGENT RAILS</span><h2>Give agents a budget.<br>Never a blank check.</h2><p>Every agent action is evaluated before settlement. Limits are hard, counterparties are explicit, and proof permissions are constrained by policy.</p><div class="rule-cards"><div><b>Spending caps</b><span>Per action and per day</span></div><div><b>Allowlisted payees</b><span>Named counterparties only</span></div><div><b>Approval gates</b><span>Human review over a threshold</span></div><div><b>Proof controls</b><span>Who, what, and for how long</span></div></div><a class="button dark" href="/app#policies">Open agent controls <span>↗</span></a></div></section>
+    <section class="teams section"><div class="section-intro wide reveal"><span class="section-no">05 / FOR TEAMS</span><h2>A treasury can be private<br>and still accountable.</h2></div><div class="team-grid"><article class="reveal"><span>APPROVALS</span><h3>More than one key for consequential moves.</h3><div class="approvers"><i>A</i><i>M</i><i>J</i><b>2 of 3 required</b></div></article><article class="reveal"><span>PAYROLL</span><h3>One batch. Individual amounts stay concealed.</h3><div class="payroll-mini"><b>October payroll</b><span>24 recipients</span><strong>$182,400 <i>approved</i></strong></div></article><article class="reveal"><span>AUDIT</span><h3>Export what the auditor needs, when they need it.</h3><div class="export-mini"><span>Q4 treasury report</span><b>Encrypted export</b><i>↓</i></div></article></div></section>
+    <section class="architecture section" id="architecture"><div class="section-intro reveal"><span class="section-no light">06 / ARCHITECTURE</span><h2>One private state.<br>Many settlement paths.</h2><p>Scrim is designed around NEAR’s chain abstraction stack, with each layer doing one job and exposing the minimum necessary information.</p></div><div class="architecture-map reveal"><div class="arch-node owner"><span>01</span><b>Owner or agent</b><small>Creates an approved payment intent</small></div><i>→</i><div class="arch-node policy"><span>02</span><b>Policy engine</b><small>Checks limits and approvals</small></div><i>→</i><div class="arch-node near"><span>03</span><b>NEAR Intents</b><small>Coordinates the outcome</small></div><i>→</i><div class="arch-node chain"><span>04</span><b>Chain Signatures</b><small>Authorizes destination settlement</small></div><div class="privacy-line"><span>PRIVATE STATE</span><i></i><span>MINIMAL PUBLIC SETTLEMENT</span></div></div></section>
+    <section class="trust section"><div class="trust-title reveal"><span class="section-no">07 / TRUST MODEL</span><h2>Privacy starts with<br>who never gets the key.</h2></div><div class="trust-list reveal"><div><span>01</span><h3>User-held keys</h3><p>Device-side or approved TEE-assisted proving keeps custody with the owner.</p></div><div><span>02</span><h3>Hard expiry</h3><p>Every disclosure proof stops verifying after its stated time.</p></div><div><span>03</span><h3>Bound readers</h3><p>A proof names its intended reader. Changing the reader invalidates it.</p></div><div><span>04</span><h3>Minimal footprint</h3><p>Public settlement records reveal only what execution requires.</p></div></div></section>
+    <section class="final-cta"><img src="./scrim-logo.jpg" alt="" class="cta-logo"><span>YOUR TREASURY DOESN’T NEED TO PERFORM IN PUBLIC.</span><h2>Move privately.<br>Prove precisely.</h2><a class="button primary" href="/app">Enter the console <span>↗</span></a></section>
+  </main>
+  <footer><div class="footer-main"><a class="wordmark" href="/"><img src="./scrim-logo.jpg" alt=""><strong>scrim</strong></a><p>Private payment and treasury infrastructure for people, teams, and autonomous agents.</p></div><div><span>PRODUCT</span><a href="/app">Console</a><a href="#proofs">Proofs</a><a href="#agents">Agent rails</a></div><div><span>BUILD</span><a href="#architecture">Architecture</a><a href="https://github.com/Datwebguy/scrim">GitHub</a><a href="https://docs.near.org">NEAR docs</a></div><div><span>STATUS</span><p><i class="online"></i> Prototype online</p><small>Settlement and cryptographic proving adapters are under active development.</small></div><div class="footer-bottom"><span>© 2026 Scrim</span><span>Private by default · Provable by choice</span></div></footer>
+  <script type="module" src="./home.js"></script>
 </body>
 </html>

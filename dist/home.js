@@ -1,0 +1,6 @@
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const menu=$(".menu-button");menu.addEventListener("click",()=>{const open=$(".site-header").classList.toggle("open");menu.setAttribute("aria-expanded",String(open))});$$('.site-header nav a').forEach(a=>a.addEventListener('click',()=>$('.site-header').classList.remove('open')));
+$('[data-balance-toggle]').addEventListener('click',e=>{const b=$('[data-private-balance]'),h=b.dataset.hidden==='true';b.textContent=h?'$ 124,860.42':'$ •••,•••.••';b.dataset.hidden=String(!h);e.currentTarget.textContent=h?'Hide balance':'Reveal locally'});
+$$('[data-ledger-view]').forEach(button=>button.addEventListener('click',()=>{$$('[data-ledger-view]').forEach(i=>i.classList.toggle('active',i===button));const p=button.dataset.ledgerView==='scrim';$('[data-ledger]').classList.toggle('sealed',p);$('[data-demo-status]').textContent=p?'The chain sees settlement. The details stay sealed.':'Everything is visible forever.'}));
+$('[data-proof-range]').addEventListener('input',e=>$('[data-proof-output]').textContent=`${e.target.value} minutes`);
+const observer=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:.12});$$('.reveal').forEach(e=>observer.observe(e));

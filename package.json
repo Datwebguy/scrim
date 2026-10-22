@@ -3,13 +3,35 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24" },
-  "workspaces": ["apps/api", "apps/worker", "packages/protocol", "packages/auth", "packages/storage", "packages/settlement", "packages/proving"],
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "apps/api",
+    "apps/worker",
+    "packages/protocol",
+    "packages/auth",
+    "packages/storage",
+    "packages/settlement",
+    "packages/proving"
+  ],
   "dependencies": {
     "@vercel/blob": "^2.1.1",
     "pg": "8.16.3"
   },
+  "devDependencies": {
+    "@meteorwallet/sdk": "3.24.0",
+    "@near-js/transactions": "2.2.5",
+    "buffer": "6.0.3",
+    "esbuild": "0.25.12",
+    "fflate": "0.8.3",
+    "util": "0.12.5"
+  },
+  "overrides": {
+    "nanoid": "5.1.16"
+  },
   "scripts": {
+    "build:release": "node scripts/build-release.mjs",
     "test": "node --test tests/*.test.js tests/backend/*.test.mjs",
     "test:contract": "cargo test --manifest-path contracts/treasury-policy/Cargo.toml",
     "db:migrate": "node scripts/migrate.mjs",

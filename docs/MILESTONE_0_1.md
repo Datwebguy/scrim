@@ -43,6 +43,8 @@ Observed local run: 27 authorization/encoding/RPC/session tests, 7 HTTP/contract
 - Testnet transaction/contract integration verification is pending. Milestone 1 is not release-complete until contract compilation, tests, deployment, and a real wallet round trip pass.
 - First observed CI run on commit `e57b4241c40b1b65ac01d6bc8f90b474895ac251`: real Postgres migration and concurrency/rollback integration test passed; Rust contract unit tests passed. WASM build was still running at that observation. Later revisions must be checked independently.
 - Confirmed CI on `af89a8f610a90ce2942ab45bb2537e3b795015cb`: backend, real Postgres concurrency tests, Rust unit tests, and WASM artifact build all passed in run `39835126480`. See `TESTNET_RELEASE.md` for the subsequent self-signer guard and unsigned artifact review procedure.
+- Confirmed CI on `2fdd59a5dcf0252e007cb264a3986310cfe0bb58`: all 43 JavaScript tests, real Postgres integration, nine Rust tests, and WASM compilation passed in run `39837763837`. The constructor now requires contract-account transaction authority and rejects the contract as a governance signer. Both supplied accounts were subsequently funded with four test NEAR; signing remains human-only.
+- Browser release preparation adds `/release/` with hash-verified local WASM/ZIP loading, exact account/config review, Meteor desktop/mobile connection paths, explicit wallet approval, and final-state verification. Fifty JavaScript tests and local Chromium checks at 390px/1440px passed. Actual user wallet approval and testnet deployment are still pending; this page does not complete the authenticated backend round trip.
 
 ## Deviations and limits
 

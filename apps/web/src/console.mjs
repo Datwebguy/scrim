@@ -1,5 +1,6 @@
 let walletModule;
 const meteorWallet = async () => walletModule ??= await import('./wallet.mjs');
+const warmMeteor = () => meteorWallet().then(wallet => wallet.prepareMeteorConnection()).catch(() => {});
 
 const $ = selector => document.querySelector(selector);
 const escaped = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -81,20 +82,28 @@ function render() {
   closeNav();
 }
 async function connect() {
-  if (!serviceReady()) throw Error('The testnet service is still starting. Try again in a moment.');
   state.walletOpening=true;
   try {
-    const { connectMeteor, signMeteorChallenge } = await meteorWallet();
+    // `connectMeteor()` immediately prompts a pre-created action. Do not await before this call:
+    // mobile browsers require the wallet opening to originate from the user's tap.
+    const walletPromise = walletModule?.openPreparedMeteorConnection?.();
+    if (!walletPromise) throw Error('Meteor is getting ready. Please try again in a moment.');
     state.progress='Choose Meteor Mobile or Meteor Web in the secure wallet window.'; render();
-    const wallet = await connectMeteor();
+    const wallet = await walletPromise;
     state.progress='Confirm the secure sign-in message in Meteor.'; render();
+    const { signMeteorChallenge } = await meteorWallet();
     const challenge = await api('/api/v1/auth/challenge',{ method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accountId:wallet.identifier.accountId}) });
     const signed = await signMeteorChallenge(wallet,challenge);
     const result = await api('/api/v1/auth/verify',{ method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:challenge.id,state:challenge.state,signed}) });
     state.wallet = wallet; state.session = result; state.csrf = result.csrf;
     sessionStorage.setItem('scrim-auth-csrf',JSON.stringify({accountId:result.accountId,csrf:result.csrf,expiresAt:result.expiresAt}));
     state.treasuries = (await api('/api/v1/treasuries')).treasuries;
-  } finally { state.walletOpening=false; }
+  } finally {
+    state.walletOpening=false;
+    // A Meteor action is consumed once it is opened. Prepare the next one after
+    // completion or cancellation so a second tap always has a fresh action.
+    void warmMeteor();
+  }
 }
 async function createIntent() {
   if (!state.session || !state.csrf || !state.contract) throw Error('Connect the owner wallet first.');
@@ -136,6 +145,9 @@ $('#drawer-backdrop').addEventListener('click',closeNav);
 document.addEventListener('keydown',event=>{ if(event.key==='Escape') closeNav(); });
 window.addEventListener('hashchange',render);
 render();
+// Begin preparing Meteor immediately. This never opens a wallet; it only makes the later wallet
+// request start inside the user's tap, which mobile browsers require for the deep link.
+void warmMeteor();
 await run(async()=>{
   state.contractId=sessionStorage.getItem('scrim-testnet-contract') || '';
   try { state.health=await api('/api/health'); } catch { state.health=null; }

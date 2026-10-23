@@ -115,6 +115,7 @@ await run(async()=>{
     const session=await api('/api/v1/auth/session');
     const saved=JSON.parse(sessionStorage.getItem('scrim-auth-csrf') || 'null');
     const { currentMeteorAccount } = await meteorWallet();
+    const wallet=await currentMeteorAccount();
     if (wallet?.identifier?.accountId===session.accountId) {
       state.wallet=wallet; state.session={...session,csrf:saved?.accountId===session.accountId?saved.csrf:null};
       state.csrf=state.session.csrf;

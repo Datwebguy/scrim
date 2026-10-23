@@ -21,8 +21,7 @@ export async function meteor() {
 export async function connectMeteor() {
   const sdk = await meteor();
   const action = await sdk.createAction({ id: 'near::sign_in', input: { target: { blockchain: 'near', network: 'testnet' } } });
-  await action.promptForExecution();
-  const account = await sdk.getAccount({ blockchain: 'near', network: 'testnet' });
+  const account = await action.promptForExecution();
   if (!account?.identifier?.accountId) throw Error('Meteor did not return a testnet account.');
   return account;
 }

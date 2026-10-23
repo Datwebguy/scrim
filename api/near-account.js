@@ -12,7 +12,7 @@ export default async function handler(request, response) {
   }
 
   try {
-    const upstream = await fetch('https://rpc.mainnet.near.org', {
+    const upstream = await fetch('https://rpc.testnet.near.org', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -23,9 +23,9 @@ export default async function handler(request, response) {
       }),
     });
     const payload = await upstream.json();
-    if (payload.error) return response.status(404).json({ error: 'Account was not found on NEAR mainnet.' });
-    return response.status(200).json({ accountId, exists: true, blockHeight: payload.result?.block_height });
+    if (payload.error) return response.status(404).json({ error: 'Account was not found on NEAR testnet.' });
+    return response.status(200).json({ accountId, exists: true, network: 'testnet', blockHeight: payload.result?.block_height });
   } catch {
-    return response.status(503).json({ error: 'NEAR mainnet is temporarily unavailable. Try again shortly.' });
+    return response.status(503).json({ error: 'NEAR testnet is temporarily unavailable. Try again shortly.' });
   }
 }

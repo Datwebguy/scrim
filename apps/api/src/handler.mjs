@@ -18,7 +18,8 @@ export function makeHandler(getRuntime) {
       }
       const body=req.body??{}, jar=cookies(req), sessionToken=jar[sessionCookie], csrf=req.headers['x-csrf-token'];
       // Vercel owns x-forwarded-for on hosted requests; local execution uses socket address.
-      const ip=process.env.VERCEL ? String(req.headers['x-forwarded-for']??'unknown').split(',')[0].trim() : req.socket?.remoteAddress??'local';
+      const ip=process.env.SCRIM_PROXY_SECRET ? String(req.headers['x-scrim-client-ip']??'unknown').split(',')[0].trim() :
+        process.env.VERCEL ? String(req.headers['x-forwarded-for']??'unknown').split(',')[0].trim() : req.socket?.remoteAddress??'local';
       await rt.limiter(hash(ip),60,60);
       if(path==='/api/v1/auth/challenge' && req.method==='POST') {
         if(body.purpose && body.purpose!=='session') requireThat(typeof csrf==='string','csrf_required',403);

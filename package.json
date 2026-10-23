@@ -16,8 +16,13 @@
     "packages/proving"
   ],
   "dependencies": {
+    "@meteorwallet/sdk": "^3.24.0",
     "@vercel/blob": "^2.1.1",
-    "pg": "8.16.3"
+    "buffer": "^6.0.3",
+    "near-api-js": "^6.5.1",
+    "pg": "8.16.3",
+    "redis": "^5.12.1",
+    "util": "^0.12.5"
   },
   "devDependencies": {
     "@near-js/accounts": "2.2.5",
@@ -27,8 +32,15 @@
     "esbuild": "0.25.12",
     "fflate": "0.8.3"
   },
+  "overrides": {
+    "@meteorwallet/sdk": {
+      "nanoid": "5.1.16",
+      "decode-uri-component": "0.5.0"
+    }
+  },
   "scripts": {
-    "build:release": "node scripts/build-release.mjs",
+    "build:release": "node scripts/build-release.mjs && node scripts/build-web.mjs",
+    "start": "node scripts/migrate.mjs && node apps/api/src/server.mjs",
     "test": "node --test tests/*.test.js tests/backend/*.test.mjs",
     "test:contract": "cargo test --manifest-path contracts/treasury-policy/Cargo.toml",
     "db:migrate": "node scripts/migrate.mjs",

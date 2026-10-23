@@ -34,10 +34,6 @@ export async function prepareConfig(contract, owner) {
   const configHash = await commitment(config);
   return {config, configHash, initArgs:{kind:'individual',signer_accounts:[owner],threshold:1,policy_commitment:config.policyCommitment,config_hash:configHash}};
 }
-export function checkWalletAccount(account, contract) {
-  check(account?.identifier?.blockchain === 'near' && account.identifier.network === 'testnet', 'Connect a NEAR testnet account in Meteor.');
-  check(account.identifier.accountId === contract, 'Switch Meteor to the deployment account shown above, then connect again.');
-}
 export async function rpc(method, params, transport = fetch) {
   const response = await transport('https://rpc.testnet.near.org', {
     method:'POST', headers:{'Content-Type':'application/json'},

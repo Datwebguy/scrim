@@ -11,8 +11,8 @@
   <header><a href="/" class="wordmark"><img src="/scrim-logo.jpg" alt="" width="32" height="32">scrim</a><span class="network">NEAR TESTNET</span></header>
   <main>
     <p class="eyebrow">DEPLOYMENT · MILESTONE 1</p>
-    <h1>Review. Connect.<br><em>Release with your wallet.</em></h1>
-    <p class="intro">Deploy the treasury configuration contract with a distinct owner. The same review works on mobile and desktop. Meteor holds your keys and asks you to approve the transaction.</p>
+    <h1>Review the build.<br><em>Sign on your device.</em></h1>
+    <p class="intro">Review the treasury configuration contract and its distinct owner on mobile or desktop. Sign the reviewed deployment directly from a device you control.</p>
     <aside>This release manages treasury configuration and approvals. Payment execution is not enabled.</aside>
     <section aria-labelledby="accounts-title">
       <div class="section-label">01 / ACCOUNTS</div><h2 id="accounts-title">Separate deployment from ownership.</h2>
@@ -34,16 +34,12 @@
       <p>No transfers or access-key removal actions are included. Code storage and transaction fees use test NEAR. Keep at least 4 test NEAR in the deployment account.</p>
       <button id="review" type="button">Check accounts &amp; review configuration</button>
       <pre id="review-output" hidden></pre>
-      <label class="consent"><input type="checkbox" id="consent" disabled><span>I reviewed the accounts and initialization arguments. I want to deploy this configuration contract on NEAR testnet.</span></label>
     </section>
     <section aria-labelledby="sign-title">
-      <div class="section-label">04 / METEOR APPROVAL</div><h2 id="sign-title">Your approval stays in Meteor.</h2>
-      <p>Connect the deployment account. On a phone, use Meteor Web or the mobile option when available. On desktop, use Meteor Web or the extension.</p>
-      <div class="button-row"><button id="connect" type="button" disabled>Connect Meteor</button><button id="prepare" type="button" disabled>Prepare wallet request</button><button id="sign" type="button" disabled>Review &amp; approve in Meteor</button></div>
-      <p id="wallet-status" class="muted">Loading Meteor…</p>
+      <div class="section-label">04 / OWNER SIGNING</div><h2 id="sign-title">Sign directly from your own device.</h2>
+      <p>Meteor Wallet blocks contract deployment requested by apps. Its approval screen will not allow this transaction. The reviewed contract must be signed directly by the deployment account, using the <a href="https://github.com/Datwebguy/scrim/blob/backend/milestones-0-1/docs/DIRECT_TESTNET_DEPLOYMENT.md" target="_blank" rel="noopener noreferrer">direct deployment instructions</a> on a phone or desktop that you control. Never enter a recovery phrase or private key into this page or send it to anyone.</p>
       <button id="verify" class="secondary" type="button">Verify deployment on testnet</button>
       <p id="status" role="status" aria-live="polite">Start by entering the two account IDs.</p>
-      <p id="transaction" class="muted"></p>
     </section>
     <footer>After deployment, owner governance, access-key lockdown, and the authenticated backend round trip still need verification. <a href="https://github.com/Datwebguy/scrim/pull/1" target="_blank" rel="noopener noreferrer">Review the backend changes</a></footer>
   </main>

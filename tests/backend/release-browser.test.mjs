@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { prepareConfig, validateAccounts, checkWalletAccount, verifyArtifact, matchDeployedConfig, inspectAccounts, requireUndeployed, release } from '../../apps/release/core.mjs';
+import { prepareConfig, validateAccounts, verifyArtifact, matchDeployedConfig, inspectAccounts, requireUndeployed, release } from '../../apps/release/core.mjs';
 import { treasuryConfig, commitment } from '../../packages/protocol/src/index.mjs';
 
 const contract = 'deploy-fixture.testnet', owner = 'owner-fixture.testnet';
@@ -16,12 +16,6 @@ test('browser release rejects mainnet, malformed, and reused account roles', () 
   assert.throws(() => validateAccounts('deploy.near', owner));
   assert.throws(() => validateAccounts(contract, contract));
   assert.throws(() => validateAccounts('UPPER.testnet', owner));
-});
-test('wallet identity must match both the deployment account and testnet', () => {
-  const account = {identifier:{blockchain:'near',network:'testnet',accountId:contract}};
-  assert.doesNotThrow(() => checkWalletAccount(account, contract));
-  assert.throws(() => checkWalletAccount(account, owner));
-  assert.throws(() => checkWalletAccount({identifier:{...account.identifier,network:'mainnet'}}, contract));
 });
 test('unreviewed WASM fails even when its length and magic header match', async () => {
   const bytes = new Uint8Array(release.byteLength); bytes.set([0,97,115,109,1,0,0,0]);

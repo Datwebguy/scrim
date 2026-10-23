@@ -9,8 +9,6 @@ await build({
   format: 'esm',
   target: ['es2022'],
   minify: true,
-  inject: ['apps/release/browser-shim.mjs'],
-  define: { 'process.env.NODE_ENV': '"production"', global: 'globalThis' },
   logLevel: 'info',
 });
 for (const file of ['index.html', 'release.css']) await copyFile(`apps/release/${file}`, `dist/release/${file}`);

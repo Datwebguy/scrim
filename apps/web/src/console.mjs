@@ -1,14 +1,12 @@
-let walletModule;
-const meteorWallet = async () => walletModule ??= await import('./wallet.mjs');
-const warmMeteor = () => meteorWallet().then(wallet => wallet.prepareMeteorConnection()).catch(() => {});
+import { prepareMeteorConnection, openPreparedMeteorConnection, currentMeteorAccount, signMeteorChallenge, disconnectMeteor } from './wallet.mjs';
 
 const $ = selector => document.querySelector(selector);
 const escaped = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const button = (label, action, style = 'primary', disabled = false) => `<button class="button ${style}" type="button" data-action="${action}" ${disabled ? 'disabled' : ''}>${label}</button>`;
 const panel = (content, extra = '') => `<section class="panel panel-pad ${extra}">${content}</section>`;
 const heading = (title, detail = '', actions = '') => `<div class="page-head"><div><h1>${title}</h1>${detail ? `<p>${detail}</p>` : ''}</div><div class="actions">${actions}</div></div>`;
-const navItems = [['overview','Home'],['treasury','Treasury'],['payments','Payments'],['agents','Agents'],['proofs','Proofs'],['settings','Account']];
-const state = { wallet:null, session:null, csrf:null, health:null, contract:null, contractId:'', treasuries:[], busy:false, walletOpening:false, progress:'', error:'' };
+const navItems = [['overview','Home'],['payments','Payments'],['proofs','Proofs'],['agents','Agents'],['team','Team wallet'],['settings','Wallet']];
+const state = { wallet:null, session:null, csrf:null, health:null, contract:null, contractId:'', treasuries:[], busy:false, walletOpening:false, walletReady:false, progress:'', error:'' };
 let view = 'overview';
 
 async function api(path, options = {}) {
@@ -45,34 +43,41 @@ async function readContract(id) {
   sessionStorage.setItem('scrim-testnet-contract', id);
 }
 function connectionCard() {
-  if (state.session) return panel(`<span class="panel-label">CONNECTED</span><h2>${escaped(state.session.accountId)}</h2><p class="muted">Your wallet is connected to this private workspace.</p><div class="actions card-actions"><a class="button primary" href="#treasury">Open treasury</a>${button('Disconnect','disconnect','secondary')}</div>`, 'hero-panel');
-  const label = state.walletOpening ? 'Opening Meteor…' : 'Connect with Meteor';
-  return panel(`<span class="panel-label">PRIVATE WORKSPACE</span><h1>Bring your wallet.</h1><p>Connect with Meteor to review your treasury and sign from your own device.</p><div class="actions card-actions">${button(label,'connect','primary',state.walletOpening)}</div><small class="connection-note">${state.progress || 'Choose Meteor Web to continue in your browser. Choose Meteor Mobile only when you use the installed app.'}</small>`, 'hero-panel');
+  if (state.session) return panel(`<span class="panel-label">CONNECTED</span><h2>${escaped(state.session.accountId)}</h2><p class="muted">Your wallet is connected to this private workspace.</p><div class="actions card-actions"><a class="button primary" href="#payments">Open payments</a>${button('Disconnect','disconnect','secondary')}</div>`, 'hero-panel');
+  const label = state.walletOpening ? 'Opening wallet…' : state.walletReady ? 'Connect wallet' : 'Preparing secure wallet…';
+  return panel(`<span class="panel-label">PRIVATE PAYMENTS</span><h1>Money that stays yours.</h1><p>Connect your wallet to pay privately, set agent limits, and share only the proof someone needs.</p><div class="actions card-actions">${button(label,'connect','primary',state.walletOpening || !state.walletReady)}</div><small class="connection-note">${state.progress || (state.walletReady ? 'Meteor Web continues in this browser. Meteor Mobile is for the installed app.' : 'Getting a secure wallet connection ready…')}</small>`, 'hero-panel');
 }
 function featureCard(title, copy, href, stateLabel) {
   return `<a class="feature-card" href="${href}"><span>${stateLabel}</span><h3>${title}</h3><p>${copy}</p><b>Open →</b></a>`;
 }
 function overview() {
-  const detail = state.session ? 'Private treasury controls, built around your wallet.' : 'Your wallet stays in your hands.';
-  return heading('Welcome to Scrim.', detail) + connectionCard() + `<div class="feature-grid">${featureCard('Treasury','Review the contract that governs your workspace.','#treasury','AVAILABLE')}${featureCard('Payments','Cross-chain private settlement is being connected.','#payments','NEXT')}${featureCard('Agents','Set clear limits before an agent can act.','#agents','NEXT')}</div>`;
+  const detail = state.session ? 'Start with a payment, a proof, or an agent policy.' : 'Your private key stays in your wallet.';
+  return heading('Private money, with control.', detail) + connectionCard() + `<div class="feature-grid">${featureCard('Payments','Move USDC without making your counterparties and amount public.','#payments','PAY')}${featureCard('Proofs','Share a receipt, solvency check, or payroll total with one reader.','#proofs','PROVE')}${featureCard('Agents','Give an agent a cap and approved payees before it can act.','#agents','CONTROL')}</div>`;
 }
-function treasury() {
+function team() {
   const contract = state.contract;
   const canSign = state.session && contract?.config.signer_accounts.includes(state.session.accountId);
   const pending = state.treasuries.filter(t => t.status === 'awaiting_chain_confirmation').length;
-  const intro = contract ? 'This is the policy currently found on testnet.' : 'Start by checking the contract that will govern this workspace.';
-  return heading('Treasury', intro) +
-    panel(`<form id="contract-form" class="contract-form"><label class="field">Treasury contract<input name="contractId" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="scrim.testnet" value="${escaped(state.contractId)}" required></label><button class="button primary" type="submit">Review contract</button></form>`) +
+  const intro = contract ? 'These are the approval rules currently found on testnet.' : 'Use this space when more than one person must approve a payment.';
+  return heading('Team wallet', intro) +
+    panel(`<form id="contract-form" class="contract-form"><label class="field">Team wallet contract<input name="contractId" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="scrim.testnet" value="${escaped(state.contractId)}" required></label><button class="button primary" type="submit">Check approval rules</button></form>`) +
     (contract ? panel(`<span class="panel-label">${escaped(contract.accountId)}</span><h2>${contract.config.threshold}-of-${contract.config.signer_accounts.length} approval</h2><div class="detail-list"><div><span>Owners</span><b>${escaped(contract.config.signer_accounts.join(', '))}</b></div><div><span>Policy</span><b>Version ${escaped(contract.policyVersion)}</b></div><div><span>Activation</span><b>${contract.accessKeyCount ? 'Needs final setup' : 'Ready to confirm'}</b></div></div>${canSign ? `<div class="actions">${button(state.busy ? 'Preparing…' : 'Confirm this policy','create-intent','primary',state.busy)}</div>` : '<p class="muted">Connect the owner wallet to confirm this policy.</p>'}`) : panel('<h2>No contract selected</h2><p class="muted">Enter your testnet contract above to continue.</p>')) +
     (pending ? panel(`<span class="panel-label">PENDING</span><h2>${pending} policy confirmation${pending === 1 ? '' : 's'}</h2><p class="muted">A signed policy is waiting for its final on-chain check.</p>`) : '');
 }
-function comingSoon(title, copy) {
-  return heading(title, copy) + panel(`<span class="panel-label">IN PROGRESS</span><h2>${title} are not enabled yet.</h2><p class="muted">Scrim will only show this control when the enforcement behind it is live on testnet.</p>`);
+function payments() {
+  return heading('Payments', 'Private USDC settlement from NEAR to Base starts here.') + panel(`<span class="panel-label">PRIVATE SETTLEMENT</span><h2>Send without publishing the details.</h2><p class="muted">Connect a wallet first. Scrim will show a payment form only when its private settlement path is live on testnet.</p>`);
+}
+function proofs() {
+  return heading('Proofs', 'Disclose one fact to one named reader, then let it expire.') + panel(`<span class="panel-label">SELECTIVE DISCLOSURE</span><h2>Share what is necessary.</h2><p class="muted">Receipt, solvency, and payroll-total proofs will be generated on your device and bound to the reader and expiry.</p>`);
+}
+function agents() {
+  return heading('Agents', 'Give an agent a defined job, a spending cap, and approved payees.') + panel(`<span class="panel-label">AGENT CONTROLS</span><h2>Agents begin by asking.</h2><p class="muted">Every agent starts in request-only mode. Autonomous payments require an explicit opt-in and remain inside its cap and payee list.</p>`);
 }
 function settings() {
-  return heading('Account', state.session ? 'Your current workspace connection.' : 'Connect a wallet to begin.') + panel(`<span class="panel-label">WALLET</span><h2>${state.session ? escaped(state.session.accountId) : 'Not connected'}</h2><p class="muted">${state.session ? 'Connected on NEAR testnet.' : 'Meteor keeps your signing key in your wallet.'}</p><div class="actions card-actions">${state.session ? button('Disconnect','disconnect','secondary') : button(state.walletOpening ? 'Opening Meteor…' : 'Connect with Meteor','connect','primary',state.walletOpening)}</div>`) + panel(`<details class="service-details"><summary>Service status</summary><p>Testnet connection: ${serviceReady() ? 'online' : 'checking'}.</p>${state.contract ? `<p>Reviewed contract: ${escaped(state.contract.accountId)}.</p>` : ''}</details>`);
+  const label = state.walletOpening ? 'Opening wallet…' : state.walletReady ? 'Connect wallet' : 'Preparing secure wallet…';
+  return heading('Wallet', state.session ? 'Your current workspace connection.' : 'Connect a wallet to begin.') + panel(`<span class="panel-label">WALLET</span><h2>${state.session ? escaped(state.session.accountId) : 'Not connected'}</h2><p class="muted">${state.session ? 'Connected on NEAR testnet.' : 'Meteor keeps your signing key in your wallet.'}</p><div class="actions card-actions">${state.session ? button('Disconnect','disconnect','secondary') : button(label,'connect','primary',state.walletOpening || !state.walletReady)}</div>`) + panel(`<details class="service-details"><summary>Service status</summary><p>Testnet connection: ${serviceReady() ? 'online' : 'checking'}.</p>${state.contract ? `<p>Reviewed contract: ${escaped(state.contract.accountId)}.</p>` : ''}</details>`);
 }
-const pages = { overview, treasury, payments:()=>comingSoon('Payments','Private USDC settlement is next.'), agents:()=>comingSoon('Agents','Agent controls will start in request-only mode.'), proofs:()=>comingSoon('Proofs','Reader-bound disclosures are being built.'), settings };
+const pages = { overview, payments, proofs, agents, team, settings };
 
 function render() {
   view = location.hash.slice(1) || 'overview'; if (!pages[view]) view = 'overview';
@@ -82,16 +87,15 @@ function render() {
   closeNav();
 }
 async function connect() {
+  if (!state.walletReady) throw Error('Your secure wallet connection is still getting ready.');
   state.walletOpening=true;
   try {
-    // `connectMeteor()` immediately prompts a pre-created action. Do not await before this call:
+    // Prompt a pre-created action immediately. Do not await before this call:
     // mobile browsers require the wallet opening to originate from the user's tap.
-    const walletPromise = walletModule?.openPreparedMeteorConnection?.();
-    if (!walletPromise) throw Error('Meteor is getting ready. Please try again in a moment.');
+    const walletPromise = openPreparedMeteorConnection();
     state.progress='Choose Meteor Web to continue in your browser, or Meteor Mobile when you use the installed app.'; render();
     const wallet = await walletPromise;
     state.progress='Confirm the secure sign-in message in Meteor.'; render();
-    const { signMeteorChallenge } = await meteorWallet();
     const challenge = await api('/api/v1/auth/challenge',{ method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({accountId:wallet.identifier.accountId}) });
     const signed = await signMeteorChallenge(wallet,challenge);
     const result = await api('/api/v1/auth/verify',{ method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({id:challenge.id,state:challenge.state,signed}) });
@@ -102,12 +106,12 @@ async function connect() {
     state.walletOpening=false;
     // A Meteor action is consumed once it is opened. Prepare the next one after
     // completion or cancellation so a second tap always has a fresh action.
+    state.walletReady=false;
     void warmMeteor();
   }
 }
 async function createIntent() {
   if (!state.session || !state.csrf || !state.contract) throw Error('Connect the owner wallet first.');
-  const { signMeteorChallenge } = await meteorWallet();
   const c = state.contract.config;
   if (c.kind !== 'individual' || c.threshold !== 1 || c.signer_accounts.length !== 1 || c.signer_accounts[0] !== state.session.accountId) throw Error('This wallet is not the owner of the selected contract.');
   const action = { kind:'individual', contractAccountId:state.contract.accountId, signerAccounts:[state.session.accountId], threshold:1, policyCommitment:c.policy_commitment };
@@ -118,7 +122,6 @@ async function createIntent() {
   state.treasuries = (await api('/api/v1/treasuries')).treasuries;
 }
 async function disconnect() {
-  const { disconnectMeteor } = await meteorWallet();
   if (state.session && state.csrf) await api('/api/v1/auth/logout',{method:'POST',headers:{'content-type':'application/json','x-csrf-token':state.csrf},body:'{}'});
   if (state.wallet) await disconnectMeteor(state.wallet);
   state.wallet=null; state.session=null; state.csrf=null; state.treasuries=[];
@@ -147,6 +150,15 @@ window.addEventListener('hashchange',render);
 render();
 // Begin preparing Meteor immediately. This never opens a wallet; it only makes the later wallet
 // request start inside the user's tap, which mobile browsers require for the deep link.
+function warmMeteor() {
+  return prepareMeteorConnection().then(() => {
+    state.walletReady=true;
+    render();
+  }).catch(() => {
+    state.walletReady=false;
+    render();
+  });
+}
 void warmMeteor();
 await run(async()=>{
   state.contractId=sessionStorage.getItem('scrim-testnet-contract') || '';
@@ -154,7 +166,6 @@ await run(async()=>{
   try {
     const session=await api('/api/v1/auth/session');
     const saved=JSON.parse(sessionStorage.getItem('scrim-auth-csrf') || 'null');
-    const { currentMeteorAccount } = await meteorWallet();
     const wallet=await currentMeteorAccount();
     if (wallet?.identifier?.accountId===session.accountId) {
       state.wallet=wallet; state.session={...session,csrf:saved?.accountId===session.accountId?saved.csrf:null};

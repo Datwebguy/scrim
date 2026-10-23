@@ -47,7 +47,7 @@ async function readContract(id) {
 function connectionCard() {
   if (state.session) return panel(`<span class="panel-label">CONNECTED</span><h2>${escaped(state.session.accountId)}</h2><p class="muted">Your wallet is connected to this private workspace.</p><div class="actions card-actions"><a class="button primary" href="#treasury">Open treasury</a>${button('Disconnect','disconnect','secondary')}</div>`, 'hero-panel');
   const label = state.walletOpening ? 'Opening Meteor…' : 'Connect with Meteor';
-  return panel(`<span class="panel-label">PRIVATE WORKSPACE</span><h1>Bring your wallet.</h1><p>Connect with Meteor to review your treasury and sign from your own device.</p><div class="actions card-actions">${button(label,'connect','primary',state.walletOpening)}</div><small class="connection-note">${state.progress || 'On a phone, choose Meteor Mobile. On desktop, choose Meteor Web.'}</small>`, 'hero-panel');
+  return panel(`<span class="panel-label">PRIVATE WORKSPACE</span><h1>Bring your wallet.</h1><p>Connect with Meteor to review your treasury and sign from your own device.</p><div class="actions card-actions">${button(label,'connect','primary',state.walletOpening)}</div><small class="connection-note">${state.progress || 'Choose Meteor Web to continue in your browser. Choose Meteor Mobile only when you use the installed app.'}</small>`, 'hero-panel');
 }
 function featureCard(title, copy, href, stateLabel) {
   return `<a class="feature-card" href="${href}"><span>${stateLabel}</span><h3>${title}</h3><p>${copy}</p><b>Open →</b></a>`;
@@ -88,7 +88,7 @@ async function connect() {
     // mobile browsers require the wallet opening to originate from the user's tap.
     const walletPromise = walletModule?.openPreparedMeteorConnection?.();
     if (!walletPromise) throw Error('Meteor is getting ready. Please try again in a moment.');
-    state.progress='Choose Meteor Mobile or Meteor Web in the secure wallet window.'; render();
+    state.progress='Choose Meteor Web to continue in your browser, or Meteor Mobile when you use the installed app.'; render();
     const wallet = await walletPromise;
     state.progress='Confirm the secure sign-in message in Meteor.'; render();
     const { signMeteorChallenge } = await meteorWallet();

@@ -19,7 +19,9 @@ It combines shielded-note balances, reader-bound expiring disclosures, intent-ba
 - `ARCHITECTURE.md` — contract, proof, policy, settlement, and trust boundaries.
 - `PRODUCT.md` — product definition.
 - `NEAR_TOOLS.md` — NEAR primitives used by Scrim.
-- `RESEARCH.md` — internal research notes.
+- `BACKEND_SPEC.md` — approved backend specification.
+- `docs/MILESTONE_0_1.md` — implementation evidence, contract ABI, and release gates.
+- `docs/ACCOUNT_ROLES.md` — human account ownership and deployment runbook.
 
 ## Run
 

@@ -1,3 +1,11 @@
 .DS_Store
 node_modules/
 *.log
+node_modules/
+contracts/**/target/
+.env
+.env.*
+!.env.example
+research-private/
+config/*.local.json
+RESEARCH.md

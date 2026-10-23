@@ -1,0 +1,46 @@
+name: Backend and treasury contract
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: scrim
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: scrim_tests
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://scrim:test-only@localhost:5432/scrim_tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '24' }
+      - run: npm install --ignore-scripts
+      - run: npm run db:migrate
+      - run: npm run check:backend
+      - run: npm run build:release
+      - run: npm test
+      - run: node --test tests/integration/postgres.test.mjs
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: wasm32-unknown-unknown }
+      - run: cargo test --manifest-path contracts/treasury-policy/Cargo.toml
+      - run: cargo build --manifest-path contracts/treasury-policy/Cargo.toml --target wasm32-unknown-unknown --release
+      - uses: actions/setup-node@v4
+        with: { node-version: '24' }
+      - run: node scripts/release-manifest.mjs contracts/treasury-policy/target/wasm32-unknown-unknown/release/scrim_treasury_policy.wasm contracts/treasury-policy/release-manifest.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: treasury-policy-wasm
+          path: |
+            contracts/treasury-policy/target/wasm32-unknown-unknown/release/scrim_treasury_policy.wasm
+            contracts/treasury-policy/Cargo.lock
+            contracts/treasury-policy/release-manifest.json

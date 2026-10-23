@@ -3,6 +3,9 @@
   "outputDirectory": "dist",
   "buildCommand": "npm run build:release",
   "cleanUrls": true,
+  "rewrites": [
+    { "source": "/api/v1/:route*", "destination": "/api/v1" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

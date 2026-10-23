@@ -10,7 +10,7 @@ At the initial on-chain check both supplied accounts had zero test NEAR and no c
 
 The [reviewed artifact](https://github.com/Datwebguy/scrim/actions/runs/39837763837/artifacts/12451472003) manifest reports 345,452 WASM bytes, SHA-256 `188697aeb9656663606657926c9f469431128ea83f7cb43cb3e168a0b0c3dc95`, and NEAR code hash `2ejpWGN8wiwKQwN38QvYArV62NdDptQNyyuHC8QqgaFE`. Verify downloaded bytes independently before constructing the wallet request. CI log metadata alone does not establish local possession of the correct bytes.
 
-The owner uses Meteor Wallet and is currently on a phone. Scrim must support mobile and desktop; the owner's current device only affects this administrative signing handoff. Never ask for a recovery phrase or private key, and do not split deployment from initialization to accommodate a wallet limitation. Meteor's actual approval screen blocked the app's DeployContract action, so direct signing is required for this release.
+The owner uses Meteor Wallet and is currently on a phone. Scrim must support mobile and desktop; the owner's current device only affected this administrative signing handoff. Do not split deployment from initialization to accommodate a wallet limitation. Meteor's actual approval screen blocked the app's DeployContract action. After the owner explicitly authorized local execution and supplied testnet credentials, the atomic batch was signed from this workspace. Neither credential was printed or committed; both should be rotated because they were shared as an attachment.
 
 ### Meteor compatibility check (22 October 2026)
 
@@ -54,10 +54,16 @@ The browser computes the same policy/config commitments as the API, checks testn
 
 After the direct sender returns, the page checks finalized code, config, and policy version. It reports remaining access keys without deleting them or claiming the treasury is activated. Neither path retries automatically. Verification is read-only.
 
-Local verification: 52 JavaScript tests passed, including browser/backend commitment compatibility, artifact tampering, role reuse, stale RPC, direct action order/full-access-key enforcement, and on-chain config mismatches. The old Meteor approval path was blocked in a real wallet; direct signing remains to be performed by the owner.
+Local verification: 52 JavaScript tests passed, including browser/backend commitment compatibility, artifact tampering, role reuse, stale RPC, direct action order/full-access-key enforcement, and on-chain config mismatches. The old Meteor approval path was blocked in a real wallet. The owner subsequently authorized execution from the workspace; deployment and governance verification are recorded below.
 
 Dependency scan: patched `fflate` to 0.8.3 and removed the Meteor SDK from this administrative page. The direct signer is restricted to testnet and does not take keys through arguments, files, the browser, or a Scrim server. The user must export their own key locally if they choose this route; the agent never handles it.
 
+## Finalized testnet evidence (23 October 2026)
+
+- `scrim.testnet` signed one transaction with DeployContract followed by `new`: `9x3fWwMQd6EgsyEdswxTY3zKSJvrN88JWxwNUTc6n7f2`. Finalized code hash is `2ejpWGN8wiwKQwN38QvYArV62NdDptQNyyuHC8QqgaFE`, exactly the reviewed artifact. Initial owner was `scrimtest.testnet`, threshold 1-of-1, policy version 1.
+- `scrimtest.testnet` proposed the same inactive configuration in finalized transaction `B8RByXYLiXmXn6nfREWGWHMSMtewGtgTPbuHYwTNXKB9`, then executed it in finalized transaction `mAwKuX4S3VeYaeizog8Gqp3i2dKTNJrez7wh32nGhrC`. Final policy version is 2, the config is unchanged, and no proposal remains. This verifies separate owner governance without enabling payment execution.
+- A later final-block read at `4oiXWPgBpT35FEt6TukcQEb4veMkEVKkXACc6TYyQnX2` showed the reviewed contract code on `scrim.testnet` and one remaining full-access key on each account. The deployment account has **not** been made keyless. This means the API's treasury-activation check must still fail closed.
+
 ## Remaining Milestone 1 gates (current)
 
-Testnet signing/deployment, isolated Neon/Redis provisioning, API environment binding, migration on that environment, and a real wallet authorization/treasury round trip remain pending. Milestone 2 must wait for the milestone report and review. Native pool/proof interfaces remain proposed, relay execution remains unavailable, and quote acceptance is never delegated away from fresh user authorization.
+Key rotation/recovery planning and a separate decision about deployment-account access-key removal, isolated Neon/Redis provisioning, API environment binding, migration on that environment, and a real wallet authorization/treasury API round trip remain pending. Do not remove the deployment key without a recovery review: the account retains test NEAR and the policy contract has no key-recovery or upgrade path. Milestone 2 must wait for the milestone report and review. Native pool/proof interfaces remain proposed, relay execution remains unavailable, and quote acceptance is never delegated away from fresh user authorization.

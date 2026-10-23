@@ -1,6 +1,6 @@
 # Direct testnet deployment
 
-Meteor Wallet's approval screen blocks `DeployContract` actions requested by apps. Its displayed Approve button is disabled; retrying the Scrim page cannot deploy the contract. This is a wallet policy. The Scrim release page remains useful for reviewing the artifact and verifying the final chain state.
+Meteor Wallet's approval screen blocks `DeployContract` actions requested by apps. Its displayed Approve button is disabled; retrying the Scrim page cannot deploy the contract. This is a wallet policy. The Scrim release page remains useful for reviewing the artifact and verifying the final chain state. **The reviewed contract was deployed to `scrim.testnet` on 23 October 2026; do not rerun these deployment steps against that account.**
 
 The approved treasury constructor requires a single transaction **signed by `scrim.testnet`** with these ordered actions: DeployContract of the reviewed WASM, then FunctionCall `new` naming the separate owner `scrimtest.testnet`. Splitting those actions is unsafe and will fail. Do not use another account as the transaction signer.
 
@@ -39,6 +39,6 @@ node scripts/deploy-direct-testnet.mjs /path/to/extracted-artifact/target/wasm32
 
 The script rechecks the artifact and chain, then prompts for the exported `scrim.testnet` private key with terminal echo disabled. It checks that key against the final testnet access-key list, prints the public-key check, and asks you to type `DEPLOY scrim.testnet`. Only that exact response signs and submits the transaction. On Android, clear the clipboard after pasting the key into the local terminal. Never send the key or recovery phrase to us.
 
-If the script reports an uncertain outcome, **do not immediately repeat `--send`**. Open the current Scrim release preview linked from the pull request, enter the two account IDs, and use **Verify deployment on testnet**. A successful deploy must show the reviewed code hash, `scrimtest.testnet` as owner, threshold 1-of-1, and policy version 1. A still-pending transaction can finalize after a read; check its hash or a later final block before attempting anything else.
+If the script reports an uncertain outcome, **do not immediately repeat `--send`**. Open the current Scrim release preview linked from the pull request, enter the two account IDs, and use **Verify deployment on testnet**. The finalized deployment has the reviewed code hash, `scrimtest.testnet` as owner, threshold 1-of-1, and policy version 2 after the separate owner-governance check. A still-pending transaction can finalize after a read; check its hash or a later final block before attempting anything else.
 
-The contract's owner governance and access-key lockdown require separate human review. This deployment does not enable payments, agents, shielded balances, or proofs. Milestone 1 remains open until the actual transaction and final on-chain checks pass.
+The owner governance round trip is verified. Deployment-account access-key lockdown requires a separate recovery review. This deployment does not enable payments, agents, shielded balances, or proofs. Milestone 1 remains open for the authenticated backend and account-security gates described in [TESTNET_RELEASE.md](TESTNET_RELEASE.md).

@@ -1,2 +1,2 @@
-import { proxy } from '../_proxy.mjs';
+import { proxy } from '../../apps/api/src/vercel-proxy.mjs';
 export default proxy;

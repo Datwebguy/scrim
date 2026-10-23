@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { proxy } from '../../api/_proxy.mjs';
+import { proxy } from '../../apps/api/src/vercel-proxy.mjs';
 
 function response() {
   return { code:200, headers:{}, setHeader(name,value){this.headers[name]=value;}, status(code){this.code=code;return this;}, json(value){this.body=value;return this;} };

@@ -4,6 +4,7 @@ import { Buffer } from 'buffer';
 globalThis.Buffer ??= Buffer;
 
 let connection;
+let preparedSignIn;
 export async function meteor() {
   if (!connection) {
     const instance = new MeteorConnect();
@@ -19,11 +20,20 @@ export async function meteor() {
 }
 
 export async function connectMeteor() {
+  await prepareMeteorConnection();
+  return openPreparedMeteorConnection();
+}
+
+export async function prepareMeteorConnection() {
   const sdk = await meteor();
-  const action = await sdk.createAction({ id: 'near::sign_in', input: { target: { blockchain: 'near', network: 'testnet' } } });
-  const account = await action.promptForExecution();
-  if (!account?.identifier?.accountId) throw Error('Meteor did not return a testnet account.');
-  return account;
+  if (!preparedSignIn) preparedSignIn = await sdk.createAction({ id: 'near::sign_in', input: { target: { blockchain: 'near', network: 'testnet' } } });
+}
+
+export function openPreparedMeteorConnection() {
+  const action = preparedSignIn;
+  if (!action) throw Error('Meteor is getting ready. Please try again in a moment.');
+  preparedSignIn = undefined;
+  return action.promptForExecution();
 }
 
 export async function currentMeteorAccount() {

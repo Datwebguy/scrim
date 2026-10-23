@@ -35,11 +35,16 @@ export async function prepareConfig(contract, owner) {
   return {config, configHash, initArgs:{kind:'individual',signer_accounts:[owner],threshold:1,policy_commitment:config.policyCommitment,config_hash:configHash}};
 }
 export async function rpc(method, params, transport = fetch) {
-  const response = await transport('https://rpc.testnet.near.org', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({jsonrpc:'2.0',id:'scrim-release',method,params}),
-    signal:AbortSignal.timeout(12000),
-  });
+  let response;
+  try {
+    response = await transport('https://rpc.testnet.near.org', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({jsonrpc:'2.0',id:'scrim-release',method,params}),
+      signal:AbortSignal.timeout(12000),
+    });
+  } catch {
+    throw new Error('Testnet RPC could not be reached. Try Verify deployment again.');
+  }
   check(response.ok, 'Testnet RPC is unavailable. No wallet request was made.');
   const body = await response.json();
   check(!body.error && body.result, 'Testnet could not confirm the requested account or contract.');

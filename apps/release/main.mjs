@@ -75,6 +75,6 @@ $('verify').addEventListener('click', () => run(async () => {
   matchDeployedConfig(JSON.parse(new TextDecoder().decode(new Uint8Array(result.result))), expected);
   const version = await query({request_type:'call_function',account_id:contract,method_name:'get_policy_version',args_base64:'e30='});
   const access = await query({request_type:'view_access_key_list',account_id:contract});
-  status(`Verified on NEAR testnet: reviewed code, owner ${owner}, threshold 1-of-1, policy version ${new TextDecoder().decode(new Uint8Array(version.result))}. ${access.keys.length} contract access key(s) remain. Owner governance and any key lockdown still require separate review. Payments are not enabled.`);
+  status(`Verified on NEAR testnet: reviewed code, owner ${owner}, threshold 1-of-1, policy version ${new TextDecoder().decode(new Uint8Array(version.result))}. ${access.keys.length} contract access key(s) remain. Access-key lockdown and backend activation require separate review. Payments are not enabled.`);
 }));
 controls();

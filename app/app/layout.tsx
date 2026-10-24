@@ -10,10 +10,10 @@ export const dynamic = "force-dynamic";
 
 export default async function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const session = await currentSession();
-  if (!session) return <SignIn network={config.network} />;
+  if (!session) return <SignIn networks={config.enabledNetworks} />;
   const teams = await shellTreasuries(session);
   return (
-    <Shell accountId={session.accountId} network={session.network} teamPending={teams.reduce((n, t) => n + t.pending, 0)}>
+    <Shell accountId={session.accountId} network={session.network} otherNetworks={config.enabledNetworks.filter((n) => n !== session.network)} teamPending={teams.reduce((n, t) => n + t.pending, 0)}>
       {children}
     </Shell>
   );

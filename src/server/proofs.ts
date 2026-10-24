@@ -6,7 +6,8 @@ import type { Session } from "./auth";
 import { assetById } from "./assets";
 import { overview } from "./balances";
 import { sql } from "./db";
-import { badRequest, conflict, notFound } from "./errors";
+import { PRIVATE_MONEY_MAINNET_ONLY } from "@/protocol/networks";
+import { badRequest, conflict, HttpError, notFound } from "./errors";
 import { open, proofSigningKey, seal } from "./secrets";
 import { getTransfer } from "./transfers";
 
@@ -30,6 +31,7 @@ const aad = (id: string, account: string) => `proof:${id}:${account}`;
 const DAYS = new Set([1, 7, 30]);
 
 export async function createProof(session: Session, input: ProofInput): Promise<ProofRecord> {
+  if (session.network !== "mainnet") throw new HttpError(503, "mainnet_only", PRIVATE_MONEY_MAINNET_ONLY);
   const reader = String(input.reader ?? "").trim();
   if (reader.length < 2 || reader.length > 80) throw badRequest("Say who this proof is for (2 to 80 characters).");
   if (!DAYS.has(input.days)) throw badRequest("Choose 1, 7 or 30 days.");
@@ -65,7 +67,7 @@ export async function createProof(session: Session, input: ProofInput): Promise<
     if (transfer.status !== "success") throw conflict("That payment hasn't completed yet.");
     claim = {
       type: "payment", amount: formatAmount(BigInt(transfer.amountOut), transfer.toAsset.decimals, 2), symbol: transfer.toAsset.symbol,
-      networkName: transfer.toAsset.networkName, exact: input.revealExact !== false, paidAt: transfer.createdAt.toISOString(),
+      chainName: transfer.toAsset.chainName, exact: input.revealExact !== false, paidAt: transfer.createdAt.toISOString(),
     };
   } else {
     throw badRequest("Choose what to prove.");
@@ -77,7 +79,7 @@ export async function createProof(session: Session, input: ProofInput): Promise<
   const payload: ProofPayload = { v: 1, id, reader, holder, issuedAt: issuedAt.toISOString(), expiresAt: expiresAt.toISOString(), claim };
   const token = signProof(payload, proofSigningKey().secret);
   await sql.begin(async (tx) => {
-    await tx`INSERT INTO proofs (id, account_id, kind, details_sealed, expires_at) VALUES (${id}, ${session.accountId}, ${input.kind}, ${seal({ payload, token }, aad(id, session.accountId))}, ${expiresAt})`;
+    await tx`INSERT INTO proofs (id, account_id, network, kind, details_sealed, expires_at) VALUES (${id}, ${session.accountId}, ${session.network}, ${input.kind}, ${seal({ payload, token }, aad(id, session.accountId))}, ${expiresAt})`;
     await audit(tx, null, { type: "human", id: session.accountId }, "proof.created", id, { kind: input.kind, days: input.days });
   });
   return { id, kind: input.kind, reader, summary: claim, issuedAt: payload.issuedAt, expiresAt: payload.expiresAt, revoked: false, token };
@@ -85,7 +87,7 @@ export async function createProof(session: Session, input: ProofInput): Promise<
 
 export async function listProofs(session: Session): Promise<ProofRecord[]> {
   const rows = await sql<{ id: string; kind: string; details_sealed: string; revoked_at: Date | null }[]>`
-    SELECT id, kind, details_sealed, revoked_at FROM proofs WHERE account_id = ${session.accountId} ORDER BY created_at DESC LIMIT 100`;
+    SELECT id, kind, details_sealed, revoked_at FROM proofs WHERE account_id = ${session.accountId} AND network = ${session.network} ORDER BY created_at DESC LIMIT 100`;
   return rows.map((r) => {
     const { payload, token } = open<{ payload: ProofPayload; token: string }>(r.details_sealed, aad(r.id, session.accountId));
     return { id: r.id, kind: r.kind, reader: payload.reader, summary: payload.claim, issuedAt: payload.issuedAt, expiresAt: payload.expiresAt, revoked: Boolean(r.revoked_at), token };
@@ -94,7 +96,7 @@ export async function listProofs(session: Session): Promise<ProofRecord[]> {
 
 export async function revokeProof(session: Session, id: string) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw notFound("Proof not found.");
-  const rows = await sql`UPDATE proofs SET revoked_at = COALESCE(revoked_at, now()) WHERE id = ${id} AND account_id = ${session.accountId} RETURNING id`;
+  const rows = await sql`UPDATE proofs SET revoked_at = COALESCE(revoked_at, now()) WHERE id = ${id} AND account_id = ${session.accountId} AND network = ${session.network} RETURNING id`;
   if (rows.length === 0) throw notFound("Proof not found.");
   await sql.begin((tx) => audit(tx, null, { type: "human", id: session.accountId }, "proof.revoked", id));
 }

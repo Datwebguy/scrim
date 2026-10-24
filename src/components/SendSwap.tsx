@@ -4,14 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
 import { signTransfer } from "@/client/wallet";
-import { AssetPicker, fmt, Heading, NotSwitchedOn, StateChip, usd, useAssets, type AssetInfo, type TransferView } from "./money";
+import { NotSwitchedOn } from "./Gates";
+import { AssetPicker, fmt, Heading, StateChip, usd, useAssets, type AssetInfo, type TransferView } from "./money";
+import { useSession } from "./session";
 import { Spinner, useToast } from "./ui";
 
 type Mode = "swap" | "person" | "address";
-type Holding = { assetId: string; symbol: string; networkName: string; amount: string; display: string };
+type Holding = { assetId: string; symbol: string; chainName: string; amount: string; display: string };
 const TERMINAL = new Set(["success", "refunded", "failed", "expired", "cancelled"]);
 
-export function SendSwap({ initial, accountId }: { initial: Mode; accountId: string }) {
+export function SendSwap({ initial }: { initial: Mode }) {
+  const { accountId, network } = useSession();
   const toast = useToast();
   const assets = useAssets();
   const { data: priv } = useApi<{ status: string; holdings: Holding[] }>("/private");
@@ -63,7 +66,7 @@ export function SendSwap({ initial, accountId }: { initial: Mode; accountId: str
     setBusy("send");
     setError("");
     try {
-      const signed = await signTransfer(transfer.intentToSign, accountId);
+      const signed = await signTransfer(network, transfer.intentToSign, accountId);
       setTransfer((await api<{ transfer: TransferView }>(`/transfers/${transfer.id}/sign`, { body: signed })).transfer);
     } catch (e) {
       setError(e instanceof Error ? e.message : "That didn't go through.");
@@ -85,7 +88,7 @@ export function SendSwap({ initial, accountId }: { initial: Mode; accountId: str
   };
 
   const enough = transfer && held ? BigInt(held.amount) >= BigInt(transfer.amountIn) : null;
-  const fee = transfer && from && to ? Math.max(0, Number(transfer.amountIn) / 10 ** transfer.fromAsset.decimals * from.priceUsd - Number(transfer.amountOut) / 10 ** transfer.toAsset.decimals * to.priceUsd) : 0;
+  const fee = transfer && from?.priceUsd != null && to?.priceUsd != null ? Math.max(0, Number(transfer.amountIn) / 10 ** transfer.fromAsset.decimals * from.priceUsd - Number(transfer.amountOut) / 10 ** transfer.toAsset.decimals * to.priceUsd) : null;
 
   return (
     <div className="narrow">
@@ -108,13 +111,13 @@ export function SendSwap({ initial, accountId }: { initial: Mode; accountId: str
             hint={held ? `You hold ${held.display} ${held.symbol}` : undefined} />
           {mode === "swap" && <AssetPicker label="You get" assets={assets.filter((a) => a.assetId !== fromId)} value={toId} onChange={setToId} />}
           {mode === "person" && (
-            <label className="field">Send to<small>Their NEAR account, like alice.near</small>
-              <input className="input" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="alice.near" autoComplete="off" spellCheck={false} required /></label>
+            <label className="field">Send to<small>Their NEAR account, ending in .near</small>
+              <input className="input" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="account.near" autoComplete="off" spellCheck={false} required /></label>
           )}
           {mode === "address" && (
             <>
               <AssetPicker label="They receive" assets={assets} value={toId} onChange={setToId} hint="Any coin on any network. Scrim converts for you." />
-              <label className="field">Their address on {to?.networkName ?? "that network"}
+              <label className="field">Their address on {to?.chainName ?? "that network"}
                 <input className="input mono" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="Paste the address" autoComplete="off" spellCheck={false} required /></label>
             </>
           )}
@@ -123,7 +126,7 @@ export function SendSwap({ initial, accountId }: { initial: Mode; accountId: str
               <span>{(mode === "swap" ? from : mode === "address" ? to : from)?.symbol}</span></span>
             {mode === "swap" && held && <button type="button" className="linklike" onClick={() => setAmount(held.display.replace(/,/g, ""))}>Use everything I hold ({held.display})</button>}
           </label>
-          {mode !== "swap" && <label className="field">Note <small>Optional. Only you can see it.</small><input className="input" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder="Invoice #1048" /></label>}
+          {mode !== "swap" && <label className="field">Note <small>Optional. Only you can see it.</small><input className="input" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder="What it is for" /></label>}
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="btn btn-primary btn-lg" disabled={busy !== "" || priv?.status !== "active"}>{busy === "price" && <Spinner />} See the price</button>
         </form>
@@ -131,10 +134,10 @@ export function SendSwap({ initial, accountId }: { initial: Mode; accountId: str
         <div className="card card-pad form-grid">
           <div className="between"><h2>{transfer.status === "awaiting_signature" ? "Check and confirm" : "Your transfer"}</h2><StateChip status={transfer.status} /></div>
           <dl className="detail-list">
-            <div><dt>You pay</dt><dd>{fmt(transfer.amountIn, transfer.fromAsset.decimals)} {transfer.fromAsset.symbol} <span className="muted">· {transfer.fromAsset.networkName}</span></dd></div>
-            <div><dt>{transfer.kind === "swap" ? "You get" : "They get"}</dt><dd>{fmt(transfer.amountOut, transfer.toAsset.decimals)} {transfer.toAsset.symbol} <span className="muted">· {transfer.toAsset.networkName}</span></dd></div>
+            <div><dt>You pay</dt><dd>{fmt(transfer.amountIn, transfer.fromAsset.decimals)} {transfer.fromAsset.symbol} <span className="muted">· {transfer.fromAsset.chainName}</span></dd></div>
+            <div><dt>{transfer.kind === "swap" ? "You get" : "They get"}</dt><dd>{fmt(transfer.amountOut, transfer.toAsset.decimals)} {transfer.toAsset.symbol} <span className="muted">· {transfer.toAsset.chainName}</span></dd></div>
             {transfer.recipient && <div><dt>To</dt><dd className="mono">{transfer.recipient}</dd></div>}
-            <div><dt>Fee</dt><dd>{usd(fee)}</dd></div>
+            {fee !== null && <div><dt>Fee</dt><dd>{usd(fee)}</dd></div>}
             {transfer.etaSeconds != null && <div><dt>Arrives in</dt><dd>about {transfer.etaSeconds} seconds</dd></div>}
             {transfer.note && <div><dt>Note</dt><dd>{transfer.note}</dd></div>}
           </dl>

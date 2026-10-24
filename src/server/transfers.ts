@@ -5,14 +5,15 @@
 //   send     private      -> another person's private balance
 //   withdraw private      -> any address on any chain, in any asset
 import { randomUUID } from "node:crypto";
-import { parseAmount } from "@/protocol/amount";
-import { USDC_NEAR_TO_BASE } from "@/protocol/corridor";
+import { formatAmount, parseAmount } from "@/protocol/amount";
+import { corridorFor, USDC_NEAR_TO_BASE } from "@/protocol/corridor";
 import { parseIntentMessage } from "@/protocol/intents-auth";
 import { normalizeNearAccount } from "@/protocol/identifiers";
 import { verifyNep413 } from "@/protocol/nep413";
 import { audit } from "./audit";
 import type { Session } from "./auth";
 import { assetById, checkAddress, usdValue, type Asset } from "./assets";
+import { PRIVATE_MONEY_MAINNET_ONLY, type Network } from "@/protocol/networks";
 import { config } from "./config";
 import { sql } from "./db";
 import { badRequest, conflict, HttpError, notFound } from "./errors";
@@ -36,8 +37,8 @@ export type TransferInput = {
 
 export type Preview = {
   kind: TransferKind;
-  youPay: { assetId: string; symbol: string; networkName: string; amount: string; usd: number };
-  theyGet: { assetId: string; symbol: string; networkName: string; amount: string; usd: number };
+  youPay: { assetId: string; symbol: string; chainName: string; amount: string; usd: number };
+  theyGet: { assetId: string; symbol: string; chainName: string; amount: string; usd: number };
   fee: { usd: number };
   minimumReceived: string;
   secondsEstimate: number | null;
@@ -69,13 +70,13 @@ export type Transfer = {
   status: TransferStatus;
   createdAt: Date;
   expiresAt: Date;
-  fromAsset: Pick<Asset, "assetId" | "symbol" | "networkName" | "decimals">;
-  toAsset: Pick<Asset, "assetId" | "symbol" | "networkName" | "decimals">;
+  fromAsset: Pick<Asset, "assetId" | "symbol" | "chainName" | "decimals" | "icon" | "chainIcon">;
+  toAsset: Pick<Asset, "assetId" | "symbol" | "chainName" | "decimals" | "icon" | "chainIcon">;
   amountIn: string;
   amountOut: string;
   recipient: string | null;
   note: string;
-  deposit: { address: string; memo: string | null; network: string; minimum: string | null } | null;
+  deposit: { address: string; memo: string | null; chainName: string; minimum: string | null } | null;
   intentToSign: { message: string; nonce: string; recipient: string } | null;
   resultHashes: string[];
   etaSeconds: number | null;
@@ -83,10 +84,10 @@ export type Transfer = {
 };
 
 const aad = (id: string, account: string) => `transfer:${id}:${account}`;
-const light = (a: Asset) => ({ assetId: a.assetId, symbol: a.symbol, networkName: a.networkName, decimals: a.decimals });
+const light = (a: Asset) => ({ assetId: a.assetId, symbol: a.symbol, chainName: a.chainName, decimals: a.decimals, icon: a.icon, chainIcon: a.chainIcon });
 
-function requireEnabled() {
-  if (config.network !== "mainnet") throw new HttpError(503, "mainnet_only", "Private money works on NEAR mainnet.");
+function requireEnabled(network: Network) {
+  if (network !== "mainnet") throw new HttpError(503, "mainnet_only", PRIVATE_MONEY_MAINNET_ONLY);
   if (!config.oneClickApiKey) {
     throw new HttpError(503, "not_enabled", "Private transfers aren't switched on yet. Your balance and activity are still available.");
   }
@@ -142,7 +143,7 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
   if (input.kind === "send") {
     const asset = await assetById(String(input.fromAssetId ?? ""));
     const recipient = normalizeNearAccount(String(input.recipient ?? ""));
-    if (!recipient) throw badRequest("Enter the recipient's NEAR account, like alice.near.");
+    if (!recipient) throw badRequest("Enter the recipient's NEAR account, ending in .near.");
     if (recipient === account) throw badRequest("That's your own account.");
     return {
       from: asset, to: asset, amountAsset: asset, recipient, needsUserToken: true, deadlineMinutes: 15,
@@ -153,7 +154,7 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
 
   const from = await assetById(String(input.fromAssetId ?? ""));
   const to = await assetById(String(input.toAssetId ?? input.fromAssetId ?? ""));
-  const recipient = checkAddress(to.network, String(input.recipient ?? ""));
+  const recipient = checkAddress(to, String(input.recipient ?? ""));
   return {
     from, to, amountAsset: to, recipient, needsUserToken: true, deadlineMinutes: 15,
     request: { ...base, swapType: "EXACT_OUTPUT", originAsset: from.assetId, depositType: "CONFIDENTIAL_INTENTS", destinationAsset: to.assetId,
@@ -171,7 +172,7 @@ async function ownBalance(session: Session, assetId: string): Promise<bigint | n
 }
 
 export async function preview(session: Session, input: TransferInput): Promise<Preview> {
-  requireEnabled();
+  requireEnabled(session.network);
   const p = await plan(session, input);
   const token = p.needsUserToken ? await privateAccessToken(session) : undefined;
   const q = await oneclick.quote({ ...p.request, dry: true, deadline: new Date(Date.now() + p.deadlineMinutes * 60_000).toISOString() }, token);
@@ -182,8 +183,8 @@ export async function preview(session: Session, input: TransferInput): Promise<P
   const getUsd = usdValue(p.to, got);
   return {
     kind: input.kind,
-    youPay: { assetId: p.from.assetId, symbol: p.from.symbol, networkName: p.from.networkName, amount: paid.toString(), usd: payUsd },
-    theyGet: { assetId: p.to.assetId, symbol: p.to.symbol, networkName: p.to.networkName, amount: got.toString(), usd: getUsd },
+    youPay: { assetId: p.from.assetId, symbol: p.from.symbol, chainName: p.from.chainName, amount: paid.toString(), usd: payUsd },
+    theyGet: { assetId: p.to.assetId, symbol: p.to.symbol, chainName: p.to.chainName, amount: got.toString(), usd: getUsd },
     fee: { usd: Math.max(0, payUsd - getUsd) },
     minimumReceived: q.quote.minAmountOut,
     secondsEstimate: q.quote.timeEstimate ?? null,
@@ -200,7 +201,7 @@ async function toTransfer(row: Row): Promise<Transfer> {
     id: row.id, kind: row.kind, status: row.status, createdAt: row.created_at, expiresAt: row.expires_at,
     fromAsset: light(from), toAsset: light(to), amountIn: d.amountIn, amountOut: d.amountOut, recipient: d.recipient, note: d.note,
     deposit: (row.kind === "add" || row.kind === "link_payment") && row.deposit_address
-      ? { address: row.deposit_address, memo: row.deposit_memo, network: from.networkName, minimum: d.depositMinimum } : null,
+      ? { address: row.deposit_address, memo: row.deposit_memo, chainName: from.chainName, minimum: d.depositMinimum } : null,
     intentToSign: row.status === "awaiting_signature" ? d.intent : null,
     resultHashes: d.resultHashes, etaSeconds: d.etaSeconds ?? null, teamRequestId: row.team_request_id,
   };
@@ -212,7 +213,7 @@ async function save(id: string, accountId: string, status: TransferStatus, detai
 }
 
 export async function createTransfer(session: Session, input: TransferInput): Promise<Transfer> {
-  requireEnabled();
+  requireEnabled(session.network);
   const p = await plan(session, input);
   const token = p.needsUserToken ? await privateAccessToken(session) : undefined;
   const deadline = new Date(Date.now() + p.deadlineMinutes * 60_000);
@@ -251,8 +252,8 @@ export async function createTransfer(session: Session, input: TransferInput): Pr
   }
 
   await sql.begin(async (tx) => {
-    await tx`INSERT INTO transfers (id, account_id, kind, status, deposit_address, deposit_memo, details_sealed, team_request_id, expires_at)
-      VALUES (${id}, ${session.accountId}, ${input.kind}, ${status}, ${address}, ${memo}, ${seal(details, aad(id, session.accountId))}, ${teamRequestId}, ${deadline})`;
+    await tx`INSERT INTO transfers (id, account_id, network, kind, status, deposit_address, deposit_memo, details_sealed, team_request_id, expires_at)
+      VALUES (${id}, ${session.accountId}, ${session.network}, ${input.kind}, ${status}, ${address}, ${memo}, ${seal(details, aad(id, session.accountId))}, ${teamRequestId}, ${deadline})`;
     await audit(tx, null, { type: "human", id: session.accountId }, `transfer.${input.kind}.created`, id);
   });
   const [row] = await sql<Row[]>`SELECT * FROM transfers WHERE id = ${id}`;
@@ -295,7 +296,7 @@ export async function submitSigned(session: Session, id: string, signed: { publi
 
 async function mine(session: Session, id: string): Promise<Row> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) throw notFound("Transfer not found.");
-  const [row] = await sql<Row[]>`SELECT * FROM transfers WHERE id = ${id} AND account_id = ${session.accountId}`;
+  const [row] = await sql<Row[]>`SELECT * FROM transfers WHERE id = ${id} AND account_id = ${session.accountId} AND network = ${session.network}`;
   if (!row) throw notFound("Transfer not found.");
   return row;
 }
@@ -342,7 +343,7 @@ export async function refreshRow(row: Row): Promise<Transfer> {
 export const getTransfer = refreshOne;
 
 export async function listTransfers(session: Session): Promise<Transfer[]> {
-  const rows = await sql<Row[]>`SELECT * FROM transfers WHERE account_id = ${session.accountId} ORDER BY created_at DESC LIMIT 100`;
+  const rows = await sql<Row[]>`SELECT * FROM transfers WHERE account_id = ${session.accountId} AND network = ${session.network} ORDER BY created_at DESC LIMIT 100`;
   return Promise.all(rows.map(toTransfer));
 }
 
@@ -353,15 +354,16 @@ export async function cancelTransfer(session: Session, id: string): Promise<Tran
   return toTransfer(await mine(session, id));
 }
 
-// Pay an approved team request from the owner's private balance, out to the destination on Base.
+// Pay an approved team request from the owner's private balance, out to the destination on Base (mainnet).
 export async function payTeamRequest(session: Session, requestId: string): Promise<Transfer> {
+  if (session.network !== "mainnet") throw new HttpError(400, "wrong_network", "On testnet, pay with your wallet: it sends real test NEAR straight to the recipient.");
   const request = await approvedTeamRequest(session, requestId);
-  const amount = (Number(request.amount) / 10 ** USDC_NEAR_TO_BASE.destination.decimals).toFixed(USDC_NEAR_TO_BASE.destination.decimals);
+  const corridor = corridorFor("mainnet");
   return createTransfer(session, {
     kind: "withdraw",
-    fromAssetId: USDC_NEAR_TO_BASE.source.assetId,
-    toAssetId: USDC_NEAR_TO_BASE.destination.assetId,
-    amount,
+    fromAssetId: USDC_NEAR_TO_BASE.assetId,
+    toAssetId: USDC_NEAR_TO_BASE.destinationAssetId,
+    amount: formatAmount(BigInt(request.amount), corridor.decimals, 0),
     recipient: request.recipient,
     note: request.memo,
     teamRequestId: request.id,
@@ -369,11 +371,11 @@ export async function payTeamRequest(session: Session, requestId: string): Promi
 }
 
 // A payer with no account pays a link from any chain. The money lands in the requester's private balance.
-export async function createLinkPayment(link: { id: string; accountId: string; assetId: string; amount: string; note: string; expiresAt: Date }, input: { fromAssetId: string; refundAddress: string }): Promise<Transfer> {
-  if (!config.oneClickApiKey || config.network !== "mainnet") requireEnabled();
+export async function createLinkPayment(link: { id: string; accountId: string; network: Network; assetId: string; amount: string; note: string; expiresAt: Date }, input: { fromAssetId: string; refundAddress: string }): Promise<Transfer> {
+  requireEnabled(link.network);
   const from = await assetById(String(input.fromAssetId ?? ""));
   const to = await assetById(link.assetId);
-  const refundTo = checkAddress(from.network, String(input.refundAddress ?? ""));
+  const refundTo = checkAddress(from, String(input.refundAddress ?? ""));
   const [{ open: openAttempts }] = await sql<{ open: number }[]>`SELECT count(*)::int AS open FROM transfers WHERE pay_link_id = ${link.id} AND status = 'awaiting_deposit' AND expires_at > now()`;
   if (openAttempts >= 10) throw conflict("This link has too many unfinished payments. Try again in a few minutes.");
 
@@ -392,8 +394,8 @@ export async function createLinkPayment(link: { id: string; accountId: string; a
     minAmountOut: q.quote.minAmountOut, recipient: link.accountId, note: link.note, quoteSignature: q.signature, intent: null,
     depositChain: from.depositChain, depositMinimum: q.quote.minAmountIn ?? null, trackAddress: depositAddress, trackMemo: memo, resultHashes: [],
   };
-  await sql`INSERT INTO transfers (id, account_id, kind, status, deposit_address, deposit_memo, details_sealed, pay_link_id, expires_at)
-    VALUES (${id}, ${link.accountId}, 'link_payment', 'awaiting_deposit', ${depositAddress}, ${memo}, ${seal(details, aad(id, link.accountId))}, ${link.id}, ${deadline})`;
+  await sql`INSERT INTO transfers (id, account_id, network, kind, status, deposit_address, deposit_memo, details_sealed, pay_link_id, expires_at)
+    VALUES (${id}, ${link.accountId}, ${link.network}, 'link_payment', 'awaiting_deposit', ${depositAddress}, ${memo}, ${seal(details, aad(id, link.accountId))}, ${link.id}, ${deadline})`;
   const [row] = await sql<Row[]>`SELECT * FROM transfers WHERE id = ${id}`;
   return toTransfer(row);
 }

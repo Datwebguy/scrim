@@ -1,8 +1,12 @@
 import Link from "next/link";
+import { catalog } from "@/server/assets";
+
+export const revalidate = 300;
 
 const REPO = "https://github.com/Datwebguy/scrim";
 
-export default function Home() {
+export default async function Home() {
+  const live = await liveNetworks();
   return (
     <>
       <header className="site-nav">
@@ -47,6 +51,22 @@ export default function Home() {
             <div><b>Prove only what's needed</b><span>One fact, one person, with an expiry.</span></div>
           </div>
         </section>
+
+        {live && (
+          <section className="chains" aria-label="Supported networks">
+            <div className="wrap">
+              <p><b>{live.assets} coins on {live.chains.length} networks</b>, live from NEAR Intents.</p>
+              <ul>
+                {live.chains.map((c) => (
+                  <li key={c.name} title={c.name}>
+                    {c.icon ? <img src={c.icon} alt="" width={20} height={20} loading="lazy" referrerPolicy="no-referrer" /> : <span className="dot" />}
+                    {c.name}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+        )}
 
         <section className="section" id="how">
           <div className="wrap">
@@ -93,30 +113,26 @@ export default function Home() {
                 <div><i>4</i><span>Software can ask to pay, but only people can approve. Pause it with one click.</span></div>
               </div>
             </div>
-            <div className="demo-card" style={{ color: "var(--ink)" }}>
-              <div className="demo-head"><span className="who"><span className="agent-dot">AP</span> Accounts payable</span><span className="pill pill-amber">Needs 1 more approval</span></div>
-              <div className="demo-amount"><span className="section-label">Paying on Base</span><strong>2,400.00<small>USDC</small></strong><div className="demo-route"><span>Northwind Studio</span></div></div>
-              <div className="checks">
-                <div className="check"><span className="mark">✓</span><b>Supplier is on the approved list</b><small>recipient</small></div>
-                <div className="check"><span className="mark">✓</span><b>Under the 5,000 limit per payment</b><small>limit</small></div>
-                <div className="check"><span className="mark">✓</span><b>6,200 of 20,000 used this week</b><small>weekly</small></div>
-              </div>
-              <div className="demo-foot"><span className="signers"><span className="stack"><span className="avatar ok">A</span><span className="avatar pending">?</span></span>1 of 2 approved</span><span className="btn btn-primary btn-sm" aria-hidden="true">Approve</span></div>
-            </div>
+            <ol className="flow" aria-label="How a team payment is approved">
+              <li><b>Someone asks to pay</b><span>A person, or software you've given a limit.</span></li>
+              <li><b>Your limits check it</b><span>Who it can pay, how much each time, how much each day. Anything outside is stopped here.</span></li>
+              <li><b>The right people approve</b><span>Each approves in their own wallet. You choose how many are needed.</span></li>
+              <li><b>It's paid, and written down</b><span>From your private balance, with a record for your accountant.</span></li>
+            </ol>
           </div>
         </section>
 
         <section className="proof-band" id="proofs">
           <div className="wrap proof-grid">
-            <div className="proof-sample" aria-label="Example proof">
-              <div className="verdict good">✓ Valid</div>
-              <p>Studio Ode <b>holds at least $10,000</b> in private funds.</p>
-              <ul className="checks-list">
-                <li className="ok">Signature is genuine</li>
-                <li className="ok">Made for <b>Northwind Bank</b></li>
-                <li className="ok">Valid until Nov 5</li>
-                <li className="ok">Not taken back</li>
-              </ul>
+            <div className="proof-sample" aria-label="What a proof shows">
+              <span className="section-label">What the reader sees</span>
+              <dl className="wire">
+                <div><dt>Made for</dt><dd>The one person or company you name</dd></div>
+                <div><dt>It says</dt><dd>One fact: "holds at least…" or "paid…"</dd></div>
+                <div><dt>Valid until</dt><dd>1, 7 or 30 days from today</dd></div>
+                <div><dt>Status</dt><dd>Genuine, unchanged, and not taken back</dd></div>
+                <div className="never"><dt>Never shown</dt><dd>Your real balance, other payments, or history</dd></div>
+              </dl>
             </div>
             <div>
               <span className="eyebrow">Proofs</span>
@@ -141,6 +157,7 @@ export default function Home() {
               <details><summary>What can Scrim see?</summary><p>Enough to show you your own history. We keep a record of what you do, kept scrambled so only your account can read it, and nothing is sold or shared. A payment link shows the payer only what you chose to ask for.</p></details>
               <details><summary>How strong is a proof?</summary><p>Today, Scrim checks your private balance and signs the statement, so the reader trusts Scrim's word and the signature. Proving it on your own device, so even Scrim isn't involved, is the next step. We say this up front because it matters.</p></details>
               <details><summary>What does it cost?</summary><p>Making an account is free. Swaps and payments across chains carry a small network fee, which you see before you confirm anything.</p></details>
+              <details><summary>Can I try it without real money?</summary><p>Yes, partly. Sign in on testnet with free test coins to try sign-in, team approvals, spending limits and real NEAR transfers. Private money (adding money, swaps, payment links and proofs) depends on NEAR Intents, which has no testnet, so that part runs on mainnet only. NEAR's own advice is to test it there with a separate account and small amounts.</p></details>
               <details><summary>Is it ready to use?</summary><p>It's new software. Start with small amounts. Everything is open to read on GitHub, and adding and sending money is being switched on in stages.</p></details>
             </div>
           </div>
@@ -172,11 +189,11 @@ function SideBySide() {
     <div className="side-demo" aria-label="What you see compared with what the public sees">
       <div className="sd-card you">
         <span className="section-label">What you see</span>
-        <strong className="sd-total">$12,480.00</strong>
+        <strong className="sd-total">Your balance</strong>
         <ul>
-          <li><span>Paid Northwind Studio</span><b>−$2,400.00</b></li>
-          <li><span>Received by link · Logo design</span><b className="plus">+$850.00</b></li>
-          <li><span>Swapped USDC to BTC</span><b>$1,000.00</b></li>
+          <li><span>Every payment you sent</span><b>✓</b></li>
+          <li><span>Every payment you received</span><b>✓</b></li>
+          <li><span>Every swap, with its amounts</span><b>✓</b></li>
         </ul>
       </div>
       <div className="sd-card them">
@@ -187,4 +204,23 @@ function SideBySide() {
       </div>
     </div>
   );
+}
+
+type Live = { assets: number; chains: { name: string; icon: string | null }[] } | null;
+
+// Real, current data from NEAR Intents and CoinGecko: how many coins and chains Scrim can move between.
+async function liveNetworks(): Promise<Live> {
+  try {
+    const assets = await catalog();
+    const byChain = new Map<string, { name: string; icon: string | null; count: number }>();
+    for (const a of assets) {
+      const c = byChain.get(a.chain) ?? { name: a.chainName, icon: a.chainIcon, count: 0 };
+      c.count += 1;
+      byChain.set(a.chain, c);
+    }
+    const chains = [...byChain.values()].sort((a, b) => b.count - a.count);
+    return { assets: assets.length, chains };
+  } catch {
+    return null;
+  }
 }

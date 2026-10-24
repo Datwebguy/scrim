@@ -525,3 +525,49 @@ button.chip.on { background: var(--ink); color: #fff; border-color: var(--ink); 
   .segmented:has(label:nth-child(3)) { grid-template-columns: 1fr; }
   .balance-hero { padding: 20px; }
 }
+
+.net-banner { padding: 8px 16px; background: var(--amber-wash); color: #6b4a0a; font-size: 13px; font-weight: 700; text-align: center; border-bottom: 1px solid #ecd9ad; }
+.ws-account button + button { margin-top: 6px; }
+.ws-link small { margin-left: auto; }
+
+/* Real token and chain logos */
+.tlogo { position: relative; display: inline-grid; place-items: center; flex: none; border-radius: 50%; background: var(--paper-2); }
+.tlogo > img:first-child { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #fff; }
+.tletters { font: 600 11px var(--mono); color: var(--ink-3); text-transform: uppercase; }
+.tbadge { position: absolute; right: -3px; bottom: -3px; border-radius: 50%; background: #fff; border: 2px solid var(--card); object-fit: cover; }
+.picker { position: relative; }
+.picker-label { font-size: 13px; font-weight: 700; color: var(--ink-3); }
+.picker-button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 12px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); background: #fff; cursor: pointer; text-align: left; }
+.picker-button:hover { border-color: var(--ink); }
+.picker-button b { display: block; font-size: 15px; }
+.picker-button small, .picker-panel small { display: block; font-weight: 500; color: var(--muted); font-size: 12px; }
+.picker-caret { margin-left: auto; color: var(--muted); }
+.picker-panel { position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 6px); display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line-2); border-radius: var(--radius); background: #fff; box-shadow: var(--shadow-lg); }
+.picker-panel ul { list-style: none; margin: 0; padding: 0; max-height: 300px; overflow-y: auto; }
+.picker-panel li button { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px; border: 0; border-radius: 8px; background: none; cursor: pointer; text-align: left; }
+.picker-panel li button:hover, .picker-panel li[aria-selected="true"] button { background: var(--paper-2); }
+.picker-panel li b { display: block; font-size: 14px; }
+.picker-price { margin-left: auto; font-size: 12px; }
+.picker-empty { padding: 14px; color: var(--muted); font-size: 14px; }
+
+/* Homepage: live networks, flow, and wireframes (no sample data) */
+.chains { border-bottom: 1px solid var(--line); background: var(--paper); }
+.chains .wrap { display: grid; gap: 14px; padding-block: 28px; }
+.chains p { font-size: 14px; color: var(--ink-3); }
+.chains ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.chains li { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border: 1px solid var(--line); border-radius: 99px; background: var(--card); font-size: 13px; font-weight: 600; }
+.chains li img { border-radius: 50%; }
+.chains .dot { width: 20px; height: 20px; border-radius: 50%; background: var(--paper-2); }
+.flow { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; counter-reset: step; border: 1px solid #2c2c26; border-radius: 16px; background: #1b1b17; overflow: hidden; }
+.flow li { counter-increment: step; display: grid; gap: 4px; padding: 18px 20px 18px 64px; position: relative; border-top: 1px solid #2c2c26; }
+.flow li:first-child { border-top: 0; }
+.flow li::before { content: counter(step); position: absolute; left: 20px; top: 18px; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: #26261f; color: var(--orange); font: 500 12px var(--mono); }
+.flow b { font-size: 16px; color: #fff; }
+.flow span { font-size: 14px; color: #bdbcb2; line-height: 1.55; }
+.wire { margin: 0; display: grid; gap: 0; border: 1px solid var(--line); border-radius: var(--radius-sm); background: #fff; }
+.wire div { display: grid; grid-template-columns: 110px 1fr; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--line); font-size: 15px; }
+.wire div:first-child { border-top: 0; }
+.wire dt { color: var(--muted); font-weight: 600; font-size: 13px; }
+.wire dd { margin: 0; font-weight: 600; }
+.wire .never dd { color: var(--red); }
+.sd-card .section-label { color: var(--muted); }

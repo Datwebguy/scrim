@@ -1,20 +1,36 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signInWithWallet } from "@/client/wallet";
+import { isNetwork, NETWORK_INFO, type Network } from "@/protocol/networks";
 import { Spinner } from "./ui";
 
-export function SignIn({ network }: { network: string }) {
+const KEY = "scrim:network";
+
+export function SignIn({ networks }: { networks: Network[] }) {
   const router = useRouter();
+  const [network, setNetwork] = useState<Network>(networks[0]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  // Remember the last network, or honour ?network= from a "switch network" link.
+  useEffect(() => {
+    try {
+      const wanted = new URLSearchParams(window.location.search).get("network") ?? localStorage.getItem(KEY);
+      if (isNetwork(wanted) && networks.includes(wanted)) setNetwork(wanted);
+    } catch {
+      // Storage can be unavailable; the default is fine.
+    }
+  }, [networks]);
 
   async function connect() {
     setBusy(true);
     setError("");
     try {
-      await signInWithWallet();
+      try { localStorage.setItem(KEY, network); } catch { /* optional */ }
+      await signInWithWallet(network);
+      router.replace("/app");
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Sign-in didn't finish. Try again.");
@@ -36,12 +52,28 @@ export function SignIn({ network }: { network: string }) {
       </div>
       <div className="gate-form">
         <div>
-          {network !== "mainnet" && <span className="pill plain">Test mode · NEAR {network}</span>}
           <h1>Sign in with your wallet</h1>
           <p>Choose your NEAR wallet and approve one message. It proves the account is yours. It can't move any money.</p>
-          <button className="btn btn-primary btn-lg" onClick={connect} disabled={busy}>{busy && <Spinner />}{busy ? "Check your wallet…" : "Connect wallet"}</button>
+
+          {networks.length > 1 && (
+            <fieldset className="field">
+              <legend>Network</legend>
+              <div className="segmented" role="radiogroup" aria-label="Network">
+                {networks.map((n) => (
+                  <label key={n}>
+                    <input type="radio" name="network" checked={network === n} onChange={() => setNetwork(n)} />
+                    <b>{NETWORK_INFO[n].label}</b>
+                    <span>{n === "mainnet" ? "Real money. Everything works." : "Practice with free test coins."}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
+
+          {network === "testnet" && <div className="notice info">Testnet uses free test coins and your testnet wallet account. Private money (adding money, swaps, payment links, proofs) only exists on mainnet.</div>}
+          <button className="btn btn-primary btn-lg" onClick={connect} disabled={busy}>{busy && <Spinner />}{busy ? "Check your wallet…" : `Connect wallet on ${NETWORK_INFO[network].label.toLowerCase()}`}</button>
           {error && <p className="form-error" role="alert">{error}</p>}
-          <p className="fine">No email. No password. You can use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly. Don't have one yet? Any of them takes a minute to set up.</p>
+          <p className="fine">No email. No password. You can use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly.</p>
         </div>
       </div>
     </div>

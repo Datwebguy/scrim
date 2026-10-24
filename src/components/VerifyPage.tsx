@@ -49,7 +49,7 @@ export function VerifyPage() {
         </div>
         <form className="form-grid" onSubmit={(e) => { e.preventDefault(); run(text.trim(), viewer); }}>
           <label className="field">The proof<textarea className="textarea mono" rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder="scrimproof1.…" spellCheck={false} required /></label>
-          <label className="field">Your name <small>Optional. We'll check the proof was made for you.</small><input className="input" value={viewer} onChange={(e) => setViewer(e.target.value)} placeholder="Northwind Bank" /></label>
+          <label className="field">Your name <small>Optional. We'll check the proof was made for you.</small><input className="input" value={viewer} onChange={(e) => setViewer(e.target.value)} placeholder="The name the sender used for you" /></label>
           <button className="btn btn-primary" disabled={busy}>Check proof</button>
         </form>
         {error && <p className="form-error" role="alert">{error}</p>}

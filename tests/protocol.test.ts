@@ -109,3 +109,23 @@ describe("NEP-413", () => {
     expect(verifyNep413(payload, publicKey, "not-a-signature")).toBe(false);
   });
 });
+
+describe("NEAR Intents ownership message", async () => {
+  const { ownershipMessage, parseIntentMessage, versionedNonce, isImplicitAccount } = await import("@/protocol/intents-auth");
+  it("builds a versioned nonce with salt and deadline", () => {
+    const deadline = new Date("2026-10-24T12:00:00.000Z");
+    const nonce = versionedNonce("252812b3", deadline, new Date("2026-10-24T11:55:00.000Z"), new Uint8Array(7));
+    expect([...nonce.subarray(0, 5)]).toEqual([0x56, 0x28, 0xf6, 0xc6, 0]);
+    expect(nonce.subarray(5, 9).toString("hex")).toBe("252812b3");
+    expect(nonce.readBigUInt64LE(9)).toBe(BigInt(deadline.getTime()) * 1_000_000n);
+    expect(nonce.length).toBe(32);
+  });
+  it("writes an empty-intent message that cannot move funds", () => {
+    const parsed = parseIntentMessage(ownershipMessage("alice.near", new Date("2026-10-24T12:00:00Z")));
+    expect(parsed).toEqual({ deadline: "2026-10-24T12:00:00.000Z", intents: [], signer_id: "alice.near" });
+  });
+  it("recognises implicit accounts", () => {
+    expect(isImplicitAccount("a".repeat(64))).toBe(true);
+    expect(isImplicitAccount("alice.near")).toBe(false);
+  });
+});

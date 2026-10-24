@@ -1,15 +1,19 @@
 import { randomBytes, randomUUID, createHash } from "node:crypto";
+import { INTENTS_CONTRACT, ownershipMessage, versionedNonce } from "@/protocol/intents-auth";
 import { normalizeNearAccount } from "@/protocol/identifiers";
 import { verifyNep413 } from "@/protocol/nep413";
 import { audit } from "./audit";
 import { config } from "./config";
 import { sql, type Tx } from "./db";
 import { badRequest, unauthorized } from "./errors";
-import { keyVerifier } from "./near-rpc";
+import { intentsChain, keyVerifier } from "./near-rpc";
+import { connectPrivateBalance, type PrivateStatus } from "./private-access";
 
 export type Session = { id: string; accountId: string; publicKey: string; network: string; expiresAt: Date };
 
 export type IssuedChallenge = { challengeId: string; message: string; nonce: string; recipient: string; expiresAt: string };
+
+type Purpose = "sign_in" | "approve_payment" | "private_access";
 
 export type SignedEnvelope = { challengeId: string; accountId: string; publicKey: string; signature: string };
 
@@ -17,7 +21,7 @@ const hashToken = (token: string) => createHash("sha256").update(token).digest()
 
 export async function issueChallenge(
   tx: Tx,
-  input: { purpose: "sign_in" | "approve_payment"; lines: string[]; subject?: string; sessionId?: string },
+  input: { purpose: Purpose; lines: string[]; subject?: string; sessionId?: string },
 ): Promise<IssuedChallenge> {
   const id = randomUUID();
   const nonce = randomBytes(32);
@@ -29,8 +33,28 @@ export async function issueChallenge(
   return { challengeId: id, message, nonce: nonce.toString("base64"), recipient: config.authRecipient, expiresAt: expiresAt.toISOString() };
 }
 
-export function createSignInChallenge() {
-  return issueChallenge(sql, { purpose: "sign_in", lines: ["Sign in to Scrim", "", "This signature proves you control this NEAR account. It does not authorize any transaction or move funds."] });
+// Sign-in uses the NEAR Intents ownership message: a signed "empty intent" that cannot move funds.
+// One signature both signs the person in to Scrim and unlocks their private balance.
+export async function createOwnershipChallenge(
+  tx: Tx,
+  rawAccountId: string,
+  purpose: "sign_in" | "private_access" = "sign_in",
+  sessionId?: string,
+): Promise<IssuedChallenge> {
+  const accountId = normalizeNearAccount(rawAccountId);
+  if (!accountId) throw badRequest("Invalid NEAR account ID.");
+  const id = randomUUID();
+  const expiresAt = new Date(Date.now() + config.challengeTtlSeconds * 1000);
+  const nonce = versionedNonce(await intentsChain().currentSalt(), expiresAt);
+  const message = ownershipMessage(accountId, expiresAt);
+  await tx`
+    INSERT INTO auth_challenges (id, purpose, subject, message, nonce, recipient, session_id, expires_at)
+    VALUES (${id}, ${purpose}, ${accountId}, ${message}, ${nonce}, ${INTENTS_CONTRACT}, ${sessionId ?? null}, ${expiresAt})`;
+  return { challengeId: id, message, nonce: nonce.toString("base64"), recipient: INTENTS_CONTRACT, expiresAt: expiresAt.toISOString() };
+}
+
+export function createSignInChallenge(accountId: string) {
+  return createOwnershipChallenge(sql, accountId);
 }
 
 // Verifies a wallet-signed NEP-413 envelope against a stored challenge and consumes it.
@@ -38,8 +62,8 @@ export function createSignInChallenge() {
 export async function consumeSignedChallenge(
   tx: Tx,
   envelope: SignedEnvelope,
-  expect: { purpose: "sign_in" | "approve_payment"; subject?: string; sessionId?: string },
-): Promise<{ accountId: string; publicKey: string; challengeId: string }> {
+  expect: { purpose: Purpose; subject?: string; sessionId?: string },
+): Promise<{ accountId: string; publicKey: string; challengeId: string; message: string; nonce: string }> {
   const accountId = normalizeNearAccount(envelope.accountId ?? "");
   if (!accountId) throw badRequest("Invalid NEAR account ID.");
   const [challenge] = await tx<{ id: string; purpose: string; subject: string | null; message: string; nonce: Buffer; recipient: string; session_id: string | null }[]>`
@@ -49,6 +73,7 @@ export async function consumeSignedChallenge(
   if (!challenge) throw unauthorized("This signature request has expired or was already used. Try again.");
   if (challenge.purpose !== expect.purpose) throw unauthorized("Signature was issued for a different action.");
   if (expect.subject !== undefined && challenge.subject !== expect.subject) throw unauthorized("Signature does not match this request.");
+  if (expect.purpose !== "approve_payment" && challenge.subject !== accountId) throw unauthorized("Signature was requested for a different account.");
   if (expect.sessionId !== undefined && challenge.session_id !== expect.sessionId) throw unauthorized("Signature was requested by a different session.");
 
   const valid = verifyNep413(
@@ -63,21 +88,30 @@ export async function consumeSignedChallenge(
 
   const consumed = await tx`UPDATE auth_challenges SET consumed_at = now() WHERE id = ${challenge.id} AND consumed_at IS NULL RETURNING id`;
   if (consumed.length !== 1) throw unauthorized("This signature request was already used.");
-  return { accountId, publicKey: envelope.publicKey, challengeId: challenge.id };
+  return { accountId, publicKey: envelope.publicKey, challengeId: challenge.id, message: challenge.message, nonce: challenge.nonce.toString("base64") };
 }
 
-export async function signIn(envelope: SignedEnvelope): Promise<{ token: string; session: Session }> {
-  return sql.begin(async (tx) => {
-    const { accountId, publicKey } = await consumeSignedChallenge(tx, envelope, { purpose: "sign_in" });
+export async function signIn(envelope: SignedEnvelope): Promise<{ token: string; session: Session; privateStatus: PrivateStatus }> {
+  const { token, session, signed } = await sql.begin(async (tx) => {
+    const signed = await consumeSignedChallenge(tx, envelope, { purpose: "sign_in" });
     const token = randomBytes(32).toString("base64url");
     const id = randomUUID();
     const expiresAt = new Date(Date.now() + config.sessionTtlSeconds * 1000);
     await tx`
       INSERT INTO sessions (id, token_hash, account_id, public_key, network, expires_at)
-      VALUES (${id}, ${hashToken(token)}, ${accountId}, ${publicKey}, ${config.network}, ${expiresAt})`;
-    await audit(tx, null, { type: "human", id: accountId }, "session.created", id, { network: config.network });
-    return { token, session: { id, accountId, publicKey, network: config.network, expiresAt } };
+      VALUES (${id}, ${hashToken(token)}, ${signed.accountId}, ${signed.publicKey}, ${config.network}, ${expiresAt})`;
+    await audit(tx, null, { type: "human", id: signed.accountId }, "session.created", id, { network: config.network });
+    return { token, signed, session: { id, accountId: signed.accountId, publicKey: signed.publicKey, network: config.network, expiresAt } };
   });
+  const privateStatus = await connectPrivateBalance(session, { message: signed.message, nonce: signed.nonce, publicKey: signed.publicKey, signature: envelope.signature });
+  return { token, session, privateStatus };
+}
+
+// Re-unlock the private balance inside an existing session (after setup, or when access expired).
+export async function reconnectPrivateBalance(session: Session, envelope: SignedEnvelope): Promise<PrivateStatus> {
+  if (envelope.accountId !== session.accountId) throw unauthorized("Sign with the account you are signed in with.");
+  const signed = await sql.begin((tx) => consumeSignedChallenge(tx, envelope, { purpose: "private_access", sessionId: session.id }));
+  return connectPrivateBalance(session, { message: signed.message, nonce: signed.nonce, publicKey: signed.publicKey, signature: envelope.signature });
 }
 
 export async function sessionFromToken(token: string | undefined | null): Promise<Session | null> {

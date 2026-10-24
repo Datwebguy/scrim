@@ -10,7 +10,6 @@ import { consumeSignedChallenge, issueChallenge, type Session, type SignedEnvelo
 import { config } from "./config";
 import { sql, type Tx } from "./db";
 import { badRequest, conflict, forbidden, notFound } from "./errors";
-import { quoteProvider, refundAccountFor } from "./settlement";
 import { treasuryForMember, type Treasury } from "./treasuries";
 
 export type PaymentStatus = "policy_rejected" | "awaiting_approval" | "approved" | "quoted" | "submitting" | "settled" | "failed" | "expired" | "cancelled";
@@ -30,20 +29,6 @@ export type Payment = {
   expiresAt: Date;
   createdAt: Date;
   approvals: { accountId: string; createdAt: Date }[];
-  quote: Quote | null;
-};
-
-export type Quote = {
-  id: string;
-  provider: string;
-  confidentiality: string;
-  amountIn: string;
-  amountOut: string;
-  minAmountOut: string;
-  timeEstimateSeconds: number | null;
-  deadline: Date;
-  quoteCommitment: string;
-  createdAt: Date;
 };
 
 export type CreatePaymentInput = { recipient: string; amount: string; memo?: string; idempotencyKey: string };
@@ -59,11 +44,7 @@ async function hydrate(tx: Tx, rows: PaymentRow[]): Promise<Payment[]> {
   const ids = rows.map((r) => r.id);
   const approvals = await tx<{ request_id: string; account_id: string; created_at: Date }[]>`
     SELECT request_id, account_id, created_at FROM approvals WHERE request_id IN ${tx(ids)} ORDER BY created_at`;
-  const quotes = await tx<{ id: string; request_id: string; provider: string; confidentiality: string; amount_in: string; amount_out: string; min_amount_out: string; time_estimate_s: number | null; deadline: Date; quote_commitment: string; created_at: Date }[]>`
-    SELECT DISTINCT ON (request_id) id, request_id, provider, confidentiality, amount_in, amount_out, min_amount_out, time_estimate_s, deadline, quote_commitment, created_at
-    FROM quotes WHERE request_id IN ${tx(ids)} ORDER BY request_id, created_at DESC`;
   return rows.map((r) => {
-    const q = quotes.find((x) => x.request_id === r.id);
     return {
       id: r.id,
       treasuryId: r.treasury_id,
@@ -79,9 +60,6 @@ async function hydrate(tx: Tx, rows: PaymentRow[]): Promise<Payment[]> {
       expiresAt: r.expires_at,
       createdAt: r.created_at,
       approvals: approvals.filter((a) => a.request_id === r.id).map((a) => ({ accountId: a.account_id, createdAt: a.created_at })),
-      quote: q
-        ? { id: q.id, provider: q.provider, confidentiality: q.confidentiality, amountIn: q.amount_in, amountOut: q.amount_out, minAmountOut: q.min_amount_out, timeEstimateSeconds: q.time_estimate_s, deadline: q.deadline, quoteCommitment: q.quote_commitment, createdAt: q.created_at }
-        : null,
     };
   });
 }
@@ -259,31 +237,18 @@ export async function cancelPayment(session: Session, paymentId: string): Promis
   });
 }
 
-export async function requestQuote(session: Session, paymentId: string): Promise<Payment> {
-  const { payment, treasury } = await paymentForMember(sql, session, paymentId);
-  if (!["approved", "quoted"].includes(payment.status)) throw conflict("A request needs its approvals before a settlement quote.");
-  const quote = await quoteProvider()({
-    requestId: payment.id,
-    amount: BigInt(payment.amount),
-    recipient: payment.recipient,
-    refundTo: refundAccountFor(treasury.ownerAccountId, treasury.network),
-  });
-  return sql.begin(async (tx) => {
-    const updated = await tx`
-      UPDATE payment_requests SET status = 'quoted', updated_at = now()
-      WHERE id = ${payment.id} AND status IN ('approved', 'quoted') RETURNING id`;
-    if (updated.length === 0) throw conflict("This request changed while the quote was requested.");
-    await tx`
-      INSERT INTO quotes (id, request_id, provider, confidentiality, amount_in, amount_out, min_amount_out, time_estimate_s, deadline, quote_commitment, raw)
-      VALUES (${randomUUID()}, ${payment.id}, ${quote.provider}, ${quote.confidentiality}, ${quote.amountIn.toString()}, ${quote.amountOut.toString()},
-        ${quote.minAmountOut.toString()}, ${quote.timeEstimateSeconds}, ${quote.deadline}, ${quote.quoteCommitment}, ${tx.json(quote.raw as never)})`;
-    await audit(tx, treasury.id, { type: "human", id: session.accountId }, "payment.quoted", payment.id, {
-      provider: quote.provider,
-      confidentiality: quote.confidentiality,
-      quoteCommitment: quote.quoteCommitment,
-    });
-    return (await paymentForMember(tx, session, paymentId)).payment;
-  });
+// Links an approved team request to the private transfer that pays it, and records the outcome.
+export async function markTeamRequest(tx: Tx, requestId: string, status: "submitting" | "settled" | "failed" | "approved", actor: Actor) {
+  const [row] = await tx<{ treasury_id: string }[]>`
+    UPDATE payment_requests SET status = ${status}, updated_at = now() WHERE id = ${requestId} RETURNING treasury_id`;
+  if (row) await audit(tx, row.treasury_id, actor, `payment.${status}`, requestId);
+}
+
+export async function approvedTeamRequest(session: Session, requestId: string) {
+  const { payment, treasury } = await paymentForMember(sql, session, requestId);
+  if (payment.status !== "approved") throw conflict("This request is not approved yet, or it was already paid.");
+  if (treasury.ownerAccountId !== session.accountId) throw forbidden("Only the treasury owner can pay approved requests from their balance.");
+  return payment;
 }
 
 export async function listAudit(session: Session, treasuryId: string) {

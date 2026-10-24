@@ -274,7 +274,7 @@ function Requests({ payments, treasury, onOpen, onNew }: { payments: Payment[]; 
 
 function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { payment: Payment; treasury: Treasury; accountId: string; onClose: () => void; onChanged: () => void }) {
   const toast = useToast();
-  const [busy, setBusy] = useState<"" | "approve" | "quote" | "cancel">("");
+  const [busy, setBusy] = useState<"" | "approve" | "cancel">("");
   const [error, setError] = useState("");
   const approvedByMe = payment.approvals.some((a) => a.accountId === accountId);
 
@@ -284,7 +284,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  async function run(kind: "approve" | "quote" | "cancel") {
+  async function run(kind: "approve" | "cancel") {
     setBusy(kind);
     setError("");
     try {
@@ -293,9 +293,6 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
         const signed = await signChallenge(challenge, accountId);
         await api(`/payments/${payment.id}/approve`, { body: signed });
         toast("Approval signed");
-      } else if (kind === "quote") {
-        await api(`/payments/${payment.id}/quote`, { method: "POST" });
-        toast("Settlement quote received");
       } else {
         await api(`/payments/${payment.id}/cancel`, { method: "POST" });
         toast("Request cancelled");
@@ -308,9 +305,6 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
     }
   }
 
-  const quote = payment.quote;
-  const fee = quote ? BigInt(quote.amountIn) - BigInt(quote.amountOut) : 0n;
-  const quoteExpired = quote ? new Date(quote.deadline) < new Date() : false;
 
   return (
     <>
@@ -399,36 +393,8 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
             </div>
           )}
 
-          {quote && (
-            <div className="quote-card">
-              <div className="head">
-                <span>NEAR Intents quote</span>
-                <span className={`pill ${quoteExpired ? "" : "pill-orange"}`}>{quoteExpired ? "Expired" : quote.confidentiality === "public" ? "Public route" : "Confidential"}</span>
-              </div>
-              <div className="row">
-                Treasury sends <b>{formatAmount(quote.amountIn)} USDC</b>
-              </div>
-              <div className="row">
-                Recipient gets <b>{formatAmount(quote.amountOut)} USDC</b>
-              </div>
-              <div className="row">
-                Route fee <b>{formatAmount(fee)} USDC</b>
-              </div>
-              <div className="row">
-                Estimated time <b>~{quote.timeEstimateSeconds ?? "—"}s</b>
-              </div>
-              <div className="row">
-                Valid until <b>{new Date(quote.deadline).toLocaleTimeString()}</b>
-              </div>
-            </div>
-          )}
-
-          {quote && (
-            <div className="notice info">
-              This is a live, indicative quote from NEAR Intents.{" "}
-              {treasury.network !== "mainnet" ? "Your treasury is on testnet, so this quote cannot be executed. " : ""}
-              Executing the deposit from your wallet is the next release milestone, and Scrim never submits it for you.
-            </div>
+          {payment.status === "approved" && (
+            <div className="notice info">Approved. The treasury owner can now pay this from their private balance.</div>
           )}
           {payment.status === "policy_rejected" && <div className="notice danger">The mandate blocked this request before it reached a signer. It cannot be approved. Change the mandate or create a new request.</div>}
           {error && (
@@ -448,12 +414,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
               You signed · waiting for others
             </button>
           )}
-          {(payment.status === "approved" || payment.status === "quoted") && (
-            <button className="btn btn-signal" onClick={() => run("quote")} disabled={!!busy}>
-              {busy === "quote" && <Spinner />} {quote ? "Refresh quote" : "Get settlement quote"}
-            </button>
-          )}
-          {["awaiting_approval", "approved", "quoted"].includes(payment.status) && (
+          {["awaiting_approval", "approved"].includes(payment.status) && (
             <button className="btn btn-danger" onClick={() => run("cancel")} disabled={!!busy} style={{ flex: "0 0 auto" }}>
               Cancel
             </button>
@@ -516,7 +477,7 @@ function NewPaymentDialog({ open, treasuryId, onClose, onCreated }: { open: bool
             <input className="input" value={memo} onChange={(e) => setMemo(e.target.value)} maxLength={140} placeholder="Invoice #1048" />
           </label>
         </div>
-        <div className="notice info">The request is committed as entered. It needs your treasury&apos;s approval threshold before Scrim fetches a settlement quote.</div>
+        <div className="notice info">The request is committed as entered. It needs your treasury&apos;s approval threshold before it can be paid.</div>
         {error && (
           <p className="form-error" role="alert">
             {error}
@@ -835,7 +796,6 @@ const ACTION_LABEL: Record<string, string> = {
   "payment.requested": "Payment requested",
   "payment.policy_rejected": "Blocked by mandate",
   "payment.approved": "Approval signed",
-  "payment.quoted": "Settlement quoted",
   "payment.cancelled": "Request cancelled",
 };
 
@@ -846,7 +806,6 @@ function Audit({ events, agents }: { events: AuditEvent[]; agents: Agent[] }) {
     if (e.action === "payment.approved") return `${d.approvals}/${d.threshold}${d.thresholdReached ? " · threshold reached" : ""}`;
     if (e.action === "payment.policy_rejected") return `failed: ${(d.failedRules as string[] | undefined)?.join(", ").replace(/_/g, " ")}`;
     if (e.action.startsWith("agent.") && d.policyVersion) return `v${d.policyVersion}`;
-    if (e.action === "payment.quoted") return String(d.confidentiality);
     return "";
   };
   return (

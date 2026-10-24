@@ -1,4 +1,7 @@
 import { createSignInChallenge } from "@/server/auth";
-import { route } from "@/server/http";
+import { readJson, route } from "@/server/http";
 
-export const POST = route(async () => createSignInChallenge());
+export const POST = route(async (request) => {
+  const body = await readJson<{ accountId?: string }>(request);
+  return createSignInChallenge(String(body.accountId ?? ""));
+});

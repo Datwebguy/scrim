@@ -3,10 +3,9 @@ import { agentFromApiKey, createAgent, setAgentEnabled, updateMandate } from "@/
 import { createSignInChallenge, sessionFromToken, signIn, type Session } from "@/server/auth";
 import { sql } from "@/server/db";
 import { setKeyVerifierForTests } from "@/server/near-rpc";
-import { approvePayment, cancelPayment, createAgentPayment, createApprovalChallenge, createHumanPayment, listAudit, requestQuote } from "@/server/payments";
-import { setQuoteProviderForTests } from "@/server/settlement";
+import { approvePayment, approvedTeamRequest, cancelPayment, createAgentPayment, createApprovalChallenge, createHumanPayment, listAudit } from "@/server/payments";
 import { createTreasury, listTreasuries } from "@/server/treasuries";
-import { resetDatabase, wallet, type Wallet } from "./helpers";
+import { resetDatabase, useOfflineIntents, wallet, type Wallet } from "./helpers";
 
 const VENDOR = "0x1111111111111111111111111111111111111111";
 const STRANGER = "0x9999999999999999999999999999999999999999";
@@ -15,21 +14,10 @@ const registeredKeys = new Map<string, string>();
 beforeAll(async () => {
   await resetDatabase();
   setKeyVerifierForTests(async (accountId, publicKey) => registeredKeys.get(accountId) === publicKey);
-  setQuoteProviderForTests(async ({ amount, requestId }) => ({
-    provider: "near-intents-1click",
-    confidentiality: "public",
-    amountIn: amount + 250_000n,
-    amountOut: amount,
-    minAmountOut: amount,
-    timeEstimateSeconds: 22,
-    deadline: new Date(Date.now() + 1_800_000),
-    quoteCommitment: `test-${requestId}`,
-    raw: {},
-  }));
+  useOfflineIntents();
 });
 afterAll(async () => {
   setKeyVerifierForTests(null);
-  setQuoteProviderForTests(null);
   await sql.end();
 });
 
@@ -40,14 +28,14 @@ function account(id: string): Wallet {
 }
 
 async function login(w: Wallet): Promise<Session> {
-  const { token } = await signIn(w.sign(await createSignInChallenge()));
+  const { token } = await signIn(w.sign(await createSignInChallenge(w.accountId)));
   return (await sessionFromToken(token))!;
 }
 
 describe("wallet sign-in", () => {
   it("creates a session from a valid NEP-413 signature", async () => {
     const alice = account("alice.testnet");
-    const { token, session } = await signIn(alice.sign(await createSignInChallenge()));
+    const { token, session } = await signIn(alice.sign(await createSignInChallenge(alice.accountId)));
     expect(session.accountId).toBe("alice.testnet");
     expect((await sessionFromToken(token))?.accountId).toBe("alice.testnet");
     expect(await sessionFromToken("not-a-token")).toBeNull();
@@ -55,7 +43,7 @@ describe("wallet sign-in", () => {
 
   it("rejects a replayed challenge", async () => {
     const bob = account("bob.testnet");
-    const envelope = bob.sign(await createSignInChallenge());
+    const envelope = bob.sign(await createSignInChallenge(bob.accountId));
     await signIn(envelope);
     await expect(signIn(envelope)).rejects.toThrow(/expired or was already used/);
   });
@@ -63,13 +51,13 @@ describe("wallet sign-in", () => {
   it("rejects a signature claimed for another account", async () => {
     account("victim.testnet");
     const mallory = wallet("mallory.testnet");
-    const envelope = { ...mallory.sign(await createSignInChallenge()), accountId: "victim.testnet" };
+    const envelope = { ...mallory.sign(await createSignInChallenge("victim.testnet")), accountId: "victim.testnet" };
     await expect(signIn(envelope)).rejects.toThrow(/not a full-access key/);
   });
 
   it("rejects a tampered signature", async () => {
     const carol = account("carol.testnet");
-    const envelope = carol.sign(await createSignInChallenge());
+    const envelope = carol.sign(await createSignInChallenge(carol.accountId));
     const forged = { ...envelope, signature: Buffer.alloc(64, 1).toString("base64") };
     await expect(signIn(forged)).rejects.toThrow(/Signature verification failed/);
   });
@@ -180,7 +168,7 @@ describe("treasury, mandate, and approval flow", () => {
     const treasury = await teamTreasury();
     const payment = await createHumanPayment(ownerSession, treasury.id, { recipient: VENDOR, amount: "120.5", memo: "Invoice 1048", idempotencyKey: "human-0001" });
     expect(payment.status).toBe("awaiting_approval");
-    await expect(requestQuote(ownerSession, payment.id)).rejects.toThrow(/needs its approvals/);
+    await expect(approvedTeamRequest(ownerSession, payment.id)).rejects.toThrow(/not approved yet/);
 
     const ownerChallenge = await createApprovalChallenge(ownerSession, payment.id);
     expect(ownerChallenge.message).toContain("120.50 USDC");
@@ -197,12 +185,11 @@ describe("treasury, mandate, and approval flow", () => {
     expect(second.status).toBe("approved");
     expect(second.approvals).toHaveLength(2);
 
-    const quoted = await requestQuote(ownerSession, payment.id);
-    expect(quoted.status).toBe("quoted");
-    expect(quoted.quote?.amountOut).toBe("120500000");
+    expect((await approvedTeamRequest(ownerSession, payment.id)).amount).toBe("120500000");
+    await expect(approvedTeamRequest(cosignerSession, payment.id)).rejects.toThrow(/Only the treasury owner/);
 
     const trail = await listAudit(ownerSession, treasury.id);
-    expect(trail.map((e) => e.action)).toEqual(expect.arrayContaining(["treasury.created", "payment.requested", "payment.approved", "payment.quoted"]));
+    expect(trail.map((e) => e.action)).toEqual(expect.arrayContaining(["treasury.created", "payment.requested", "payment.approved"]));
   });
 
   it("rejects an approval signature for a different request", async () => {

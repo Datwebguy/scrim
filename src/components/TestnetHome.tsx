@@ -2,10 +2,8 @@
 import Link from "next/link";
 import { useApi } from "@/client/use-api";
 import { NETWORK_INFO } from "@/protocol/networks";
-import { Heading, TokenLogo } from "./money";
+import { Heading, TokenLogo, trimDecimals } from "./money";
 import { useSession, useSwitchNetwork } from "./session";
-
-const short = (v: string) => v.replace(/^(\d[\d,]*\.\d{0,4})\d*$/, "$1");
 
 type Holding = { id: string; symbol: string; name: string; display: string; icon: string | null };
 
@@ -22,7 +20,7 @@ export function TestnetHome() {
       <section className="balance-hero" aria-label="Testnet balance">
         <div className="balance-body">
           <span className="muted-on-dark">Test NEAR</span>
-          <strong className="balance-figure">{native ? short(native.display) : loading ? "…" : "—"}</strong>
+          <strong className="balance-figure">{native ? trimDecimals(native.display) : loading ? "…" : "—"}</strong>
           <span className="muted-on-dark">{accountId}</span>
         </div>
         <div className="quick">
@@ -39,7 +37,7 @@ export function TestnetHome() {
             <li key={h.id}>
               <TokenLogo icon={h.icon} symbol={h.symbol} />
               <span><b>{h.symbol}</b><small>{h.id === "near" ? "Native coin" : h.name}</small></span>
-              <span className="right"><b>{short(h.display)}</b></span>
+              <span className="right"><b>{trimDecimals(h.display)}</b></span>
             </li>
           ))}
           {data && data.holdings.length === 1 && native && native.display === "0.00" && <li><span /><span><b>No test coins yet</b><small>Get free test NEAR from the <a href="https://near-faucet.io" target="_blank" rel="noreferrer">NEAR testnet faucet ↗</a>, then come back.</small></span><span /></li>}

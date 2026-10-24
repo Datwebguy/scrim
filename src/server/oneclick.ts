@@ -68,7 +68,7 @@ export const refresh = (refreshToken: string) => call<{ accessToken: string; exp
 export const balances = (userToken: string) =>
   call<{ balances: { tokenId: string; available: string }[] }>("/v0/account/balances", { userToken });
 
-export type Venue = "ORIGIN_CHAIN" | "INTENTS" | "CONFIDENTIAL_INTENTS";
+type Venue = "ORIGIN_CHAIN" | "INTENTS" | "CONFIDENTIAL_INTENTS";
 export type QuoteRequest = {
   dry: boolean;
   swapType: "EXACT_INPUT" | "EXACT_OUTPUT" | "FLEX_INPUT";

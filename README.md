@@ -2,102 +2,230 @@
 
 **Private money for people and businesses, on NEAR.**
 
-Scrim gives you a private balance. Add money from almost any chain, pay anyone, get paid with a link, swap one coin for another, and prove a single fact to a single person. Nobody else sees the rest. It is built on NEAR Intents and its private mode (Confidential Intents), and Scrim never holds your keys or your money.
+Hold, send, swap and get paid, and only you see it. Scrim gives you a private balance on top of [NEAR Intents](https://near-intents.org). Add money from almost any chain, pay anyone on any chain, and prove a single fact to a single person when someone asks. Teams get approvals and spending limits, and software agents can ask to pay within rules that people control.
 
-**The problem.** Public blockchains show everyone your balance and every payment. That's uncomfortable for a person and unworkable for a business: competitors read your supplier payments, and anyone who pays you can see everything else you hold. Existing privacy tools are hard to use, cover one chain, or can't answer "can you prove it?"
+Scrim never holds your keys or your money. You sign in with your own NEAR wallet and approve every move yourself.
 
-**The product.** One account, plain words, any chain. See [PRODUCT.md](PRODUCT.md).
+<p align="center"><img src="docs/images/home.png" alt="Scrim home page" width="880"></p>
 
-## Try it
+---
 
-| Do this | You will see |
+## Contents
+
+- [Why Scrim](#why-scrim)
+- [What you can do](#what-you-can-do)
+- [Testnet and mainnet](#testnet-and-mainnet)
+- [How it works](#how-it-works)
+- [Run it yourself](#run-it-yourself)
+- [Configuration](#configuration)
+- [Deploy](#deploy)
+- [Agents](#agents)
+- [Security](#security)
+- [Project layout](#project-layout)
+- [Development](#development)
+- [Limits you should know about](#limits-you-should-know-about)
+- [Roadmap](#roadmap)
+
+---
+
+## Why Scrim
+
+On a public blockchain anyone can see your balance, who paid you and every payment you have sent. That is uncomfortable for a person and unworkable for a business: competitors read your supplier payments, and anyone who pays you can see everything else you hold.
+
+Most privacy tools are hard to use, work on a single chain, or cannot answer "can you prove it?". Scrim keeps your money private, works across chains, and lets you show exactly one fact to exactly one person.
+
+## What you can do
+
+| | |
 | --- | --- |
-| Open `/app` and press **Connect wallet**; approve one message in any NEAR wallet | You are signed in, and your **private balance** is unlocked. The message cannot move money. |
-| Open **Add money**, pick a coin and a network | A one-time deposit address on that network, with the minimum and warnings. |
-| Send a small amount to that address | The deposit shows "Waiting for your deposit", then lands in your private balance. |
-| Open **Home** and switch to **What the public sees** | "Nothing": no balance, no payments, no link between money in and money out. |
-| **Send** to another NEAR account, or to any address on any chain | A price and fee. Your wallet approves the exact transfer. |
-| **Swap** one coin for another | A price, then the swap inside your private balance. |
-| **Get paid**, create a link, open it in a private window | A payment page that needs no account. The payer picks any coin. |
-| **Proofs**, create "holds at least $1,000" for a named reader | A link. Open it (no account needed) and see a pass/fail check with the reader's name and expiry. |
-| **Team**, set up 2-of-3 approvals and a software helper with spending limits | Requests over the limit are blocked before anyone sees them. Approved ones are paid from your private balance. |
+| **Private balance** | Your holdings and history live on a private ledger. The public sees nothing. |
+| **Add money** | Pick a coin and a network. You get a one-time address; send from any wallet or exchange and it lands in your private balance. 30+ networks. |
+| **Send** | Pay another NEAR account, or any address on any supported chain. The payment cannot be traced back to your balance. |
+| **Swap** | Trade one coin for another inside your private balance. |
+| **Get paid** | Share a payment link. The payer needs no account and can pay from any coin on any chain. |
+| **Proofs** | Show that you hold at least an amount, or that a payment was made, to one named reader. The proof expires (1, 7 or 30 days), can be taken back, and is checked in the reader's browser without revealing your balance or history. |
+| **Teams** | Shared accounts where M of N people approve each payment, with spending limits and a history your accountant can read. |
+| **Agents** | Give software its own key and limits. It can ask to pay; people still approve. See [Agents](#agents). |
 
-Moving money needs a NEAR Intents partner key on the server. Until it is set, sign-in, the private balance, proofs and team features work and the money screens say "being switched on".
+<p align="center"><img src="docs/images/add-money.png" alt="Add money screen with real coins and networks" width="420"></p>
 
-## What works today
+## Testnet and mainnet
 
-| Capability | Status |
-| --- | --- |
-| Wallet sign-in with one signature that also unlocks the private balance | ✅ Checked against live NEAR mainnet |
-| Private balance with USD value | ✅ Checked against live NEAR Intents |
-| Add money (30+ networks), send, swap, pay out to any chain | ✅ Built and tested; needs a partner key to switch on |
-| Payment links, no account needed to pay | ✅ Built and tested |
-| Proofs: balance at least, payment; reader-bound, expiring, revocable | ✅ Signed by Scrim today |
-| Team approvals (M of N), spending limits, software helpers, history | ✅ Built and tested |
-| Proofs generated on your own device | ⏭ Next |
-| Payroll batches, accountant exports, on-chain team rules | ⏭ Next |
-| Own shielded pool | 🔬 Research |
+Choose a network when you sign in. Everything shown is real data from the network you pick. There is no sample or placeholder content.
 
-Honest limits are listed in [ARCHITECTURE.md](ARCHITECTURE.md#honest-limits) and [BACKEND_SPEC.md](BACKEND_SPEC.md#12-known-gaps-before-a-public-launch). Scrim has not had an external security review: start with small amounts.
+| | Testnet | Mainnet |
+| --- | --- | --- |
+| Money | Free test coins, worth nothing | Real money |
+| Sign-in and team approvals | ✅ | ✅ |
+| Spending limits and agents | ✅ | ✅ |
+| Real NEAR transfers, checked on-chain | ✅ | ✅ |
+| Private balance, add money, send, swap | — | ✅ |
+| Payment links and proofs | — | ✅ |
 
-## How NEAR fits
+The private features need NEAR Intents, which only exists on mainnet. On testnet those screens say so plainly. The recommended path is to try Scrim on testnet first, then move to mainnet with a separate account and small amounts.
 
-- **NEAR Intents + Confidential Intents:** the private ledger, the swaps, and the bridge to 30+ networks.
-- **NEAR accounts and NEAR Connect:** sign-in and every approval, with the person's own wallet.
-- **NEAR AI Cloud / OutLayer (planned):** private decision logic and device-independent proofs.
+<p align="center"><img src="docs/images/testnet.png" alt="Testnet wallet" width="620"></p>
 
-## Tracks
+## How it works
 
-Primary: **Privacy & Private AI**. Also fits **Real-World Money** (payroll-style payouts, invoicing links, stablecoin rails), **AI Security & Defense** (spending limits, approvals) and **Agent Economy** (software that pays under limits). Details in [HACKATHON.md](HACKATHON.md).
+```mermaid
+flowchart LR
+  W[Your NEAR wallet] -- one signature --> S[Scrim]
+  S -- private session --> I[NEAR Intents private ledger]
+  I <--> B[Bridge: 30+ networks]
+  S --- D[(Postgres)]
+```
 
-## Run it locally
+**Sign in.** You approve one message in any NEAR wallet. On mainnet it is the NEAR Intents ownership message, a signed empty intent that cannot move funds. That single signature both signs you in and opens your private session. Scrim checks on-chain that the key really belongs to your account.
 
-Requires Node 20+ and Postgres 14+.
+**Move money.** Scrim asks NEAR Intents for a price, then your wallet signs the exact transfer. Scrim checks the signature against the exact payload before submitting, and it can be used once. Scrim then follows the transfer to the end and shows you each stage.
+
+**Prove a fact.** A proof is a short statement ("holds at least…" or "paid…") made for one reader, signed by Scrim, with an expiry. The reader opens a link and the check runs in their browser. Proofs are signed statements today, not zero-knowledge proofs (see [limits](#limits-you-should-know-about)).
+
+**Run a team.** A request (from a person or an agent) is first checked against the rules. Anything outside them is stopped before anyone sees it. The rest waits for the number of approvals you chose, each given by a wallet signature tied to that exact amount and recipient. Approved requests are paid from the owner's private balance on mainnet, or with a real NEAR transfer on testnet that Scrim reads back from the chain before marking it paid.
+
+### Where the data comes from
+
+Coins, prices, logos and networks come live from NEAR Intents and CoinGecko. Testnet balances come from the NEAR RPC and FastNEAR. Nothing is hardcoded.
+
+## Run it yourself
+
+You need Node 20+ and Postgres 14+.
 
 ```sh
+git clone https://github.com/Datwebguy/scrim.git
+cd scrim
 npm install
 createdb scrim && createdb scrim_test
 cp .env.example .env.local
-npm run keys            # prints two secrets; paste them into .env.local
+npm run keys          # prints two secrets; paste them into .env.local
 npm run db:migrate
-npm run dev             # http://localhost:3000
+npm run dev           # http://localhost:3000
 ```
 
-```sh
-npm test                # protocol tests plus live tests against real NEAR testnet and mainnet; resets TEST_DATABASE_URL
-npm run typecheck
-npm run build
-```
-
-Everything runs against real services (NEAR RPC, NEAR Intents, CoinGecko, FastNEAR), so tests need internet access. Tests create real testnet accounts and send real testnet NEAR. Three mainnet tests that quote private transfers are skipped unless `ONECLICK_API_KEY` is set. There are no mocks or sample data.
-
-**Two networks.** People choose mainnet or testnet when they sign in. NEAR Intents has no testnet, so private money (add, swap, links, proofs) is mainnet-only; testnet covers sign-in, team approvals, spending limits and real NEAR transfers verified on-chain.
+Open `/app`, choose **Testnet**, and connect a NEAR testnet wallet. To use mainnet private money you also need a partner key (below).
 
 ## Configuration
 
-| Setting | Purpose |
+Copy `.env.example` to `.env.local`. Required:
+
+| Setting | What it is |
 | --- | --- |
-| `DATABASE_URL` | Postgres |
-| `SCRIM_SECRET_KEY`, `SCRIM_PROOF_KEY` | Seal private records; sign proofs. `npm run keys` makes both. |
-| `ONECLICK_API_KEY` | Free partner key from partners.near-intents.org. Switches on moving money. |
-| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` | Optional. Telegram alerts for approvers |
-| `SCRIM_NETWORKS` | Networks offered: `mainnet,testnet` (default) |
-| `NEAR_RPC_URL_MAINNET/TESTNET`, `NEAR_INDEXER_URL_*`, `COINGECKO_URL` | Optional endpoint overrides |
+| `DATABASE_URL` | Postgres connection string |
+| `SCRIM_SECRET_KEY` | Seals private records at rest (32 random bytes, base64) |
+| `SCRIM_PROOF_KEY` | Signs proofs (32 random bytes, base64). Keep it safe: anyone holding it can forge proofs |
 
-`GET /api/health` reports which features are on and names any missing setting (never values). On Vercel, `npm run vercel-build` runs migrations when `DATABASE_URL` is set.
+`npm run keys` generates both.
 
-## Layout
+Optional:
+
+| Setting | What it does |
+| --- | --- |
+| `ONECLICK_API_KEY` | Free "Distribution Channel" key from [partners.near-intents.org](https://partners.near-intents.org). Switches on moving private money on mainnet. Without it, sign-in, balances, teams and agents still work |
+| `SCRIM_NETWORKS` | Networks offered at sign-in. Default `mainnet,testnet` |
+| `SCRIM_AUTH_RECIPIENT` | The site's address, used in approval messages. Use your domain in production |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` | Telegram alerts for approvers (create a bot with @BotFather) |
+| `SCRIM_SITE_URL` | Public address used in alerts. Detected automatically on Vercel |
+| `NEAR_RPC_URL_MAINNET`, `NEAR_RPC_URL_TESTNET`, `NEAR_INDEXER_URL_*`, `ONECLICK_URL`, `BRIDGE_RPC_URL`, `COINGECKO_URL` | Override service addresses |
+
+`GET /api/health` reports which features are on per network and names any missing setting. It never shows values.
+
+## Deploy
+
+Scrim is a standard Next.js app. On Vercel:
+
+1. Import the repository.
+2. Add a Postgres database (the Neon integration sets `DATABASE_URL` for you).
+3. Add `SCRIM_SECRET_KEY`, `SCRIM_PROOF_KEY` and `SCRIM_AUTH_RECIPIENT` as environment variables (mark the keys Sensitive), then `ONECLICK_API_KEY` when you have it.
+4. Deploy. Database migrations run during the build.
+
+Environment changes apply on the next deployment.
+
+## Agents
+
+An **agent** is software that pays on a team's behalf: an AI assistant, a payroll script, a billing job. An agent can only *ask* to pay. People approve.
+
+**The agent's key.** When an owner adds an agent (Team → Agents), Scrim shows a key once, starting with `scrim_sk_`. The software sends it as `Authorization: Bearer scrim_sk_…`. The key can ask to pay within the agent's limits. It cannot approve, change limits or move money, and it is not a wallet key. Scrim stores only a hash. If it is lost or leaked, **Connect → Make a new key** replaces it and the old one stops at once.
+
+**Limits.** Per payment, per time window (for example per day), a list of allowed recipients, and an optional expiry. Every change creates a new version with a fingerprint, so there is a record of what applied when. Requests outside the limits are stopped before any person sees them. Any team member can pause an agent; only the owner can resume it.
+
+**Connect an AI assistant (MCP).** Scrim is an MCP server at `/api/mcp`:
+
+```json
+{ "mcpServers": { "scrim": { "type": "http", "url": "https://<your-site>/api/mcp", "headers": { "Authorization": "Bearer scrim_sk_…" } } } }
+```
+
+Tools: `get_limits`, `request_payment`, `list_payments`, `get_payment`.
+
+**Connect code (HTTPS).**
+
+| Call | What it does |
+| --- | --- |
+| `GET /api/v1/agent` | Limits and what is left to spend |
+| `POST /api/v1/agent/payments` | Ask to pay: `{recipient, amount, memo}` with an `Idempotency-Key` header |
+| `GET /api/v1/agent/payments` | Recent requests |
+| `GET /api/v1/agent/payments/:id` | One request |
+
+**Updates (webhooks).** Set an `https://` address under **Connect** and Scrim calls it when a request is created, stopped, approved, being paid, paid, failed or cancelled. Each call carries `Scrim-Signature: t=<unix seconds>,v1=<hex>`, where `v1` is the HMAC-SHA256 of `"<t>.<raw body>"` with the signing secret (`whsec_…`, shown once). Reject calls with a wrong signature or a timestamp older than five minutes. Only public addresses are allowed.
+
+**Alerts for people.** Approvers can tap **Connect Telegram** on the Team screen to get a message when a payment needs them.
+
+## Security
+
+- **Wallet signatures, not passwords.** Sign-in challenges are single-use and expire in five minutes. The signing key is checked on-chain as a full-access key of the account.
+- **Every transfer is bound to a signature** over the exact payload and accepted once.
+- **Team approvals are bound to one request.** The signed message names amount, recipient and a reference, so a signature cannot be reused.
+- **Limits are enforced on the server**, with a lock per agent so concurrent requests cannot both slip under a cap.
+- **Private data is sealed** (AES-256-GCM, bound to its record). Session and agent keys are stored only as hashes.
+- **Webhooks** are signed, public-address-only (checked again at send time), and never follow redirects.
+- **Rate limits** apply per client on every route, with stricter limits on sign-in, payment links and agent keys.
+- **Responses are never cached**, and browser-originated changes must come from the same origin.
+
+## Project layout
 
 ```
-app/              pages and API routes (homepage, /app, /pay, /verify, /api/v1)
-src/protocol/     tested logic shared by server and browser: amounts, signatures, proofs, spending limits
-src/server/       sign-in, private access, transfers, links, proofs, teams, NEAR Intents client
+app/              pages and API routes (home, /app, /pay, /verify, /api)
+src/protocol/     logic shared by server and browser: amounts, signatures, proofs, spending limits
+src/server/       sign-in, private access, transfers, links, proofs, teams, agents, alerts
 src/client/       browser wallet bridge and API helpers
 src/components/   screens
-db/migrations/    database schema
-tests/            protocol and service tests
+db/migrations/    database schema, applied in order
+tests/            protocol tests and live tests against real networks
+scripts/          migrations and key generation
 ```
 
-## Documents
+## Development
 
-[PRODUCT.md](PRODUCT.md) · [AGENTS.md](AGENTS.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [BACKEND_SPEC.md](BACKEND_SPEC.md) · [NEAR_TOOLS.md](NEAR_TOOLS.md) · [HACKATHON.md](HACKATHON.md) · [RESEARCH.md](RESEARCH.md)
+```sh
+npm run dev         # run locally
+npm run typecheck   # TypeScript
+npm run unused      # find unused code and dependencies
+npm test            # tests
+npm run check       # all three
+npm run build       # production build
+```
+
+Tests use real services: NEAR testnet and mainnet RPC, NEAR Intents, CoinGecko. They create real testnet accounts and send real testnet NEAR, so they need internet access. They reset the database named by `TEST_DATABASE_URL` (default `scrim_test`). Three mainnet tests that request private transfer quotes run only when `ONECLICK_API_KEY` is set. There are no mocks or sample data.
+
+GitHub Actions runs type check, unused-code check, tests and build on every push.
+
+## Limits you should know about
+
+- **Proofs are signed statements.** Scrim checks the private balance and vouches for it. They are not zero-knowledge proofs yet.
+- **Scrim keeps its own activity record**, sealed and visible only to its owner, because NEAR Intents' history endpoint is invite-only.
+- **Team limits are enforced by Scrim**, not by an on-chain contract.
+- **Contract wallets and multisig accounts cannot sign in yet.** Standard and implicit accounts can.
+- **The private ledger is run by NEAR Intents.** Like a bank, its operators can see it; the public cannot.
+- **No external security review has happened.** Treat Scrim as new software and start with small amounts.
+
+## Roadmap
+
+- Proofs generated on your own device
+- Payroll batches and accountant exports
+- Team rules enforced on-chain
+- Contract-wallet sign-in
+- A shielded pool of its own
+
+## License
+
+[MIT](LICENSE)

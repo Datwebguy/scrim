@@ -3,7 +3,7 @@
 import { formatAmount } from "./amount";
 import { commitment } from "./canonical";
 
-export type Counterparty = { address: string; label: string };
+type Counterparty = { address: string; label: string };
 
 export type MandatePolicy = {
   version: number;
@@ -13,7 +13,7 @@ export type MandatePolicy = {
   expiresAt: string | null;
 };
 
-export type PolicyCheck = { rule: "active" | "counterparty" | "per_action_cap" | "rolling_cap" | "expiry"; passed: boolean; detail: string };
+type PolicyCheck = { rule: "active" | "counterparty" | "per_action_cap" | "rolling_cap" | "expiry"; passed: boolean; detail: string };
 
 export type PolicyDecision = {
   allowed: boolean;
@@ -22,7 +22,7 @@ export type PolicyDecision = {
   policyCommitment: string;
 };
 
-export type PolicyUnit = { symbol: string; decimals: number };
+type PolicyUnit = { symbol: string; decimals: number };
 
 export type PolicyInput = {
   recipient: string;

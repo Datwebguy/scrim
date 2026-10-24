@@ -3,6 +3,7 @@
 import { createHmac } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { agentOverview } from "@/server/agent-api";
+import { agentWallet, setAutonomous } from "@/server/agent-wallets";
 import { agentFromApiKey, createAgent, rotateAgentKey, setAgentWebhook } from "@/server/agents";
 import type { Session } from "@/server/auth";
 import { sql } from "@/server/db";
@@ -189,5 +190,19 @@ describe("team payout rules", () => {
     const [row] = await sql<{ ok: boolean; status_code: number | null }[]>`SELECT ok, status_code FROM webhook_deliveries WHERE agent_id = ${agentId} ORDER BY id DESC LIMIT 1`;
     expect(row).toMatchObject({ ok: false, status_code: null });
     await setAgentWebhook(ownerSession, agentId, null);
+  });
+});
+
+describe("agents paying by themselves", () => {
+  it("keeps asking for approval until the owner gives the agent its own wallet", async () => {
+    expect(await agentWallet(ownerSession, agentId)).toBeNull();
+    await expect(setAutonomous(ownerSession, agentId, true)).rejects.toThrow(/wallet first/);
+    const agent = await agentFromApiKey(`Bearer ${apiKey}`);
+    expect(agent.mode).toBe("request_only");
+  });
+
+  it("lets only the owner change how the agent pays", async () => {
+    const signer = (await signInAs(payee)).session;
+    await expect(setAutonomous(signer, agentId, false)).rejects.toThrow();
   });
 });

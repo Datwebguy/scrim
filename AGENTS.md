@@ -9,6 +9,15 @@ When an owner adds an agent (Team → Agents → Add agent), Scrim shows a key o
 - It cannot approve, change limits or move money. It is not a wallet key.
 - Scrim stores only a hash. Lost or leaked: **Connect → Make a new key**. The old key stops at once.
 
+## Agents that pay by themselves
+An owner can give an agent its own wallet (Connect → **Create wallet**), secured by OutLayer: its key lives in a secure enclave and never reaches Scrim.
+
+1. **Add funds** opens OutLayer's funding page for the agent's wallet.
+2. **Spending rules** opens OutLayer, where the owner sets the wallet's own limits with their NEAR wallet.
+3. **Let it pay by itself** → requests inside the agent's Scrim limits are paid straight from its wallet, with no approval step. `get_payment` shows `submitting`, then `settled` or `failed`.
+
+On testnet the wallet sends NEAR and Scrim reads the transfer back from the chain. On mainnet it sends USDC from its NEAR Intents balance, and pays x402 sellers the same way.
+
 ## Option 1: AI assistants (MCP)
 Scrim is an MCP server at `https://<your-site>/api/mcp` (Streamable HTTP).
 

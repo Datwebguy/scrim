@@ -936,12 +936,101 @@ function ConnectDialog({ agent, role, onClose, onNewKey, onChanged }: { agent: A
         )}
       </section>
 
+      <AgentWalletBlock agent={agent} owner={owner} onChanged={onChanged} />
+
       <section className="connect-block">
         <span className="section-label">Plug it in</span>
         <ConnectGuide apiKey={`${agent.keyPrefix}…`} />
         <small className="muted">Use the full key you saved in place of {agent.keyPrefix}…</small>
       </section>
     </Modal>
+  );
+}
+
+type AgentWallet = {
+  network: string;
+  accountId: string;
+  autonomous: boolean;
+  policyUrl: string | null;
+  fundUrl: string;
+  balances: { near: string | null; usdc: string | null; usdcIntents: string | null };
+};
+
+// The agent's own wallet on OutLayer. With it, the owner can let the agent pay by itself within its limits.
+function AgentWalletBlock({ agent, owner, onChanged }: { agent: Agent; owner: boolean; onChanged: () => void }) {
+  const toast = useToast();
+  const [wallet, setWallet] = useState<AgentWallet | null | undefined>(undefined);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    setWallet(undefined);
+    api<{ wallet: AgentWallet | null }>(`/agents/${agent.id}/wallet`)
+      .then((r) => live && setWallet(r.wallet))
+      .catch(() => live && setWallet(null));
+    return () => {
+      live = false;
+    };
+  }, [agent.id]);
+
+  const act = async (method: "POST" | "PATCH", body?: unknown) => {
+    setBusy(true);
+    try {
+      setWallet((await api<{ wallet: AgentWallet }>(`/agents/${agent.id}/wallet`, { method, body })).wallet);
+      onChanged();
+    } catch (e) {
+      toast((e as Error).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggle = (on: boolean) => {
+    if (on && !confirm(`Let ${agent.name} pay by itself? Payments within its limits will be sent from its own wallet without approval.`)) return;
+    void act("PATCH", { autonomous: on });
+  };
+
+  return (
+    <section className="connect-block">
+      <span className="section-label">Agent wallet</span>
+      {wallet === undefined ? (
+        <Spinner />
+      ) : wallet === null ? (
+        <>
+          <p className="muted">Give {agent.name} a wallet of its own, secured by OutLayer. You fund it and set its spending rules; then it can pay within its limits without waiting for approval.</p>
+          {owner && (
+            <div className="connect-row">
+              <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => act("POST")}>
+                {busy ? <Spinner /> : "Create wallet"}
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="connect-row">
+            <code>{wallet.accountId.length > 24 ? `${wallet.accountId.slice(0, 10)}…${wallet.accountId.slice(-8)}` : wallet.accountId}</code>
+            <small className="muted">
+              {[wallet.balances.near && `${wallet.balances.near} NEAR`, wallet.balances.usdc && `${wallet.balances.usdc} USDC`, wallet.balances.usdcIntents && `${wallet.balances.usdcIntents} USDC ready to pay`].filter(Boolean).join(" · ") || "Balance unavailable"}
+            </small>
+          </div>
+          {owner && (
+            <div className="connect-row">
+              <a className="btn btn-ghost btn-sm" href={wallet.fundUrl} target="_blank" rel="noreferrer">Add funds</a>
+              {wallet.policyUrl && <a className="btn btn-ghost btn-sm" href={wallet.policyUrl} target="_blank" rel="noreferrer">Spending rules</a>}
+              <button className={`btn btn-sm ${wallet.autonomous ? "btn-ghost" : "btn-primary"}`} disabled={busy} onClick={() => toggle(!wallet.autonomous)}>
+                {busy ? <Spinner /> : wallet.autonomous ? "Ask before paying" : "Let it pay by itself"}
+              </button>
+            </div>
+          )}
+          <p className="muted">
+            {wallet.autonomous
+              ? `${agent.name} pays by itself from this wallet, within its limits here and its spending rules on OutLayer.`
+              : `${agent.name} asks and people approve. Payments come from the team.`}
+          </p>
+        </>
+      )}
+    </section>
   );
 }
 

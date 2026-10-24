@@ -802,3 +802,4 @@ button.chip.on { background: var(--ink); color: #fff; border-color: var(--ink); 
 .tg-bar small { color: var(--muted); }
 .tg-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #229ed9; color: #fff; font-size: 16px; }
 @media (max-width: 480px) { .tg-bar { flex-wrap: wrap; } .tg-bar .btn { width: 100%; } }
+.link-btn { background: none; border: 0; padding: 0; color: var(--orange-deep); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }

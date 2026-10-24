@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { signInWithWallet } from "@/client/wallet";
+import { connectedAccount, signInWithWallet } from "@/client/wallet";
 import { isNetwork, NETWORK_INFO, type Network } from "@/protocol/networks";
 import { Spinner } from "./ui";
 
@@ -13,6 +13,8 @@ export function SignIn({ networks }: { networks: Network[] }) {
   const [network, setNetwork] = useState<Network>(networks[0]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [stuck, setStuck] = useState(false);
+  const [known, setKnown] = useState<string | null>(null);
 
   // Remember the last network, or honour ?network= from a "switch network" link.
   useEffect(() => {
@@ -23,6 +25,21 @@ export function SignIn({ networks }: { networks: Network[] }) {
       // Storage can be unavailable; the default is fine.
     }
   }, [networks]);
+
+  // A wallet already connected in this browser: offer to continue with it.
+  useEffect(() => {
+    let alive = true;
+    setKnown(null);
+    connectedAccount(network).then((account) => alive && setKnown(account));
+    return () => { alive = false; };
+  }, [network]);
+
+  // If the wallet does not come back, say so and let the person start again.
+  useEffect(() => {
+    if (!busy) { setStuck(false); return; }
+    const timer = setTimeout(() => setStuck(true), 15_000);
+    return () => clearTimeout(timer);
+  }, [busy]);
 
   async function connect() {
     setBusy(true);
@@ -71,7 +88,8 @@ export function SignIn({ networks }: { networks: Network[] }) {
           )}
 
           {network === "testnet" && <div className="notice info">Testnet uses free test coins and your testnet wallet account. Private money (adding money, swaps, payment links, proofs) only exists on mainnet.</div>}
-          <button className="btn btn-primary btn-lg" onClick={connect} disabled={busy}>{busy && <Spinner />}{busy ? "Check your wallet…" : `Connect wallet on ${NETWORK_INFO[network].label.toLowerCase()}`}</button>
+          <button className="btn btn-primary btn-lg" onClick={connect} disabled={busy}>{busy && <Spinner />}{busy ? "Check your wallet…" : known ? `Continue as ${known}` : `Connect wallet on ${NETWORK_INFO[network].label.toLowerCase()}`}</button>
+          {stuck && <p className="fine">Wallet didn&apos;t open, or you came back without finishing? <button type="button" className="link-btn" onClick={() => { setBusy(false); setError(""); }}>Tap here to try again</button>.</p>}
           {error && <p className="form-error" role="alert">{error}</p>}
           <p className="fine">No email. No password. You can use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly.</p>
         </div>

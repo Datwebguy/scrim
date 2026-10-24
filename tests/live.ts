@@ -1,6 +1,8 @@
 // Helpers for tests that run against the real services: NEAR testnet and mainnet RPC, the testnet
 // account creator, and NEAR Intents. Nothing is faked. A "wallet" here is a real ed25519 key that
 // signs real messages and real transactions, exactly as a person's wallet would.
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { ed25519 } from "@noble/curves/ed25519.js";
 import bs58 from "bs58";
 import { Account, JsonRpcProvider, KeyPairSigner } from "near-api-js";
@@ -69,8 +71,34 @@ async function waitForKey(network: Network, accountId: string, publicKey: string
   throw new Error(`Account ${accountId} did not appear on ${network}.`);
 }
 
-/** Creates a real, funded NEAR testnet account through NEAR's public account creator. */
+// Testnet accounts are real and stay on chain, so tests reuse the ones they made before instead of
+// asking NEAR's account creator for new ones every run (it limits how many it hands out).
+const WALLET_CACHE = join(import.meta.dirname, ".wallets.json");
+type Cached = Record<string, { accountId: string; secret: string }>;
+const readCache = (): Cached => { try { return JSON.parse(readFileSync(WALLET_CACHE, "utf8")); } catch { return {}; } };
+
+async function liveBalance(accountId: string): Promise<bigint | null> {
+  const response = await fetch(endpoints("testnet").rpcUrl, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "query", params: { request_type: "view_account", finality: "final", account_id: accountId } }),
+  });
+  const body = (await response.json()) as { result?: { amount?: string } };
+  return body.result?.amount ? BigInt(body.result.amount) : null;
+}
+
+/** A real, funded NEAR testnet account: reused from earlier runs when it still has test NEAR, otherwise newly created. */
 export async function createTestnetWallet(prefix: string): Promise<Wallet> {
+  const cache = readCache();
+  const hit = cache[prefix];
+  if (hit) {
+    const balance = await liveBalance(hit.accountId).catch(() => null);
+    if (balance !== null && balance > 2n * 10n ** 24n) return walletFor(hit.accountId, "testnet", Buffer.from(hit.secret, "hex"));
+  }
+  const wallet = await newTestnetWallet(prefix);
+  return wallet;
+}
+
+async function newTestnetWallet(prefix: string): Promise<Wallet> {
   const secret = ed25519.utils.randomSecretKey();
   const publicKey = encodePublicKey(ed25519.getPublicKey(secret));
   const accountId = `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}.testnet`;
@@ -80,6 +108,11 @@ export async function createTestnetWallet(prefix: string): Promise<Wallet> {
   });
   if (!response.ok) throw new Error(`Testnet account creation failed (${response.status}).`);
   await waitForKey("testnet", accountId, publicKey);
+  try {
+    writeFileSync(WALLET_CACHE, JSON.stringify({ ...readCache(), [prefix]: { accountId, secret: Buffer.from(secret).toString("hex") } }, null, 1));
+  } catch {
+    // Caching is only a convenience.
+  }
   return walletFor(accountId, "testnet", secret);
 }
 

@@ -5,14 +5,14 @@ import bs58 from "bs58";
 import { decodeSignature } from "@/protocol/nep413";
 import { INTENTS_CONTRACT } from "@/protocol/intents-auth";
 import type { Session } from "./auth";
-import { config } from "./config";
+import { PRIVATE_MONEY_MAINNET_ONLY } from "@/protocol/networks";
 import { sql } from "./db";
 import { HttpError } from "./errors";
 import { intentsChain } from "./near-rpc";
 import { authenticate, refresh, UpstreamError } from "./oneclick";
 import { open, seal } from "./secrets";
 
-export type PrivateStatus = "active" | "needs_setup" | "unavailable" | "expired" | "none";
+export type PrivateStatus = "active" | "needs_setup" | "unavailable" | "expired" | "none" | "mainnet_only";
 
 type Tokens = { accessToken: string; refreshToken: string };
 type Row = { status: PrivateStatus; tokens_sealed: string | null; access_expires_at: Date | null; refresh_expires_at: Date | null; public_key: string; detail: string | null };
@@ -37,12 +37,9 @@ async function save(session: Session, publicKey: string, status: PrivateStatus, 
 
 // Called with a signature the server has already verified against a single-use challenge.
 export async function connectPrivateBalance(session: Session, signed: SignedOwnership): Promise<PrivateStatus> {
-  if (config.network !== "mainnet") {
-    await save(session, signed.publicKey, "unavailable", { detail: "Private balances are available on NEAR mainnet." });
-    return "unavailable";
-  }
+  if (session.network !== "mainnet") return "mainnet_only";
   try {
-    if (!(await intentsChain().hasPublicKey(session.accountId, signed.publicKey))) {
+    if (!(await intentsChain.hasPublicKey(session.accountId, signed.publicKey))) {
       await save(session, signed.publicKey, "needs_setup");
       return "needs_setup";
     }
@@ -67,6 +64,7 @@ export async function connectPrivateBalance(session: Session, signed: SignedOwne
 }
 
 export async function privateStatus(session: Session): Promise<{ status: PrivateStatus; publicKey: string | null; detail: string | null }> {
+  if (session.network !== "mainnet") return { status: "mainnet_only", publicKey: session.publicKey, detail: PRIVATE_MONEY_MAINNET_ONLY };
   const [row] = await sql<Row[]>`SELECT status, tokens_sealed, access_expires_at, refresh_expires_at, public_key, detail FROM private_access WHERE session_id = ${session.id}`;
   if (!row) return { status: "none", publicKey: null, detail: null };
   if (row.status === "active" && row.refresh_expires_at && row.refresh_expires_at < new Date()) return { status: "expired", publicKey: row.public_key, detail: null };

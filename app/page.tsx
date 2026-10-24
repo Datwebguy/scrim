@@ -1,190 +1,167 @@
 import Link from "next/link";
+import { catalog } from "@/server/assets";
+import { FlowDemo } from "@/components/landing/FlowDemo";
+import { HeroCard, PaidScene, ProofScene, SendScene, SwapScene, TeamScene } from "@/components/landing/Scenes";
+import { Reveal } from "@/components/landing/Reveal";
+
+export const revalidate = 300;
 
 const REPO = "https://github.com/Datwebguy/scrim";
 
-export default function Home() {
+export default async function Home() {
+  const live = await liveNetworks();
+  const icons = (live?.chains ?? []).filter((c) => c.icon).slice(0, 12);
+  const coins = live?.coins ?? [];
   return (
     <>
       <header className="site-nav">
         <Link href="/" className="brand" aria-label="Scrim home"><img src="/scrim-mark.png" alt="" />scrim</Link>
         <nav aria-label="Primary">
           <a href="#how">How it works</a>
-          <a href="#features">What you can do</a>
+          <a href="#features">Features</a>
+          <a href="#teams">Teams</a>
           <a href="#proofs">Proofs</a>
-          <a href="#questions">Questions</a>
+          <a href="#questions">FAQ</a>
         </nav>
-        <Link href="/app" className="btn btn-primary">Open your account <span className="arrow">↗</span></Link>
+        <Link href="/app" className="btn btn-primary">Open app <span className="arrow">↗</span></Link>
       </header>
 
       <main>
-        <section className="hero">
-          <div className="wrap hero-grid">
-            <div>
+        <section className="l-hero">
+          <div className="l-bg" aria-hidden="true"><span className="orb o1" /><span className="orb o2" /><span className="orb o3" /><span className="grid" /></div>
+          <div className="wrap l-hero-grid">
+            <Reveal>
               <span className="eyebrow">Private money on NEAR</span>
               <h1>Move money.<br /><em>Keep it private.</em></h1>
-              <p className="lead">
-                Scrim gives you a private balance. Add money from any chain, pay anyone, get paid with a link, and show one fact to one person when they need to know. Nobody else sees the rest.
-              </p>
+              <p className="lead">Hold, send, swap and get paid. Only you see it.</p>
               <div className="hero-actions">
-                <Link href="/app" className="btn btn-signal btn-lg">Open your account <span className="arrow">→</span></Link>
-                <a href="#how" className="btn btn-ghost btn-lg">See how it works</a>
+                <Link href="/app" className="btn btn-signal btn-lg">Get started <span className="arrow">→</span></Link>
+                <a href="#how" className="btn btn-ghost btn-lg">See how</a>
               </div>
-              <div className="hero-proof">
-                <span>No email or password</span>
-                <span>Works with any NEAR wallet</span>
-                <span>Your keys stay with you</span>
-              </div>
-            </div>
-            <SideBySide />
+            </Reveal>
+            <Reveal delay={120}><HeroCard coins={coins} /></Reveal>
           </div>
         </section>
 
-        <section className="strip" aria-label="Why Scrim">
-          <div className="wrap">
-            <div><b>Only you see your balance</b><span>Not the public. Not other users.</span></div>
-            <div><b>Add money from anywhere</b><span>Bitcoin, Ethereum, Solana, Base and more.</span></div>
-            <div><b>Get paid with a link</b><span>The payer needs no account.</span></div>
-            <div><b>Prove only what's needed</b><span>One fact, one person, with an expiry.</span></div>
-          </div>
-        </section>
+        {live && (
+          <section className="l-marquee" aria-label={`${live.assets} coins on ${live.chains.length} networks`}>
+            <div className="l-marquee-track">
+              {[...live.chains, ...live.chains].map((c, i) => (
+                <span key={i} aria-hidden={i >= live.chains.length}>
+                  {c.icon ? <img src={c.icon} alt="" width={22} height={22} loading="lazy" referrerPolicy="no-referrer" /> : <i />}
+                  {c.name}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="section" id="how">
           <div className="wrap">
-            <div className="section-head">
-              <div><span className="eyebrow">How it works</span><h2>Four steps. Nothing to learn first.</h2></div>
-              <p>Everyone can see what happens on a public blockchain: who paid whom, and how much. Scrim moves your money through a private layer, so what you do stays yours.</p>
-            </div>
-            <div className="steps">
-              <article className="step"><span className="n">1 · CONNECT</span><h3>Sign in with your wallet</h3><p>Pick your NEAR wallet and approve one message. No email, no password, no ID check.</p></article>
-              <article className="step"><span className="n">2 · ADD</span><h3>Bring money in</h3><p>Choose a coin and a network. Send to the one-time address we show you. It lands in your private balance.</p><span className="tag">30+ networks</span></article>
-              <article className="step"><span className="n">3 · USE</span><h3>Send, swap, get paid</h3><p>Pay a person or any address on any chain. Swap one coin for another. Share a link to be paid.</p></article>
-              <article className="step"><span className="n">4 · PROVE</span><h3>Show a fact when asked</h3><p>Give a bank, landlord or client a proof made just for them. It expires, and you can take it back.</p></article>
-            </div>
+            <Reveal className="l-head center"><span className="eyebrow">How it moves</span><h2>One balance. Every move private.</h2></Reveal>
+            <Reveal><div className="l-demo-wrap"><FlowDemo icons={icons} /></div></Reveal>
           </div>
         </section>
 
-        <section className="section features" id="features" style={{ paddingTop: 0 }}>
+        <section className="section l-story" id="features">
           <div className="wrap">
-            <div className="section-head">
-              <div><span className="eyebrow">What you can do</span><h2>Everything money does, without the audience.</h2></div>
-              <p>One account for holding, paying and getting paid, whether you are one person, a team, or a business.</p>
-            </div>
-            <div className="feature-grid">
-              <article className="card"><span className="ficon">↓</span><h3>Add money</h3><p>Deposit from Bitcoin, Ethereum, Solana, Base, Tron, TON and more than 30 other networks. No bridge to figure out.</p></article>
-              <article className="card"><span className="ficon">↗</span><h3>Send privately</h3><p>Pay another Scrim user, or any wallet or exchange address on any chain. The payment can't be traced to your balance.</p></article>
-              <article className="card"><span className="ficon">⇄</span><h3>Swap</h3><p>Trade one coin for another inside your private balance. Nobody sees what you swapped.</p></article>
-              <article className="card"><span className="ficon">¤</span><h3>Get paid by link</h3><p>Share a link. Your client pays from whichever coin they have, with no account. You see it arrive.</p></article>
-              <article className="card"><span className="ficon">◇</span><h3>Prove it</h3><p>Show you hold at least an amount, or that a payment was made. Made for one reader, valid for 1, 7 or 30 days.</p></article>
-              <article className="card"><span className="ficon">☰</span><h3>Run it as a team</h3><p>Choose who must approve each payment, set spending limits, and keep a clean record for your accountant.</p></article>
-            </div>
+            <Row eyebrow="Send" title="Pay anyone, on any chain." text="Nobody can trace it back to you."><SendScene nets={icons} /></Row>
+            <Row eyebrow="Swap" title="Swap without an audience." text="Trade inside your private balance." flip><SwapScene coins={coins} /></Row>
+            <Row eyebrow="Get paid" title="Share a link. Get paid." text="They pay from any coin. No account needed."><PaidScene nets={icons} /></Row>
           </div>
         </section>
 
         <section className="section dark-section" id="teams">
-          <div className="wrap dark-grid">
-            <div>
-              <span className="eyebrow">For businesses and teams</span>
-              <h2>Private from the market. Clear to your auditors.</h2>
-              <p className="lead">Pay contractors, suppliers and staff without publishing your payroll. Every payment needs the approvals you choose, and every step is written down.</p>
-              <div className="rule-list">
-                <div><i>1</i><span>Require two or three people to approve before money moves.</span></div>
-                <div><i>2</i><span>Set a limit per payment and per day for each person or program that pays for you.</span></div>
-                <div><i>3</i><span>Anything outside the limits is stopped before it reaches the people who approve.</span></div>
-                <div><i>4</i><span>Software can ask to pay, but only people can approve. Pause it with one click.</span></div>
-              </div>
-            </div>
-            <div className="demo-card" style={{ color: "var(--ink)" }}>
-              <div className="demo-head"><span className="who"><span className="agent-dot">AP</span> Accounts payable</span><span className="pill pill-amber">Needs 1 more approval</span></div>
-              <div className="demo-amount"><span className="section-label">Paying on Base</span><strong>2,400.00<small>USDC</small></strong><div className="demo-route"><span>Northwind Studio</span></div></div>
-              <div className="checks">
-                <div className="check"><span className="mark">✓</span><b>Supplier is on the approved list</b><small>recipient</small></div>
-                <div className="check"><span className="mark">✓</span><b>Under the 5,000 limit per payment</b><small>limit</small></div>
-                <div className="check"><span className="mark">✓</span><b>6,200 of 20,000 used this week</b><small>weekly</small></div>
-              </div>
-              <div className="demo-foot"><span className="signers"><span className="stack"><span className="avatar ok">A</span><span className="avatar pending">?</span></span>1 of 2 approved</span><span className="btn btn-primary btn-sm" aria-hidden="true">Approve</span></div>
-            </div>
+          <div className="wrap">
+            <Reveal className="l-head"><span className="eyebrow">For teams</span><h2>Private to the market. Clear to your accountant.</h2></Reveal>
+            <Reveal><TeamScene /></Reveal>
           </div>
         </section>
 
-        <section className="proof-band" id="proofs">
-          <div className="wrap proof-grid">
-            <div className="proof-sample" aria-label="Example proof">
-              <div className="verdict good">✓ Valid</div>
-              <p>Studio Ode <b>holds at least $10,000</b> in private funds.</p>
-              <ul className="checks-list">
-                <li className="ok">Signature is genuine</li>
-                <li className="ok">Made for <b>Northwind Bank</b></li>
-                <li className="ok">Valid until Nov 5</li>
-                <li className="ok">Not taken back</li>
-              </ul>
-            </div>
-            <div>
+        <section className="section" id="proofs">
+          <div className="wrap l-proof">
+            <Reveal>
               <span className="eyebrow">Proofs</span>
               <h2>Show one fact.<br />Keep the rest.</h2>
-              <p className="lead">A bank asks for proof of funds. A client asks if you paid. Instead of showing your whole account, you send a link. They see the one fact, made for them, until it expires.</p>
-              <ul className="plain-list">
-                <li>They don't need an account to check it.</li>
-                <li>It names who it's for, so it can't pass for someone else's.</li>
-                <li>It never shows your real balance, your other payments or your history.</li>
-              </ul>
-              <Link href="/verify" className="btn btn-primary">Check a proof you received</Link>
-            </div>
+              <p className="lead">Made for one reader. Expires. Revocable.</p>
+              <Link href="/verify" className="btn btn-primary">Check a proof</Link>
+            </Reveal>
+            <Reveal delay={120}><ProofScene /></Reveal>
           </div>
         </section>
 
-        <section className="section" id="questions">
+        <section className="section" id="questions" style={{ paddingTop: 0 }}>
           <div className="wrap faq-wrap">
-            <div><span className="eyebrow">Questions</span><h2>Straight answers.</h2></div>
+            <div><span className="eyebrow">FAQ</span><h2>Quick answers.</h2></div>
             <div className="faq">
-              <details open><summary>Is it really private?</summary><p>Your balance and payments live on a private ledger run by NEAR Intents, not on the public blockchain. The public can't see them, and a deposit can't be matched to a later payment. The people who run that private ledger can see it, in the way a bank can see your account.</p></details>
-              <details><summary>Does Scrim hold my money?</summary><p>No. Your money stays in your own private account, and only your wallet can move it. Every payment needs your wallet to approve the exact amount and recipient. We never hold your keys.</p></details>
-              <details><summary>What can Scrim see?</summary><p>Enough to show you your own history. We keep a record of what you do, kept scrambled so only your account can read it, and nothing is sold or shared. A payment link shows the payer only what you chose to ask for.</p></details>
-              <details><summary>How strong is a proof?</summary><p>Today, Scrim checks your private balance and signs the statement, so the reader trusts Scrim's word and the signature. Proving it on your own device, so even Scrim isn't involved, is the next step. We say this up front because it matters.</p></details>
-              <details><summary>What does it cost?</summary><p>Making an account is free. Swaps and payments across chains carry a small network fee, which you see before you confirm anything.</p></details>
-              <details><summary>Is it ready to use?</summary><p>It's new software. Start with small amounts. Everything is open to read on GitHub, and adding and sending money is being switched on in stages.</p></details>
+              <details open><summary>Is it really private?</summary><p>Your money sits on NEAR Intents&apos; private ledger, not the public chain.</p></details>
+              <details><summary>Does Scrim hold my money?</summary><p>No. Only your wallet can move it.</p></details>
+              <details><summary>Can I try it free?</summary><p>Yes, on testnet. Private money runs on mainnet only.</p></details>
+              <details><summary>What does it cost?</summary><p>Free to open. Network fees are shown before you confirm.</p></details>
             </div>
           </div>
         </section>
 
         <section className="closing">
-          <div className="wrap">
-            <img src="/scrim-mark.png" alt="" />
-            <h2>Your money, your business.</h2>
-            <p>Open an account with your wallet in under a minute.</p>
-            <Link href="/app" className="btn btn-primary btn-lg">Open your account <span className="arrow">↗</span></Link>
-          </div>
+          <Reveal className="wrap">
+            <h2>Your money. Your business.</h2>
+            <Link href="/app" className="btn btn-signal btn-lg">Get started <span className="arrow">→</span></Link>
+          </Reveal>
         </section>
       </main>
 
-      <footer className="site-footer">
+      <footer className="l-footer">
         <div className="wrap">
-          <Link href="/" className="brand" style={{ fontSize: 18 }}><img src="/scrim-mark.png" alt="" style={{ width: 24, height: 24 }} />scrim</Link>
-          <span>Private money for people and businesses. Built on NEAR.</span>
-          <nav><Link href="/verify">Check a proof</Link><a href={REPO}>GitHub</a><a href={`${REPO}/blob/main/BACKEND_SPEC.md`}>How it's built</a></nav>
+          <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" />scrim</Link>
+          <nav aria-label="Footer">
+            <Link href="/app">App</Link>
+            <Link href="/verify">Check a proof</Link>
+            <a href={REPO}>GitHub</a>
+          </nav>
+          <span className="l-built">Built on NEAR</span>
         </div>
       </footer>
     </>
   );
 }
 
-function SideBySide() {
+
+function Row({ eyebrow, title, text, flip, children }: { eyebrow: string; title: string; text: string; flip?: boolean; children: React.ReactNode }) {
   return (
-    <div className="side-demo" aria-label="What you see compared with what the public sees">
-      <div className="sd-card you">
-        <span className="section-label">What you see</span>
-        <strong className="sd-total">$12,480.00</strong>
-        <ul>
-          <li><span>Paid Northwind Studio</span><b>−$2,400.00</b></li>
-          <li><span>Received by link · Logo design</span><b className="plus">+$850.00</b></li>
-          <li><span>Swapped USDC to BTC</span><b>$1,000.00</b></li>
-        </ul>
-      </div>
-      <div className="sd-card them">
-        <span className="section-label">What the public sees</span>
-        <strong className="sd-total">Nothing</strong>
-        <p>No balance. No payments. No link between money in and money out.</p>
-        <div className="sd-bars" aria-hidden="true"><i /><i /><i /><i /></div>
-      </div>
+    <div className={`l-row ${flip ? "flip" : ""}`}>
+      <Reveal><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p className="lead">{text}</p></Reveal>
+      <Reveal delay={120}>{children}</Reveal>
     </div>
   );
+}
+
+type Live = { assets: number; chains: { name: string; icon: string | null }[]; coins: { symbol: string; icon: string | null }[] } | null;
+
+// Coins shown in the animations: the most widely supported ones in the live list, with a logo.
+function topCoins(assets: { symbol: string; icon: string | null }[]) {
+  const counts = new Map<string, { symbol: string; icon: string | null; n: number }>();
+  for (const a of assets) {
+    if (!a.icon) continue;
+    const c = counts.get(a.symbol) ?? { symbol: a.symbol, icon: a.icon, n: 0 };
+    c.n += 1;
+    counts.set(a.symbol, c);
+  }
+  return [...counts.values()].sort((a, b) => b.n - a.n).slice(0, 6).map(({ symbol, icon }) => ({ symbol, icon }));
+}
+
+// Real, current data from NEAR Intents and CoinGecko: how many coins and chains Scrim can move between.
+async function liveNetworks(): Promise<Live> {
+  try {
+    const assets = await catalog();
+    const byChain = new Map<string, { name: string; icon: string | null; count: number }>();
+    for (const a of assets) {
+      const c = byChain.get(a.chain) ?? { name: a.chainName, icon: a.chainIcon, count: 0 };
+      c.count += 1;
+      byChain.set(a.chain, c);
+    }
+    const chains = [...byChain.values()].sort((a, b) => b.count - a.count);
+    return { assets: assets.length, chains, coins: topCoins(assets) };
+  } catch {
+    return null;
+  }
 }

@@ -49,14 +49,14 @@ export function CreateTreasuryForm({ onCreated, compact = false }: { onCreated?:
       </div>
       <label className="field">
         Account name
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === "team" ? "Studio operations" : "Personal"} maxLength={80} required />
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name this account" maxLength={80} required />
       </label>
       {kind === "team" && (
         <>
           <label className="field">
             The other people who approve
             <small>Their NEAR accounts, separated by commas or spaces. You are added as the owner.</small>
-            <textarea className="textarea mono" rows={2} value={signers} onChange={(e) => setSigners(e.target.value)} placeholder="cfo.near, ops-lead.near" />
+            <textarea className="textarea mono" rows={2} value={signers} onChange={(e) => setSigners(e.target.value)} placeholder="one.near, two.near" />
           </label>
           <label className="field">
             How many must approve

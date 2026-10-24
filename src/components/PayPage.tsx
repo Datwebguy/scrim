@@ -5,8 +5,8 @@ import { useApi } from "@/client/use-api";
 import { AssetPicker, CopyField, fmt, StateChip, type AssetInfo } from "./money";
 import { Spinner } from "./ui";
 
-type LinkView = { code: string; to: string; symbol: string; networkName: string; display: string; note: string; status: string };
-type Payment = { id: string; status: string; amountIn: string; fromAsset: { symbol: string; networkName: string; decimals: number }; deposit: { address: string; memo: string | null; network: string; minimum: string | null } | null };
+type LinkView = { code: string; to: string; symbol: string; chainName: string; display: string; note: string; status: string };
+type Payment = { id: string; status: string; amountIn: string; fromAsset: { symbol: string; chainName: string; decimals: number }; deposit: { address: string; memo: string | null; network: string; minimum: string | null } | null };
 
 export function PayPage({ code }: { code: string }) {
   const { data, error: loadError } = useApi<{ link: LinkView }>(`/pay/${code}`);
@@ -58,7 +58,7 @@ export function PayPage({ code }: { code: string }) {
           <form className="form-grid" onSubmit={start}>
             <AssetPicker label="Pay with" assets={assets} value={assetId} onChange={setAssetId} hint="Any coin, on any network. No account needed." />
             <label className="field">Where should we return your money if something goes wrong?
-              <small>An address of yours on {picked?.networkName ?? "that network"}.</small>
+              <small>An address of yours on {picked?.chainName ?? "that network"}.</small>
               <input className="input mono" value={refund} onChange={(e) => setRefund(e.target.value)} placeholder="Paste your address" autoComplete="off" spellCheck={false} required /></label>
             {error && <p className="form-error" role="alert">{error}</p>}
             <button className="btn btn-primary btn-lg" disabled={busy || !assetId}>{busy && <Spinner />} Get payment address</button>
@@ -71,7 +71,7 @@ export function PayPage({ code }: { code: string }) {
                 <CopyField label={`Address on ${payment.deposit.network}`} value={payment.deposit.address} />
                 {payment.deposit.memo && <CopyField label="Memo (required)" value={payment.deposit.memo} />}
                 <ul className="checklist">
-                  <li>Send exactly <b>{fmt(payment.amountIn, payment.fromAsset.decimals)} {payment.fromAsset.symbol}</b> on <b>{payment.fromAsset.networkName}</b>.</li>
+                  <li>Send exactly <b>{fmt(payment.amountIn, payment.fromAsset.decimals)} {payment.fromAsset.symbol}</b> on <b>{payment.fromAsset.chainName}</b>.</li>
                   <li>Use this address once. It's made for this payment.</li>
                   <li>This page updates by itself when your payment arrives.</li>
                 </ul>

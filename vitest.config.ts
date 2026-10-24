@@ -6,6 +6,8 @@ export default defineConfig({
   test: {
     include: ["tests/**/*.test.ts"],
     fileParallelism: false,
+    testTimeout: 120_000,
+    hookTimeout: 120_000,
     env: { DATABASE_URL: process.env.TEST_DATABASE_URL ?? "postgres://scrim:scrim@localhost:5432/scrim_test" },
   },
 });

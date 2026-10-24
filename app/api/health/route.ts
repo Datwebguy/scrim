@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { config } from "@/server/config";
+import { NETWORKS, NETWORK_INFO } from "@/protocol/networks";
+import { config, privateTransfersEnabled } from "@/server/config";
 import { sql } from "@/server/db";
 
 export const dynamic = "force-dynamic";
@@ -18,25 +19,28 @@ export async function GET() {
   } catch {
     database = "unavailable";
   }
+  const ready = database === "ok" && missing.length === 0;
   return NextResponse.json(
     {
       service: "scrim",
-      network: config.network,
       database,
-      ready: database === "ok" && missing.length === 0,
+      ready,
       ...(missing.length ? { missing } : {}),
-      capabilities: {
-        walletSignIn: true,
-        treasuries: true,
-        agentMandates: true,
-        walletSignedApprovals: true,
-        privateBalances: config.network === "mainnet",
-        privateTransfers: config.privateTransfersEnabled,
-        paymentLinks: true,
-        proofs: "signed-by-scrim",
-        deviceProofs: false,
-      },
+      networks: Object.fromEntries(
+        NETWORKS.map((network) => [
+          network,
+          {
+            enabled: config.enabledNetworks.includes(network),
+            signIn: true,
+            teams: true,
+            privateBalance: NETWORK_INFO[network].privateMoney,
+            movingMoney: privateTransfersEnabled(network),
+            paymentLinks: privateTransfersEnabled(network),
+            proofs: NETWORK_INFO[network].privateMoney,
+          },
+        ]),
+      ),
     },
-    { status: database === "ok" && missing.length === 0 ? 200 : 503, headers: { "Cache-Control": "no-store" } },
+    { status: ready ? 200 : 503, headers: { "Cache-Control": "no-store" } },
   );
 }

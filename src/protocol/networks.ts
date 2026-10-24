@@ -16,4 +16,4 @@ export const NETWORK_INFO: Record<Network, { label: string; explorerUrl: string;
 };
 
 export const PRIVATE_MONEY_MAINNET_ONLY =
-  "Private money runs on NEAR mainnet. NEAR Intents has no testnet, so adding money, swaps, payment links and proofs are mainnet-only.";
+  "This is available on mainnet.";

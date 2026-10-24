@@ -803,3 +803,43 @@ button.chip.on { background: var(--ink); color: #fff; border-color: var(--ink); 
 .tg-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #229ed9; color: #fff; font-size: 16px; }
 @media (max-width: 480px) { .tg-bar { flex-wrap: wrap; } .tg-bar .btn { width: 100%; } }
 .link-btn { background: none; border: 0; padding: 0; color: var(--orange-deep); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.ws-top-actions { display: flex; gap: 8px; }
+.gate-card .fine { margin-top: 14px; }
+@media (max-width: 380px) { .ws-top .brand { font-size: 0; } .ws-top .brand img { width: 24px; height: 24px; } }
+.gate-card { margin-inline: auto; width: 100%; }
+.gate-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.gate-actions .btn { flex: 1 1 160px; }
+
+
+/* ── Wallet panel ───────────────────────────────────────────────────────── */
+.acct-chip { display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border: 1px solid #3a3a33; border-radius: 8px; background: none; color: #fff; cursor: pointer; font: inherit; }
+.acct-chip b { font-size: 13px; font-weight: 600; white-space: nowrap; }
+.acct-chip .avatar { width: 20px; height: 20px; font-size: 9px; }
+.acct-chip .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.acct-chip .dot.mainnet { background: #3ecf8e; }
+.acct-chip .dot.testnet { background: #f5b942; }
+.ws-account .acct-chip { width: 100%; height: 40px; }
+.panel-root { position: fixed; inset: 0; z-index: 100; }
+.panel-backdrop { position: absolute; inset: 0; background: rgba(21, 21, 18, 0.45); animation: fadein .2s ease; }
+.panel { position: absolute; top: 0; right: 0; bottom: 0; width: min(380px, 100%); display: flex; flex-direction: column; background: var(--paper); color: var(--ink); box-shadow: var(--shadow-lg); animation: slide .22s ease-out; }
+@keyframes fadein { from { opacity: 0; } }
+.panel-head { display: flex; align-items: center; gap: 8px; padding: 14px 16px; border-bottom: 1px solid var(--line); background: var(--card); }
+.panel-head .avatar { width: 32px; height: 32px; font-size: 12px; }
+.panel-id { flex: 1; min-width: 0; }
+.panel-id b { font-size: 15px; }
+.icon-btn { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--line-2); border-radius: 9px; background: var(--card); color: var(--ink); cursor: pointer; font-size: 13px; }
+.icon-btn:hover:not(:disabled) { background: var(--paper-2); }
+.icon-btn.danger { color: var(--red); }
+.panel-nets { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin: 14px 16px 0; padding: 4px; border-radius: 10px; background: var(--paper-2); }
+.panel-nets button { height: 32px; border: 0; border-radius: 7px; background: none; font: inherit; font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; }
+.panel-nets button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: var(--shadow); cursor: default; }
+.panel-tabs { display: flex; gap: 20px; margin: 14px 16px 0; border-bottom: 1px solid var(--line); }
+.panel-tabs button { padding: 8px 0; border: 0; border-bottom: 2px solid transparent; background: none; font: inherit; font-size: 14px; font-weight: 700; color: var(--muted); cursor: pointer; }
+.panel-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--orange); }
+.panel-body { flex: 1; overflow-y: auto; padding: 8px 16px 24px; }
+.panel-total { font-size: 32px; font-weight: 800; letter-spacing: -0.04em; margin: 12px 0 4px; }
+.panel-list { list-style: none; margin: 0; padding: 0; }
+.panel-list li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.panel-list li b { flex: 1; font-size: 15px; }
+.panel-list li span { display: grid; justify-items: end; font-weight: 700; }
+.panel-list li small { font-weight: 500; color: var(--muted); font-size: 12px; }

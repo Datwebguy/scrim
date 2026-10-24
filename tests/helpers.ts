@@ -1,8 +1,14 @@
 import { ed25519 } from "@noble/curves/ed25519.js";
 import { encodePublicKey, nep413Digest } from "@/protocol/nep413";
+import { setIntentsChainForTests } from "@/server/near-rpc";
 import { sql } from "@/server/db";
 import type { IssuedChallenge, SignedEnvelope } from "@/server/auth";
 import { migrate } from "../scripts/migrate";
+
+// Offline stand-in for intents.near reads used during sign-in.
+export function useOfflineIntents() {
+  setIntentsChainForTests({ currentSalt: async () => "252812b3", hasPublicKey: async () => false });
+}
 
 export async function resetDatabase() {
   await sql`DROP SCHEMA public CASCADE`;

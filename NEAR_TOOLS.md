@@ -1,11 +1,33 @@
-# NEAR_TOOLS.md
+# NEAR building blocks Scrim uses
 
-NEAR Intents is the settlement layer. Users declare an outcome; solvers fulfill it across chains. Confidential Intents runs private execution with shielded balances and settles back to public NEAR or other chains. Docs and changelog: https://docs.near-intents.org. Cumulative volume has exceeded $32 billion. Confidential TVL has reached roughly $160 million.
+Everything here was read from NEAR's own documentation and code, then checked against the live services.
 
-Chain Signatures lets a NEAR account or smart contract sign transactions on other chains via an MPC network. Supported chains include Bitcoin, Ethereum and EVM chains, Solana, TON, Sui, Aptos, XRP, and others. Docs: https://docs.near.org/chain-abstraction/chain-signatures. The MPC network is funded through protocol emissions.
+## NEAR Intents and Confidential Intents
+Users state an outcome; solvers fill it across chains. Confidential Intents adds a private ledger so deposits and withdrawals can't be matched, live for businesses since July 2026. Docs: https://docs.near-intents.org (index at `/llms.txt`).
 
-NEAR AI Cloud provides private inference inside TEEs. OpenAI-compatible API at https://cloud-api.near.ai/v1. Docs: https://docs.near.ai. Useful for agent decision logic that must not leak prompts or private data.
+**1Click API** (`https://1click.chaindefuser.com`)
+- `GET /v0/tokens`: 200+ assets on 37 chains with prices.
+- `POST /v0/auth/authenticate`, `/v0/auth/refresh`: open a private session from a signed ownership message.
+- `GET /v0/account/balances`: private balances for a signed-in person.
+- `POST /v0/quote`: price a route. Confidential routes need a partner key (`X-API-Key`) and the person's session (`Authorization: Bearer`).
+- `POST /v0/generate-intent`, `POST /v0/submit-intent`: produce, then submit, the transfer the wallet signs.
+- `GET /v0/status`: follow a transfer to the end.
+- `GET /v0/account/history`: invite-only at present, so Scrim keeps its own record.
 
-NEAR Business is a confidential multisig treasury on Intents. It supports payroll, vendor payments, swaps, and capital allocation across 35+ chains from one dashboard. Balances and receipts stay confidential to the organization but can be exported for audit. Treasury Contracts are self-custodial. Free to start; 0.35% swap fee; gas subsidized for the first 1,000 actions per month. Site: https://business.near.com. Announcement: https://x.com/NEARProtocol/article/2112544505891070286.
+**Bridge** (`https://bridge.chaindefuser.com/rpc`): `deposit_address` and `supported_tokens` give one-time deposit addresses for 30+ networks. Some chains (for example Stellar) need a memo.
 
-Other useful primitives include function call keys, meta transactions, named accounts, sub-accounts, and TEEs. State of NEAR Q3 2026: https://x.com/NEARProtocol/article/2112225472071311506.
+**Fees:** protocol fee 0.0001%. 1Click without a partner key adds 0.25%; with a key, typically 0.20% (0.01% on stablecoins). Apply for a free key at https://partners.near-intents.org.
+
+**Incident to know about:** a bug in NEAR Intents' deposit-notification feature allowed about $3.8M in unbacked withdrawals between 29 Sep and 1 Oct 2026. The contract was paused within about 30 minutes of detection, funds were returned within 36 hours, the feature was removed, and a second bug in the same function was patched on 7 Oct. Scrim starts with small limits and says plainly that it is new software.
+
+## NEAR Connect (`@hot-labs/near-connect`)
+Wallet connection for HOT, Meteor, Intear, MyNearWallet, Nightly, OKX and more. Scrim uses message signing and, for named accounts, one `add_public_key` call to `intents.near`.
+
+## Chain Signatures
+Lets a NEAR account sign on other chains through an MPC network. Trezu uses it for DAO treasuries that hold no keys. Scrim does not need it for personal and team accounts today; it is the path for contract-owned treasuries.
+
+## NEAR AI Cloud and OutLayer (planned)
+Private inference in TEEs (`https://cloud-api.near.ai/v1`) and TEE-held, policy-guarded wallets for software. Candidate homes for private decision logic and for device-independent proving.
+
+## Wallet and account notes
+Account keys on NEAR can be full-access or function-call only. Sign-in requires a full-access key. Implicit accounts (64 hex characters) work without registration.

@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/client/api";
 import { relativeTime, short, STATUS_LABEL, usdc } from "@/client/format";
-import { signChallenge } from "@/client/wallet";
+import { signChallenge, signTransfer } from "@/client/wallet";
 import { formatAmount } from "@/protocol/amount";
 import { describeWindow } from "@/protocol/policy";
 import type { Agent } from "@/server/agents";
@@ -33,7 +33,7 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
       setData(await api<Data>(`/treasuries/${treasuryId}`));
       setError("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load this treasury.");
+      setError(e instanceof Error ? e.message : "Could not load this team account.");
     }
   }, [treasuryId]);
 
@@ -49,7 +49,7 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
   }, [load, router]);
 
   if (error && !data) return <div className="notice danger">{error}</div>;
-  if (!data) return <div className="skeleton" aria-label="Loading treasury" />;
+  if (!data) return <div className="skeleton" aria-label="Loading" />;
 
   const { treasury, role, agents, payments, audit } = data;
   const needsMe = payments.filter((p) => p.status === "awaiting_approval" && !p.approvals.some((a) => a.accountId === accountId));
@@ -61,15 +61,15 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">{treasury.kind === "team" ? "Team treasury" : "Individual treasury"}</span>
+          <span className="eyebrow">{treasury.kind === "team" ? "Team account" : "Personal account"}</span>
           <h1>{treasury.name}</h1>
           <div className="meta">
             <span className="pill pill-dark plain">
               {treasury.thresholdRequired} of {treasury.signers.length} approvals
             </span>
-            <span className="pill plain">USDC · NEAR → Base</span>
-            <span className="pill plain">NEAR {treasury.network}</span>
-            <span className="pill plain">{role === "owner" ? "You own this treasury" : "You are a signer"}</span>
+            <span className="pill plain">Pays in USDC on Base</span>
+            <span className="pill plain">Pays out privately</span>
+            <span className="pill plain">{role === "owner" ? "You own this account" : "You are an approver"}</span>
           </div>
         </div>
         <div className="actions">
@@ -86,9 +86,9 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
 
       <div className="stats">
         <div className={`card stat ${needsMe.length ? "attention" : ""}`}>
-          <span>Needs your signature</span>
+          <span>Needs your approval</span>
           <strong>{needsMe.length}</strong>
-          <p>{needsMe.length ? "Review and approve with your wallet" : "You're all caught up"}</p>
+          <p>{needsMe.length ? "Review and approve in your wallet" : "You're all caught up"}</p>
         </div>
         <div className="card stat">
           <span>Committed · 24h</span>
@@ -104,22 +104,22 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
             {agents.filter((a) => a.enabled).length}
             <small>/ {agents.length} active</small>
           </strong>
-          <p>Request-only mandates</p>
+          <p>Can ask, never approve</p>
         </div>
         <div className="card stat">
-          <span>Blocked by policy · 24h</span>
+          <span>Blocked by limits · 24h</span>
           <strong>{blocked24h.length}</strong>
-          <p>Stopped before reaching a signer</p>
+          <p>Stopped before reaching anyone</p>
         </div>
       </div>
 
       <div className="tabs" role="tablist">
         {(
           [
-            ["requests", "Payment requests", payments.length],
+            ["requests", "Payments", payments.length],
             ["agents", "Agents", agents.length],
-            ["signers", "Signers", treasury.signers.length],
-            ["audit", "Audit log", audit.length],
+            ["signers", "People", treasury.signers.length],
+            ["audit", "History", audit.length],
           ] as const
         ).map(([id, label, n]) => (
           <button key={id} role="tab" className="tab" aria-selected={tab === id} onClick={() => setTab(id)}>
@@ -172,7 +172,7 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
         onSaved={(result) => {
           setAgentDialog(null);
           if (result.apiKey) setRevealedKey({ name: result.agent.name, key: result.apiKey });
-          else toast(`Mandate updated to v${result.agent.policy.version}`);
+          else toast(`Limits updated to v${result.agent.policy.version}`);
           setTab("agents");
           refresh();
         }}
@@ -219,7 +219,7 @@ function Requests({ payments, treasury, onOpen, onNew }: { payments: Payment[]; 
       <div className="card empty">
         <span className="icon">↗</span>
         <h3>No payment requests yet</h3>
-        <p>Create a request yourself, or give an agent a mandate and let it ask. Every request is checked and waits for {treasury.thresholdRequired === 1 ? "your" : "your signers'"} approval.</p>
+        <p>Create a request yourself, or give an agent spending limits and let it ask. Every request is checked and waits for {treasury.thresholdRequired === 1 ? "your" : "your signers'"} approval.</p>
         <button className="btn btn-primary" onClick={onNew}>
           New payment
         </button>
@@ -274,7 +274,7 @@ function Requests({ payments, treasury, onOpen, onNew }: { payments: Payment[]; 
 
 function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { payment: Payment; treasury: Treasury; accountId: string; onClose: () => void; onChanged: () => void }) {
   const toast = useToast();
-  const [busy, setBusy] = useState<"" | "approve" | "cancel">("");
+  const [busy, setBusy] = useState<"" | "approve" | "cancel" | "pay">("");
   const [error, setError] = useState("");
   const approvedByMe = payment.approvals.some((a) => a.accountId === accountId);
 
@@ -284,7 +284,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  async function run(kind: "approve" | "cancel") {
+  async function run(kind: "approve" | "cancel" | "pay") {
     setBusy(kind);
     setError("");
     try {
@@ -293,6 +293,11 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
         const signed = await signChallenge(challenge, accountId);
         await api(`/payments/${payment.id}/approve`, { body: signed });
         toast("Approval signed");
+      } else if (kind === "pay") {
+        const { transfer } = await api<{ transfer: { id: string; intentToSign: { message: string; nonce: string; recipient: string } } }>(`/payments/${payment.id}/pay`, { method: "POST" });
+        const signed = await signTransfer(transfer.intentToSign, accountId);
+        await api(`/transfers/${transfer.id}/sign`, { body: signed });
+        toast("Payment sent");
       } else {
         await api(`/payments/${payment.id}/cancel`, { method: "POST" });
         toast("Request cancelled");
@@ -344,7 +349,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
               </dd>
             </div>
             <div>
-              <dt>Commitment</dt>
+              <dt>Reference</dt>
               <dd className="mono" title={payment.commitment}>
                 {short(payment.commitment, 16, 8)}
               </dd>
@@ -354,7 +359,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
           {payment.policyDecision && (
             <div>
               <span className="section-label">
-                Mandate check · policy v{payment.policyDecision.policyVersion}
+                Spending limit check · version {payment.policyDecision.policyVersion}
               </span>
               <div className="checks" style={{ margin: 0 }}>
                 {payment.policyDecision.checks.map((c) => (
@@ -394,9 +399,11 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
           )}
 
           {payment.status === "approved" && (
-            <div className="notice info">Approved. The treasury owner can now pay this from their private balance.</div>
+            <div className="notice info">Approved. The account owner can now pay this from their private balance.</div>
           )}
-          {payment.status === "policy_rejected" && <div className="notice danger">The mandate blocked this request before it reached a signer. It cannot be approved. Change the mandate or create a new request.</div>}
+          {payment.status === "submitting" && <div className="notice info">On its way to the recipient.</div>}
+          {payment.status === "settled" && <div className="notice good">Paid. The money has arrived.</div>}
+          {payment.status === "policy_rejected" && <div className="notice danger">The spending limits blocked this request before it reached anyone to approve. Change the limits or make a new request.</div>}
           {error && (
             <p className="form-error" role="alert">
               {error}
@@ -412,6 +419,11 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
           {payment.status === "awaiting_approval" && approvedByMe && (
             <button className="btn btn-ghost" disabled>
               You signed · waiting for others
+            </button>
+          )}
+          {payment.status === "approved" && treasury.ownerAccountId === accountId && (
+            <button className="btn btn-signal" onClick={() => run("pay")} disabled={!!busy}>
+              {busy === "pay" && <Spinner />} Pay from my private balance
             </button>
           )}
           {["awaiting_approval", "approved"].includes(payment.status) && (
@@ -477,7 +489,7 @@ function NewPaymentDialog({ open, treasuryId, onClose, onCreated }: { open: bool
             <input className="input" value={memo} onChange={(e) => setMemo(e.target.value)} maxLength={140} placeholder="Invoice #1048" />
           </label>
         </div>
-        <div className="notice info">The request is committed as entered. It needs your treasury&apos;s approval threshold before it can be paid.</div>
+        <div className="notice info">It needs the approvals you set before it can be paid.</div>
         {error && (
           <p className="form-error" role="alert">
             {error}
@@ -509,7 +521,7 @@ function Agents({ agents, payments, role, onCreate, onEdit, onToggle }: { agents
       <div className="card empty">
         <span className="icon">⌁</span>
         <h3>No agents yet</h3>
-        <p>An agent gets an API key and a mandate: who it may pay, how much per request, and how much per window. It can request payments. It can never approve them.</p>
+        <p>An agent is software that pays on your behalf. It gets its own key and spending limits: who it may pay, how much each time, and how much per day. It can ask to pay. It can never approve.</p>
         {role === "owner" && (
           <button className="btn btn-primary" onClick={onCreate}>
             Add your first agent
@@ -534,7 +546,7 @@ function Agents({ agents, payments, role, onCreate, onEdit, onToggle }: { agents
                 <div>
                   <h3>{agent.name}</h3>
                   <small>
-                    Mandate v{agent.policy.version} · {short(agent.policyCommitment, 8, 4)}
+                    Limits v{agent.policy.version}
                   </small>
                 </div>
               </div>
@@ -580,7 +592,7 @@ function Agents({ agents, payments, role, onCreate, onEdit, onToggle }: { agents
               <span style={{ display: "flex", gap: 6 }}>
                 {role === "owner" && (
                   <button className="btn btn-ghost btn-sm" onClick={() => onEdit(agent)}>
-                    Edit mandate
+                    Edit limits
                   </button>
                 )}
                 {(agent.enabled || role === "owner") && (
@@ -644,7 +656,7 @@ function AgentDialog({ state, treasuryId, onClose, onSaved }: { state: { mode: "
         onSaved(await api<{ agent: Agent; apiKey: string }>(`/treasuries/${treasuryId}/agents`, { body }));
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save the mandate.");
+      setError(e instanceof Error ? e.message : "Could not save the limits.");
     } finally {
       setBusy(false);
     }
@@ -652,7 +664,7 @@ function AgentDialog({ state, treasuryId, onClose, onSaved }: { state: { mode: "
 
   const editing = state?.mode === "edit";
   return (
-    <Modal open={!!state} onClose={onClose} eyebrow={editing ? `Mandate v${state.agent.policy.version} → v${state.agent.policy.version + 1}` : "New agent"} title={editing ? `Edit ${state.agent.name}'s mandate` : "Give an agent a mandate"}>
+    <Modal open={!!state} onClose={onClose} eyebrow={editing ? `Limits v${state.agent.policy.version} → v${state.agent.policy.version + 1}` : "New agent"} title={editing ? `Edit ${state.agent.name}'s limits` : "Give an agent spending limits"}>
       <form className="form-grid" onSubmit={submit}>
         {!editing && (
           <label className="field">
@@ -712,7 +724,7 @@ function AgentDialog({ state, treasuryId, onClose, onSaved }: { state: { mode: "
             Cancel
           </button>
           <button className="btn btn-primary" disabled={busy}>
-            {busy && <Spinner />} {editing ? "Publish new version" : "Create agent"}
+            {busy && <Spinner />} {editing ? "Save new limits" : "Create agent"}
           </button>
         </div>
       </form>
@@ -768,7 +780,7 @@ function Signers({ treasury, accountId }: { treasury: Treasury; accountId: strin
     <div className="card signer-list">
       <div className="signer-row" style={{ background: "var(--paper)" }}>
         <span className="muted" style={{ fontSize: 13 }}>
-          Payments need <b style={{ color: "var(--ink)" }}>{treasury.thresholdRequired}</b> of {treasury.signers.length} wallet signatures. Signers sign in with their own NEAR account to approve.
+          Payments need <b style={{ color: "var(--ink)" }}>{treasury.thresholdRequired}</b> of {treasury.signers.length} approvals. Each person signs in with their own NEAR wallet to approve.
         </span>
       </div>
       {treasury.signers.map((s) => (
@@ -780,7 +792,7 @@ function Signers({ treasury, accountId }: { treasury: Treasury; accountId: strin
               {s.accountId === accountId && <span className="muted"> (you)</span>}
             </span>
           </span>
-          <span className={`pill ${s.role === "owner" ? "pill-dark" : ""} plain`}>{s.role === "owner" ? "Owner" : "Signer"}</span>
+          <span className={`pill ${s.role === "owner" ? "pill-dark" : ""} plain`}>{s.role === "owner" ? "Owner" : "Approver"}</span>
         </div>
       ))}
     </div>
@@ -790,11 +802,11 @@ function Signers({ treasury, accountId }: { treasury: Treasury; accountId: strin
 const ACTION_LABEL: Record<string, string> = {
   "treasury.created": "Treasury created",
   "agent.created": "Agent created",
-  "agent.mandate_updated": "Mandate updated",
+  "agent.mandate_updated": "Limits updated",
   "agent.paused": "Agent paused",
   "agent.resumed": "Agent resumed",
   "payment.requested": "Payment requested",
-  "payment.policy_rejected": "Blocked by mandate",
+  "payment.policy_rejected": "Blocked by spending limits",
   "payment.approved": "Approval signed",
   "payment.cancelled": "Request cancelled",
 };

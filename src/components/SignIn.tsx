@@ -17,7 +17,7 @@ export function SignIn({ network }: { network: string }) {
       await signInWithWallet();
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Sign-in failed.");
+      setError(e instanceof Error ? e.message : "Sign-in didn't finish. Try again.");
       setBusy(false);
     }
   }
@@ -25,36 +25,23 @@ export function SignIn({ network }: { network: string }) {
   return (
     <div className="gate">
       <div className="gate-art">
-        <Link href="/" className="brand">
-          <img src="/scrim-mark.png" alt="" />
-          scrim
-        </Link>
+        <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" />scrim</Link>
         <div className="slit" aria-hidden="true" />
-        <h2>
-          Rules first.
-          <br />
-          <em>Then money moves.</em>
-        </h2>
+        <h2>Your money.<br /><em>Your business.</em></h2>
         <ul>
-          <li>Create a personal or team treasury</li>
-          <li>Give agents a capped, revocable mandate</li>
-          <li>Approve every payment from your own wallet</li>
+          <li>Hold money that only you can see</li>
+          <li>Pay anyone, on any chain, without a trail</li>
+          <li>Prove one fact to one person, and nothing more</li>
         </ul>
       </div>
       <div className="gate-form">
         <div>
-          <span className="pill plain">NEAR {network}</span>
+          {network !== "mainnet" && <span className="pill plain">Test mode · NEAR {network}</span>}
           <h1>Sign in with your wallet</h1>
-          <p>Scrim asks your wallet to sign a one-time message. That proves you own the account. It does not authorize a transaction or move funds.</p>
-          <button className="btn btn-primary btn-lg" onClick={connect} disabled={busy}>
-            {busy ? <Spinner /> : null}
-            {busy ? "Waiting for your wallet…" : "Connect NEAR wallet"}
-          </button>
+          <p>Choose your NEAR wallet and approve one message. It proves the account is yours. It can't move any money.</p>
+          <button className="btn btn-primary btn-lg" onClick={connect} disabled={busy}>{busy && <Spinner />}{busy ? "Check your wallet…" : "Connect wallet"}</button>
           {error && <p className="form-error" role="alert">{error}</p>}
-          <p className="fine">
-            Works with HOT, Meteor, Intear, MyNearWallet, Nightly, OKX and other NEAR wallets. Your key must be a full-access
-            key on the account. Scrim checks it on-chain.
-          </p>
+          <p className="fine">No email. No password. You can use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly. Don't have one yet? Any of them takes a minute to set up.</p>
         </div>
       </div>
     </div>

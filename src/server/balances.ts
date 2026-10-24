@@ -5,11 +5,11 @@ import * as oneclick from "./oneclick";
 import { privateAccessToken, privateStatus } from "./private-access";
 
 export type Holding = { assetId: string; symbol: string; networkName: string; amount: string; display: string; usd: number };
-export type Overview = { status: Awaited<ReturnType<typeof privateStatus>>["status"]; detail: string | null; totalUsd: number; holdings: Holding[] };
+export type Overview = { status: Awaited<ReturnType<typeof privateStatus>>["status"]; detail: string | null; publicKey: string | null; totalUsd: number; holdings: Holding[] };
 
 export async function overview(session: Session): Promise<Overview> {
   const access = await privateStatus(session);
-  if (access.status !== "active") return { status: access.status, detail: access.detail, totalUsd: 0, holdings: [] };
+  if (access.status !== "active") return { status: access.status, detail: access.detail, publicKey: access.publicKey, totalUsd: 0, holdings: [] };
   const [{ balances }, assets] = await Promise.all([oneclick.balances(await privateAccessToken(session)), catalog()]);
   const holdings: Holding[] = [];
   for (const b of balances) {
@@ -23,5 +23,5 @@ export async function overview(session: Session): Promise<Overview> {
     });
   }
   holdings.sort((a, b) => b.usd - a.usd);
-  return { status: "active", detail: null, totalUsd: holdings.reduce((sum, h) => sum + h.usd, 0), holdings };
+  return { status: "active", detail: null, publicKey: access.publicKey, totalUsd: holdings.reduce((sum, h) => sum + h.usd, 0), holdings };
 }

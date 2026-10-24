@@ -59,6 +59,7 @@ type Details = {
   depositMinimum: string | null;
   trackAddress: string;
   trackMemo: string | null;
+  etaSeconds?: number | null;
   resultHashes: string[];
 };
 
@@ -77,6 +78,7 @@ export type Transfer = {
   deposit: { address: string; memo: string | null; network: string; minimum: string | null } | null;
   intentToSign: { message: string; nonce: string; recipient: string } | null;
   resultHashes: string[];
+  etaSeconds: number | null;
   teamRequestId: string | null;
 };
 
@@ -200,7 +202,7 @@ async function toTransfer(row: Row): Promise<Transfer> {
     deposit: (row.kind === "add" || row.kind === "link_payment") && row.deposit_address
       ? { address: row.deposit_address, memo: row.deposit_memo, network: from.networkName, minimum: d.depositMinimum } : null,
     intentToSign: row.status === "awaiting_signature" ? d.intent : null,
-    resultHashes: d.resultHashes, teamRequestId: row.team_request_id,
+    resultHashes: d.resultHashes, etaSeconds: d.etaSeconds ?? null, teamRequestId: row.team_request_id,
   };
 }
 
@@ -223,7 +225,7 @@ export async function createTransfer(session: Session, input: TransferInput): Pr
     kind: input.kind, fromAssetId: p.from.assetId, toAssetId: p.to.assetId, amountIn: q.quote.amountIn, amountOut: q.quote.amountOut,
     minAmountOut: q.quote.minAmountOut, recipient: p.recipient, note: (input.note ?? "").trim(), quoteSignature: q.signature,
     intent: null, depositChain: p.from.depositChain, depositMinimum: q.quote.minAmountIn ?? null,
-    trackAddress: depositAddress, trackMemo: q.quote.depositMemo ?? null, resultHashes: [],
+    trackAddress: depositAddress, trackMemo: q.quote.depositMemo ?? null, etaSeconds: q.quote.timeEstimate ?? null, resultHashes: [],
   };
   let status: TransferStatus;
   let address = depositAddress;

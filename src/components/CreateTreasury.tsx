@@ -25,45 +25,45 @@ export function CreateTreasuryForm({ onCreated, compact = false }: { onCreated?:
         body: { name, kind, signers: signerList, threshold: kind === "team" ? Math.min(threshold, total) : 1 },
       });
       onCreated?.();
-      router.push(`/app/t/${treasury.id}`);
+      router.push(`/app/team/${treasury.id}`);
       router.refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not create the treasury.");
+      setError(e instanceof Error ? e.message : "Could not create the account.");
       setBusy(false);
     }
   }
 
   return (
     <form className="form-grid" onSubmit={submit}>
-      <div className="segmented" role="radiogroup" aria-label="Treasury type">
+      <div className="segmented" role="radiogroup" aria-label="Account type">
         <label>
           <input type="radio" name="kind" checked={kind === "individual"} onChange={() => setKind("individual")} />
-          <b>Individual</b>
-          <span>You approve alone. 1-of-1.</span>
+          <b>Just me</b>
+          <span>You approve every payment yourself.</span>
         </label>
         <label>
           <input type="radio" name="kind" checked={kind === "team"} onChange={() => setKind("team")} />
           <b>Team</b>
-          <span>Several signers. M-of-N approval.</span>
+          <span>Several people approve together.</span>
         </label>
       </div>
       <label className="field">
-        Treasury name
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === "team" ? "Operations" : "Personal"} maxLength={80} required />
+        Account name
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === "team" ? "Studio operations" : "Personal"} maxLength={80} required />
       </label>
       {kind === "team" && (
         <>
           <label className="field">
-            Other signers
-            <small>NEAR account IDs, separated by commas or spaces. You are added as owner.</small>
+            The other people who approve
+            <small>Their NEAR accounts, separated by commas or spaces. You are added as the owner.</small>
             <textarea className="textarea mono" rows={2} value={signers} onChange={(e) => setSigners(e.target.value)} placeholder="cfo.near, ops-lead.near" />
           </label>
           <label className="field">
-            Approvals required
+            How many must approve
             <select className="select" value={Math.min(threshold, total)} onChange={(e) => setThreshold(Number(e.target.value))}>
               {Array.from({ length: total }, (_, i) => i + 1).map((n) => (
                 <option key={n} value={n}>
-                  {n} of {total} signers
+                  {n} of {total} people
                 </option>
               ))}
             </select>
@@ -72,7 +72,7 @@ export function CreateTreasuryForm({ onCreated, compact = false }: { onCreated?:
       )}
       {error && <p className="form-error" role="alert">{error}</p>}
       <button className={`btn btn-primary ${compact ? "" : "btn-lg"}`} disabled={busy}>
-        {busy && <Spinner />} Create treasury
+        {busy && <Spinner />} Create account
       </button>
     </form>
   );

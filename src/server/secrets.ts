@@ -28,7 +28,7 @@ export function seal(value: unknown, associatedData: string): string {
 export function open<T>(sealed: string, associatedData: string): T {
   const [version, iv, body, tag] = sealed.split(".");
   if (version !== "v1" || !iv || !body || !tag) throw new Error("Unknown sealed format.");
-  const decipher = createDecipheriv("aes-256-gcm", keyFrom("SCRIM_SECRET_KEY"), Buffer.from(iv, "base64url"));
+  const decipher = createDecipheriv("aes-256-gcm", keyFrom("SCRIM_SECRET_KEY"), Buffer.from(iv, "base64url"), { authTagLength: 16 });
   decipher.setAAD(Buffer.from(associatedData));
   decipher.setAuthTag(Buffer.from(tag, "base64url"));
   return JSON.parse(Buffer.concat([decipher.update(Buffer.from(body, "base64url")), decipher.final()]).toString("utf8")) as T;

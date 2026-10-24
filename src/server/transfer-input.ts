@@ -2,6 +2,7 @@ import type { TransferInput, TransferKind } from "./transfers";
 
 const KINDS = new Set(["add", "swap", "send", "withdraw"]);
 
+// Team payouts are created only by payTeamRequest, never from a request body.
 export function transferFromBody(body: Record<string, unknown>): TransferInput {
   const kind = String(body.kind ?? "");
   if (!KINDS.has(kind)) throw new Error("Choose what you want to do.");
@@ -13,6 +14,5 @@ export function transferFromBody(body: Record<string, unknown>): TransferInput {
     amount: String(body.amount ?? ""),
     recipient: text(body.recipient),
     note: text(body.note),
-    teamRequestId: text(body.teamRequestId),
   };
 }

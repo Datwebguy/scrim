@@ -20,6 +20,8 @@ export function useAssets(): AssetInfo[] {
 }
 
 export const fmt = (minor: string | bigint, decimals: number, min = 2) => formatAmount(BigInt(minor), decimals, min);
+// Shows at most four decimals, for coins with long balances.
+export const trimDecimals = (v: string) => v.replace(/^(\d[\d,]*\.\d{0,4})\d*$/, "$1");
 export const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: n < 1 ? 4 : 2 });
 
 // A coin's real logo, with its chain's logo as a small badge. Coins with no published logo show their letters.

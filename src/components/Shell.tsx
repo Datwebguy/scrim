@@ -4,8 +4,8 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { NETWORK_INFO, type Network } from "@/protocol/networks";
 import { AccountMenu } from "./AccountMenu";
-import { SessionProvider, useSwitchNetwork } from "./session";
-import { Initials, ToastProvider } from "./ui";
+import { SessionProvider } from "./session";
+import { ToastProvider } from "./ui";
 
 const NAV: { href: string; label: string; privateMoney?: boolean; match?: (p: string) => boolean }[] = [
   { href: "/app", label: "Home", match: (p) => p === "/app" },
@@ -30,9 +30,7 @@ export function Shell({ accountId, network, otherNetworks, teamPending, children
 
 function Frame({ accountId, network, otherNetworks, teamPending, children }: { accountId: string; network: Network; otherNetworks: Network[]; teamPending: number; children: React.ReactNode }) {
   const pathname = usePathname();
-  const leave = useSwitchNetwork();
   const [open, setOpen] = useState(false);
-  const short = accountId.length > 26 ? `${accountId.slice(0, 10)}…${accountId.slice(-6)}` : accountId;
   const info = NETWORK_INFO[network];
 
   return (
@@ -51,13 +49,7 @@ function Frame({ accountId, network, otherNetworks, teamPending, children }: { a
               })}
             </nav>
             <div className="ws-account">
-              <span className={`pill ${network === "mainnet" ? "pill-green" : "pill-amber"}`} style={{ marginBottom: 10 }}>{info.label}</span>
-              <div className="who">
-                <Initials name={accountId} className="avatar" />
-                <div style={{ minWidth: 0 }}><b title={accountId}>{short}</b><small>{network === "mainnet" ? "Private account" : "Practice account"}</small></div>
-              </div>
-              {otherNetworks.map((n) => <button key={n} onClick={() => leave(n)}>Switch to {NETWORK_INFO[n].label.toLowerCase()}</button>)}
-              <button onClick={() => leave()}>Disconnect wallet</button>
+              <AccountMenu />
             </div>
           </aside>
           <div className="ws-main">

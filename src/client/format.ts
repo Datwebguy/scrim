@@ -1,6 +1,3 @@
-import { formatAmount } from "@/protocol/amount";
-
-export const usdc = (minor: string | bigint) => formatAmount(minor);
 
 export function short(value: string, head = 6, tail = 4) {
   return value.length > head + tail + 1 ? `${value.slice(0, head)}…${value.slice(-tail)}` : value;

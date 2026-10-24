@@ -10,7 +10,3 @@ export function normalizeEvmAddress(input: string): string | null {
   const address = input.trim();
   return EVM_ADDRESS.test(address) ? address.toLowerCase() : null;
 }
-
-export function shortAddress(address: string): string {
-  return address.length > 14 ? `${address.slice(0, 6)}…${address.slice(-4)}` : address;
-}

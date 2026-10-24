@@ -4,7 +4,7 @@ import type { Session } from "./auth";
 import * as oneclick from "./oneclick";
 import { privateAccessToken, privateStatus } from "./private-access";
 
-export type Holding = { assetId: string; symbol: string; chainName: string; amount: string; display: string; usd: number | null; icon: string | null; chainIcon: string | null };
+type Holding = { assetId: string; symbol: string; chainName: string; amount: string; display: string; usd: number | null; icon: string | null; chainIcon: string | null };
 export type Overview = { status: Awaited<ReturnType<typeof privateStatus>>["status"]; detail: string | null; publicKey: string | null; totalUsd: number; holdings: Holding[] };
 
 export async function overview(session: Session): Promise<Overview> {

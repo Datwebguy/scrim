@@ -1,6 +1,6 @@
 // Token amounts are integers in the asset's smallest unit. Never use floats for money.
 
-export const USDC_DECIMALS = 6;
+const USDC_DECIMALS = 6;
 
 const DECIMAL = /^(\d{1,15})(?:\.(\d+))?$/;
 
@@ -21,8 +21,4 @@ export function formatAmount(minor: bigint | string, decimals = USDC_DECIMALS, m
   let fraction = (abs % base).toString().padStart(decimals, "0").replace(/0+$/, "");
   if (fraction.length < minFraction) fraction = fraction.padEnd(minFraction, "0");
   return `${negative ? "-" : ""}${whole}${fraction ? `.${fraction}` : ""}`;
-}
-
-export function formatUsdc(minor: bigint | string): string {
-  return `${formatAmount(minor)} USDC`;
 }

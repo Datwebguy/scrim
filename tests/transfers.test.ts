@@ -239,3 +239,116 @@ describe("paying an approved team request", () => {
     expect(after).toBe("settled");
   });
 });
+
+import { checkProof, describeClaim } from "@/protocol/proof";
+import { proofSigningKey } from "@/server/secrets";
+import { createProof, listProofs, proofState, revokeProof } from "@/server/proofs";
+import { closePayLink, createPayLink, linkRow, listPayLinks, publicLink } from "@/server/paylinks";
+import { createLinkPayment, linkPaymentStatus } from "@/server/transfers";
+
+describe("proofs", () => {
+  const key = () => proofSigningKey().publicKey;
+
+  it("proves a balance threshold for one named reader, without showing the real balance", async () => {
+    const { session } = await login("sam.near");
+    const proof = await createProof(session, { kind: "balance_at_least", unit: "usd", amount: "50", reader: "Northwind Bank", days: 7 });
+    const check = checkProof(proof.token, key(), { viewer: "northwind bank" });
+    expect(check.ok && check.readerMatches).toBe(true);
+    expect(check.ok && describeClaim(check.payload.claim)).toBe("holds at least $50 in private funds");
+    expect(proof.token).not.toContain("100"); // the real balance (100) is not in the statement
+    expect(JSON.stringify(check)).not.toContain("sam.near");
+  });
+
+  it("refuses to prove more than is held", async () => {
+    const { session } = await login("tess.near");
+    await expect(createProof(session, { kind: "balance_at_least", unit: "usd", amount: "5000", reader: "Landlord", days: 1 })).rejects.toThrow(/below that amount/);
+    await expect(createProof(session, { kind: "balance_at_least", unit: "asset", assetId: BTC, amount: "0.5", reader: "Landlord", days: 1 })).rejects.toThrow(/less than that in BTC/);
+  });
+
+  it("detects tampering, a wrong key, an expired proof, and a different reader", async () => {
+    const { session } = await login("uma.near");
+    const proof = await createProof(session, { kind: "balance_at_least", unit: "asset", assetId: USDC_NEAR, amount: "20", reader: "Auditor", days: 1 });
+    const [prefix, body, sig] = proof.token.split(".");
+    const forged = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(body, "base64url").toString()), reader: "Someone else" })).toString("base64url");
+    expect(checkProof(`${prefix}.${forged}.${sig}`, key())).toEqual({ ok: false, reason: "signature" });
+    expect(checkProof(proof.token, new Uint8Array(32).fill(1)).ok).toBe(false);
+    expect(checkProof("not a proof", key())).toEqual({ ok: false, reason: "format" });
+    expect(checkProof(proof.token.replace("scrimproof1", "scrimproof9"), key())).toEqual({ ok: false, reason: "version" });
+    const later = checkProof(proof.token, key(), { now: new Date(Date.now() + 2 * 86_400_000) });
+    expect(later.ok && later.expired).toBe(true);
+    const wrongReader = checkProof(proof.token, key(), { viewer: "Landlord" });
+    expect(wrongReader.ok && wrongReader.readerMatches).toBe(false);
+  });
+
+  it("proves a completed payment and lets the owner revoke a proof", async () => {
+    const { w, session } = await login("vic.near");
+    statusFor = "PROCESSING";
+    const t = await createTransfer(session, { kind: "withdraw", fromAssetId: USDC_NEAR, toAssetId: USDC_BASE, amount: "12", recipient: RECIPIENT });
+    await expect(createProof(session, { kind: "payment", transferId: t.id, reader: "Vendor", days: 7 })).rejects.toThrow(/hasn't completed/);
+    await submitSigned(session, t.id, w.signPayload(t.intentToSign!));
+    statusFor = "SUCCESS";
+    await getTransfer(session, t.id);
+    const proof = await createProof(session, { kind: "payment", transferId: t.id, reader: "Vendor", days: 30, revealExact: false });
+    const check = checkProof(proof.token, key());
+    expect(check.ok && describeClaim(check.payload.claim)).toBe("sent at least 12.00 USDC to Base");
+    expect(check.ok && JSON.stringify(check.payload)).not.toContain(RECIPIENT);
+
+    expect(await proofState(proof.id)).toEqual({ revoked: false });
+    await revokeProof(session, proof.id);
+    expect(await proofState(proof.id)).toEqual({ revoked: true });
+    expect((await listProofs(session))[0].revoked).toBe(true);
+    const { session: other } = await login("wes.near");
+    await expect(revokeProof(other, proof.id)).rejects.toThrow(/not found/);
+    expect(await listProofs(other)).toHaveLength(0);
+  });
+});
+
+describe("payment links", () => {
+  it("lets anyone pay from any chain into the requester's private balance, with no account", async () => {
+    const { session } = await login("xena.near");
+    const link = await createPayLink(session, { assetId: USDC_NEAR, amount: "75", note: "Logo design", days: 7 });
+    expect(link.code).toMatch(/^[a-z2-9]{10}$/);
+
+    const view = await publicLink(link.code);
+    expect(view).toMatchObject({ display: "75.00", symbol: "USDC", note: "Logo design", status: "open", to: "xena.near" });
+
+    calls.length = 0;
+    statusFor = "PROCESSING";
+    const payment = await createLinkPayment(await linkRow(link.code), { fromAssetId: BTC, refundAddress: "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq" });
+    expect(payment.deposit?.network).toBe("Bitcoin");
+    const q = calls.find((c) => c.path === "/v0/quote")!;
+    expect(q.headers.authorization).toBeUndefined();
+    expect(q.body).toMatchObject({ depositType: "ORIGIN_CHAIN", recipient: "xena.near", recipientType: "CONFIDENTIAL_INTENTS", swapType: "EXACT_OUTPUT", amount: "75000000" });
+
+    statusFor = "PENDING_DEPOSIT";
+    expect((await linkPaymentStatus(link.code, payment.id)).status).toBe("awaiting_deposit");
+    statusFor = "PROCESSING";
+    expect((await linkPaymentStatus(link.code, payment.id)).status).toBe("processing");
+    statusFor = "SUCCESS";
+    expect((await linkPaymentStatus(link.code, payment.id)).status).toBe("success");
+    expect((await publicLink(link.code)).status).toBe("paid");
+    await expect(linkRow(link.code)).rejects.toThrow(/already paid/);
+    expect((await listTransfers(session)).some((t) => t.kind === "link_payment" && t.status === "success")).toBe(true);
+  });
+
+  it("checks the refund address and keeps payments tied to their own link", async () => {
+    const { session } = await login("yuri.near");
+    const a = await createPayLink(session, { assetId: USDC_NEAR, amount: "5" });
+    const b = await createPayLink(session, { assetId: USDC_NEAR, amount: "6" });
+    await expect(createLinkPayment(await linkRow(a.code), { fromAssetId: BTC, refundAddress: "not-a-bitcoin-address" })).rejects.toThrow(/Bitcoin address/);
+    statusFor = "PROCESSING";
+    const pay = await createLinkPayment(await linkRow(a.code), { fromAssetId: BTC, refundAddress: "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq" });
+    await expect(linkPaymentStatus(b.code, pay.id)).rejects.toThrow(/not found/);
+    await expect(publicLink("nope")).rejects.toThrow(/doesn't exist/);
+  });
+
+  it("can be closed by its owner only", async () => {
+    const { session } = await login("zed.near");
+    const { session: other } = await login("amy.near");
+    const link = await createPayLink(session, { assetId: USDC_NEAR, amount: "9" });
+    await expect(closePayLink(other, link.code)).rejects.toThrow(/not found/);
+    await closePayLink(session, link.code);
+    expect((await listPayLinks(session))[0].status).toBe("closed");
+    await expect(linkRow(link.code)).rejects.toThrow(/no longer open/);
+  });
+});

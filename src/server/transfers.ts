@@ -21,7 +21,7 @@ import { approvedTeamRequest, markTeamRequest } from "./payments";
 import { privateAccessToken, toIntentsSignature } from "./private-access";
 import { open, seal } from "./secrets";
 
-export type TransferKind = "add" | "swap" | "send" | "withdraw";
+export type TransferKind = "add" | "swap" | "send" | "withdraw" | "link_payment";
 export type TransferStatus = "awaiting_deposit" | "awaiting_signature" | "processing" | "success" | "refunded" | "failed" | "expired" | "cancelled";
 
 export type TransferInput = {
@@ -189,7 +189,7 @@ export async function preview(session: Session, input: TransferInput): Promise<P
   };
 }
 
-type Row = { id: string; account_id: string; kind: TransferKind; status: TransferStatus; deposit_address: string | null; deposit_memo: string | null; details_sealed: string; team_request_id: string | null; expires_at: Date; created_at: Date };
+export type Row = { id: string; account_id: string; kind: TransferKind; status: TransferStatus; deposit_address: string | null; deposit_memo: string | null; details_sealed: string; team_request_id: string | null; pay_link_id: string | null; expires_at: Date; created_at: Date };
 
 async function toTransfer(row: Row): Promise<Transfer> {
   const d = open<Details>(row.details_sealed, aad(row.id, row.account_id));
@@ -197,7 +197,7 @@ async function toTransfer(row: Row): Promise<Transfer> {
   return {
     id: row.id, kind: row.kind, status: row.status, createdAt: row.created_at, expiresAt: row.expires_at,
     fromAsset: light(from), toAsset: light(to), amountIn: d.amountIn, amountOut: d.amountOut, recipient: d.recipient, note: d.note,
-    deposit: row.kind === "add" && row.deposit_address
+    deposit: (row.kind === "add" || row.kind === "link_payment") && row.deposit_address
       ? { address: row.deposit_address, memo: row.deposit_memo, network: from.networkName, minimum: d.depositMinimum } : null,
     intentToSign: row.status === "awaiting_signature" ? d.intent : null,
     resultHashes: d.resultHashes, teamRequestId: row.team_request_id,
@@ -301,7 +301,13 @@ async function mine(session: Session, id: string): Promise<Row> {
 const END_STATE: Record<string, TransferStatus> = { SUCCESS: "success", REFUNDED: "refunded", FAILED: "failed" };
 
 async function refreshOne(session: Session, id: string): Promise<Transfer> {
-  const row = await mine(session, id);
+  return refreshRow(await mine(session, id));
+}
+
+// Follows a transfer to the end and records the result. Safe to call from a person's session or
+// from the public payment-link page, which holds only the transfer's random ID.
+export async function refreshRow(row: Row): Promise<Transfer> {
+  const id = row.id;
   if (row.status === "awaiting_deposit" || row.status === "processing") {
     try {
       const details = open<Details>(row.details_sealed, aad(row.id, row.account_id));
@@ -314,6 +320,7 @@ async function refreshOne(session: Session, id: string): Promise<Transfer> {
           const outcome = ended === "success" ? "settled" : ended === "refunded" ? "approved" : "failed";
           await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, outcome, { type: "system", id: "intents" }));
         }
+        if (row.pay_link_id && ended === "success") await sql`UPDATE pay_links SET status = 'paid' WHERE id = ${row.pay_link_id} AND status = 'open'`;
       } else if (s.status === "PROCESSING" && row.status === "awaiting_deposit") {
         await save(row.id, row.account_id, "processing", details);
       }
@@ -321,10 +328,11 @@ async function refreshOne(session: Session, id: string): Promise<Transfer> {
       // The network is briefly unreachable: keep the last known state.
     }
   }
-  const fresh = await mine(session, id);
+  const [fresh] = await sql<Row[]>`SELECT * FROM transfers WHERE id = ${id}`;
   if ((fresh.status === "awaiting_deposit" || fresh.status === "awaiting_signature") && fresh.expires_at < new Date()) {
     await sql`UPDATE transfers SET status = 'expired', updated_at = now() WHERE id = ${id} AND status IN ('awaiting_deposit', 'awaiting_signature')`;
-    return toTransfer(await mine(session, id));
+    const [expired] = await sql<Row[]>`SELECT * FROM transfers WHERE id = ${id}`;
+    return toTransfer(expired);
   }
   return toTransfer(fresh);
 }
@@ -356,4 +364,43 @@ export async function payTeamRequest(session: Session, requestId: string): Promi
     note: request.memo,
     teamRequestId: request.id,
   });
+}
+
+// A payer with no account pays a link from any chain. The money lands in the requester's private balance.
+export async function createLinkPayment(link: { id: string; accountId: string; assetId: string; amount: string; note: string; expiresAt: Date }, input: { fromAssetId: string; refundAddress: string }): Promise<Transfer> {
+  if (!config.oneClickApiKey || config.network !== "mainnet") requireEnabled();
+  const from = await assetById(String(input.fromAssetId ?? ""));
+  const to = await assetById(link.assetId);
+  const refundTo = checkAddress(from.network, String(input.refundAddress ?? ""));
+  const [{ open: openAttempts }] = await sql<{ open: number }[]>`SELECT count(*)::int AS open FROM transfers WHERE pay_link_id = ${link.id} AND status = 'awaiting_deposit' AND expires_at > now()`;
+  if (openAttempts >= 10) throw conflict("This link has too many unfinished payments. Try again in a few minutes.");
+
+  const deadline = new Date(Math.min(link.expiresAt.getTime(), Date.now() + 60 * 60_000));
+  const q = await oneclick.quote({
+    dry: false, swapType: "EXACT_OUTPUT", slippageTolerance: 100, originAsset: from.assetId, depositType: "ORIGIN_CHAIN",
+    destinationAsset: to.assetId, amount: link.amount, refundTo, refundType: "ORIGIN_CHAIN", recipient: link.accountId,
+    recipientType: "CONFIDENTIAL_INTENTS", deadline: deadline.toISOString(), quoteWaitingTimeMs: 5000,
+  });
+  const depositAddress = q.quote.depositAddress;
+  if (!depositAddress) throw new HttpError(502, "upstream", "No route is available for that coin right now. Try another.");
+  const id = randomUUID();
+  const memo = q.quote.depositMemo ?? null;
+  const details: Details = {
+    kind: "link_payment", fromAssetId: from.assetId, toAssetId: to.assetId, amountIn: q.quote.amountIn, amountOut: q.quote.amountOut,
+    minAmountOut: q.quote.minAmountOut, recipient: link.accountId, note: link.note, quoteSignature: q.signature, intent: null,
+    depositChain: from.depositChain, depositMinimum: q.quote.minAmountIn ?? null, trackAddress: depositAddress, trackMemo: memo, resultHashes: [],
+  };
+  await sql`INSERT INTO transfers (id, account_id, kind, status, deposit_address, deposit_memo, details_sealed, pay_link_id, expires_at)
+    VALUES (${id}, ${link.accountId}, 'link_payment', 'awaiting_deposit', ${depositAddress}, ${memo}, ${seal(details, aad(id, link.accountId))}, ${link.id}, ${deadline})`;
+  const [row] = await sql<Row[]>`SELECT * FROM transfers WHERE id = ${id}`;
+  return toTransfer(row);
+}
+
+// Public status for a payer: only the transfer's random ID is needed, and only that payment is shown.
+export async function linkPaymentStatus(linkId: string, transferId: string): Promise<Pick<Transfer, "id" | "status" | "deposit" | "amountIn" | "fromAsset" | "expiresAt">> {
+  if (!/^[0-9a-f-]{36}$/i.test(transferId)) throw notFound("Payment not found.");
+  const [row] = await sql<Row[]>`SELECT * FROM transfers WHERE id = ${transferId} AND pay_link_id = ${linkId} AND kind = 'link_payment'`;
+  if (!row) throw notFound("Payment not found.");
+  const t = await refreshRow(row);
+  return { id: t.id, status: t.status, deposit: t.deposit, amountIn: t.amountIn, fromAsset: t.fromAsset, expiresAt: t.expiresAt };
 }

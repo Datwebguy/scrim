@@ -19,6 +19,7 @@ export function Requests() {
   const [error, setError] = useState("");
   const [fresh, setFresh] = useState<Link | null>(null);
   const url = (code: string) => `${window.location.origin}/pay/${code}`;
+  const agentUrl = (code: string) => `${window.location.origin}/api/x402/pay/${code}`;
 
   async function create(e: React.FormEvent) {
     e.preventDefault();
@@ -45,6 +46,7 @@ export function Requests() {
           <h2>Your link is ready</h2>
           <p className="muted">Asking for <b>{fresh.display} {fresh.symbol}</b> on {fresh.chainName}{fresh.note ? ` · ${fresh.note}` : ""}</p>
           <CopyField label="Share this link" value={url(fresh.code)} />
+          <CopyField label="For AI agents (x402)" value={agentUrl(fresh.code)} />
           <div className="between">
             <button className="btn btn-ghost" onClick={() => setFresh(null)}>Make another</button>
             {typeof navigator !== "undefined" && "share" in navigator && <button className="btn btn-primary" onClick={() => navigator.share({ title: "Payment request", url: url(fresh.code) }).catch(() => {})}>Share</button>}
@@ -75,6 +77,7 @@ export function Requests() {
                 <span className="right" style={{ display: "flex", gap: 6 }}>
                   {l.status === "open" && <>
                     <button className="btn btn-ghost btn-sm" onClick={async () => { await navigator.clipboard.writeText(url(l.code)); toast("Link copied"); }}>Copy</button>
+                    <button className="btn btn-ghost btn-sm" title="Address AI agents can pay with x402" onClick={async () => { await navigator.clipboard.writeText(agentUrl(l.code)); toast("Agent address copied"); }}>Agent</button>
                     <button className="btn btn-danger btn-sm" onClick={async () => { await api(`/links/${l.code}/close`, { method: "POST" }); reload(); }}>Close</button>
                   </>}
                   {l.status === "paid" && <span className="pill pill-green">Paid</span>}

@@ -1,5 +1,6 @@
 import { createHash, createHmac } from "node:crypto";
-import { lookup } from "node:dns/promises";
+import { lookup as lookupCallback, type LookupAddress } from "node:dns";
+import { request as httpsRequest } from "node:https";
 import { isIP } from "node:net";
 import { after } from "next/server";
 import { formatAmount } from "@/protocol/amount";
@@ -66,35 +67,29 @@ export function signWebhook(secret: string, body: string, timestamp: number) {
 
 async function agentWebhook(row: EventRow, event: PaymentEvent) {
   if (!row.agent_id || !row.webhook_url || !row.webhook_secret) return;
-  if (!safeWebhookUrl(row.webhook_url) || !(await resolvesPublicly(row.webhook_url))) {
+  if (!safeWebhookUrl(row.webhook_url)) {
     await sql`INSERT INTO webhook_deliveries (agent_id, request_id, event, status_code, ok) VALUES (${row.agent_id}, ${row.id}, ${event}, NULL, false)`;
     return;
   }
   const secret = open<string>(row.webhook_secret, `agent-webhook:${row.agent_id}`);
   const body = JSON.stringify(webhookPayload(row, event));
-  let status: number | null = null;
-  try {
-    const response = await fetch(row.webhook_url, {
-      method: "POST",
-      redirect: "manual",
-      signal: AbortSignal.timeout(5000),
-      headers: { "content-type": "application/json", "user-agent": "Scrim-Webhooks/1", "scrim-event": event, "scrim-signature": signWebhook(secret, body, Math.floor(Date.now() / 1000)) },
-      body,
-    });
-    status = response.status;
-  } catch {
-    status = null;
-  }
+  const status = await postPinned(row.webhook_url, body, {
+    "content-type": "application/json",
+    "user-agent": "Scrim-Webhooks/1",
+    "scrim-event": event,
+    "scrim-signature": signWebhook(secret, body, Math.floor(Date.now() / 1000)),
+  });
   await sql`INSERT INTO webhook_deliveries (agent_id, request_id, event, status_code, ok) VALUES (${row.agent_id}, ${row.id}, ${event}, ${status}, ${status !== null && status >= 200 && status < 300})`;
 }
 
 // True for addresses that are not on the public internet.
 export function isPrivateAddress(address: string): boolean {
   const host = address.replace(/^\[|\]$/g, "").toLowerCase();
-  if (isIP(host) === 6) return /^(::1?$|fc|fd|fe80|::ffff:)/.test(host);
+  if (isIP(host) === 6) return /^(::1?$|::$|fc|fd|fe[89ab]|ff|::ffff:|64:ff9b:|2001:db8:|2002:)/.test(host);
   if (isIP(host) === 4) {
     const [a, b] = host.split(".").map(Number);
-    return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
+    return a === 10 || a === 127 || a === 0 || a >= 224 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)
+      || (a === 100 && b >= 64 && b <= 127) || (a === 198 && (b === 18 || b === 19)) || (a === 192 && b === 0);
   }
   return false;
 }
@@ -113,16 +108,34 @@ export function safeWebhookUrl(raw: string): boolean {
   return !isPrivateAddress(host);
 }
 
-// A public-looking name can still point at an internal address, so check where it leads right before sending.
-async function resolvesPublicly(raw: string): Promise<boolean> {
-  const host = new URL(raw).hostname.replace(/^\[|\]$/g, "");
-  if (isIP(host)) return !isPrivateAddress(host);
-  try {
-    const found = await lookup(host, { all: true });
-    return found.length > 0 && found.every((a) => !isPrivateAddress(a.address));
-  } catch {
-    return false;
-  }
+// Resolves the host once, refuses if any answer is internal, and connects to exactly that answer.
+// Checking and connecting with the same lookup means a name cannot switch to an internal address
+// between the check and the request (DNS rebinding).
+function publicOnlyLookup(hostname: string, options: object, callback: (err: NodeJS.ErrnoException | null, address: string | LookupAddress[], family?: number) => void) {
+  lookupCallback(hostname, { all: true }, (err, addresses) => {
+    if (err) return callback(err, "", 0);
+    const list = addresses as LookupAddress[];
+    if (list.length === 0 || list.some((a) => isPrivateAddress(a.address))) {
+      return callback(Object.assign(new Error("Webhook address is not public."), { code: "EPRIVATE" }), "", 0);
+    }
+    if ((options as { all?: boolean }).all) return callback(null, list);
+    callback(null, list[0].address, list[0].family);
+  });
+}
+
+// POSTs to a public https address with a 5 second limit. Never follows redirects. Returns the status, or null.
+function postPinned(url: string, body: string, headers: Record<string, string>): Promise<number | null> {
+  return new Promise((resolve) => {
+    const target = new URL(url);
+    if (isIP(target.hostname.replace(/^\[|\]$/g, "")) && isPrivateAddress(target.hostname)) return resolve(null);
+    const req = httpsRequest(target, { method: "POST", headers: { ...headers, "content-length": Buffer.byteLength(body) }, lookup: publicOnlyLookup, timeout: 5000 }, (res) => {
+      res.resume();
+      resolve(res.statusCode ?? null);
+    });
+    req.on("timeout", () => req.destroy());
+    req.on("error", () => resolve(null));
+    req.end(body);
+  });
 }
 
 /* ── Telegram alerts ─────────────────────────────────────────────────────── */

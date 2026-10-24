@@ -253,6 +253,15 @@ export async function createTransfer(session: Session, input: TransferInput): Pr
   }
 
   await sql.begin(async (tx) => {
+    if (teamRequestId) {
+      // One payout at a time per request: lock it, and refuse while another payout is open or done.
+      const [request] = await tx<{ status: string }[]>`SELECT status FROM payment_requests WHERE id = ${teamRequestId} FOR UPDATE`;
+      if (request?.status !== "approved") throw conflict("This request is not approved, or it was already paid.");
+      const open = await tx`
+        SELECT 1 FROM transfers WHERE team_request_id = ${teamRequestId}
+          AND (status IN ('processing', 'success') OR (status = 'awaiting_signature' AND expires_at > now()))`;
+      if (open.length) throw conflict("This request is already being paid.");
+    }
     await tx`INSERT INTO transfers (id, account_id, network, kind, status, deposit_address, deposit_memo, details_sealed, team_request_id, expires_at)
       VALUES (${id}, ${session.accountId}, ${session.network}, ${input.kind}, ${status}, ${address}, ${memo}, ${seal(details, aad(id, session.accountId))}, ${teamRequestId}, ${deadline})`;
     await audit(tx, null, { type: "human", id: session.accountId }, `transfer.${input.kind}.created`, id);
@@ -276,8 +285,19 @@ export async function submitSigned(session: Session, id: string, signed: { publi
     throw conflict("This transfer expired. Start it again to get a fresh price.");
   }
 
+  // A team payout goes out only while its request is still approved (not cancelled, not already paid).
+  if (row.team_request_id) {
+    const moved = await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "submitting", { type: "human", id: session.accountId }, ["approved"]));
+    if (!moved) {
+      await sql`UPDATE transfers SET status = 'cancelled', updated_at = now() WHERE id = ${id} AND status = 'awaiting_signature'`;
+      throw conflict("This request was cancelled or already paid, so nothing was sent.");
+    }
+  }
   const claimed = await sql`UPDATE transfers SET status = 'processing', updated_at = now() WHERE id = ${id} AND status = 'awaiting_signature' RETURNING id`;
-  if (claimed.length !== 1) throw conflict("This transfer was already sent.");
+  if (claimed.length !== 1) {
+    if (row.team_request_id) await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "approved", { type: "system", id: "scrim" }, ["submitting"]));
+    throw conflict("This transfer was already sent.");
+  }
   try {
     const { intentHash } = await oneclick.submitIntent({
       standard: "nep413",
@@ -286,13 +306,11 @@ export async function submitSigned(session: Session, id: string, signed: { publi
       signature: toIntentsSignature(signed.signature),
     });
     await save(row.id, row.account_id, "processing", details, { intentHash });
-    if (row.team_request_id) {
-      await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "submitting", { type: "human", id: session.accountId }));
-      emitPaymentEvent(row.team_request_id, "payment.submitting");
-    }
+    if (row.team_request_id) emitPaymentEvent(row.team_request_id, "payment.submitting");
     await sql.begin((tx) => audit(tx, null, { type: "human", id: session.accountId }, `transfer.${row.kind}.submitted`, id));
   } catch (error) {
     await save(row.id, row.account_id, "failed", details);
+    if (row.team_request_id) await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "approved", { type: "system", id: "scrim" }, ["submitting"]));
     throw error;
   }
   return refreshOne(session, id);
@@ -325,8 +343,8 @@ async function refreshRow(row: Row): Promise<Transfer> {
         await save(row.id, row.account_id, ended, details);
         if (row.team_request_id) {
           const outcome = ended === "success" ? "settled" : ended === "refunded" ? "approved" : "failed";
-          await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, outcome, { type: "system", id: "intents" }));
-          emitPaymentEvent(row.team_request_id, `payment.${outcome}`);
+          const moved = await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, outcome, { type: "system", id: "intents" }, ["submitting"]));
+          if (moved) emitPaymentEvent(row.team_request_id, `payment.${outcome}`);
         }
         if (row.pay_link_id && ended === "success") await sql`UPDATE pay_links SET status = 'paid' WHERE id = ${row.pay_link_id} AND status = 'open'`;
       } else if (s.status === "PROCESSING" && row.status === "awaiting_deposit") {

@@ -4,7 +4,7 @@ import type { Session } from "./auth";
 import * as oneclick from "./oneclick";
 import { privateAccessToken, privateStatus } from "./private-access";
 
-export type Holding = { assetId: string; symbol: string; networkName: string; amount: string; display: string; usd: number };
+export type Holding = { assetId: string; symbol: string; chainName: string; amount: string; display: string; usd: number | null; icon: string | null; chainIcon: string | null };
 export type Overview = { status: Awaited<ReturnType<typeof privateStatus>>["status"]; detail: string | null; publicKey: string | null; totalUsd: number; holdings: Holding[] };
 
 export async function overview(session: Session): Promise<Overview> {
@@ -18,10 +18,10 @@ export async function overview(session: Session): Promise<Overview> {
     const asset = assets.find((a) => a.assetId === b.tokenId);
     if (!asset) continue;
     holdings.push({
-      assetId: asset.assetId, symbol: asset.symbol, networkName: asset.networkName, amount: minor.toString(),
-      display: formatAmount(minor, asset.decimals, 2), usd: usdValue(asset, minor),
+      assetId: asset.assetId, symbol: asset.symbol, chainName: asset.chainName, amount: minor.toString(),
+      display: formatAmount(minor, asset.decimals, 2), usd: asset.priceUsd === null ? null : usdValue(asset, minor), icon: asset.icon, chainIcon: asset.chainIcon,
     });
   }
-  holdings.sort((a, b) => b.usd - a.usd);
-  return { status: "active", detail: null, publicKey: access.publicKey, totalUsd: holdings.reduce((sum, h) => sum + h.usd, 0), holdings };
+  holdings.sort((a, b) => (b.usd ?? 0) - (a.usd ?? 0));
+  return { status: "active", detail: null, publicKey: access.publicKey, totalUsd: holdings.reduce((sum, h) => sum + (h.usd ?? 0), 0), holdings };
 }

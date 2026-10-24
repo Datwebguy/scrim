@@ -48,4 +48,4 @@ Teams get approvals (M of N), spending limits for people and software that pay o
 
 How NEAR fits: money lives on NEAR Intents' private ledger (Confidential Intents), moves across chains through NEAR Intents and its bridge, and every sign-in and approval is a NEAR wallet signature via NEAR Connect. Scrim never holds keys or funds. Sign-in checks the key on-chain; every transfer is bound to the wallet's signature over the exact payload and can be submitted once.
 
-Honest status: proofs are signed by Scrim today; proving on the user's device is next. Moving money needs a NEAR Intents partner key. Repo has 54 tests and has not had an external review.
+Honest status: proofs are signed by Scrim today; proving on the user's device is next. Moving money needs a NEAR Intents partner key. NEAR Intents has no testnet, so private money runs on mainnet and testnet covers team features. Tests run against real testnet and mainnet. No external review yet.

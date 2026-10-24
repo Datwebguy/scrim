@@ -1,10 +1,13 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/client/api";
 import { formatAmount } from "@/protocol/amount";
 import { useToast } from "./ui";
 
-export type AssetInfo = { assetId: string; symbol: string; network: string; networkName: string; decimals: number; priceUsd: number; canAdd: boolean };
+export type AssetInfo = {
+  assetId: string; symbol: string; decimals: number; priceUsd: number | null; icon: string | null;
+  chain: string; chainName: string; chainIcon: string | null; canAdd: boolean;
+};
 
 let assetsPromise: Promise<AssetInfo[]> | null = null;
 export function useAssets(): AssetInfo[] {
@@ -18,46 +21,83 @@ export function useAssets(): AssetInfo[] {
 
 export const fmt = (minor: string | bigint, decimals: number, min = 2) => formatAmount(BigInt(minor), decimals, min);
 export const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: n < 1 ? 4 : 2 });
-export const SENT_STATES = new Set(["processing", "success", "refunded", "failed"]);
 
-const PREFERRED_NETWORKS = ["near", "base", "eth"];
-const preferred = (options: AssetInfo[], keep?: string) =>
-  options.find((o) => o.network === keep) ?? PREFERRED_NETWORKS.map((n) => options.find((o) => o.network === n)).find(Boolean) ?? options[0];
+// A coin's real logo, with its chain's logo as a small badge. Coins with no published logo show their letters.
+export function TokenLogo({ icon, symbol, chainIcon, size = 36 }: { icon: string | null; symbol: string; chainIcon?: string | null; size?: number }) {
+  const badge = Math.round(size * 0.42);
+  return (
+    <span className="tlogo" style={{ width: size, height: size }}>
+      {icon ? <img src={icon} alt="" width={size} height={size} loading="lazy" referrerPolicy="no-referrer" /> : <span className="tletters" style={{ fontSize: size * 0.3 }}>{symbol.slice(0, 3)}</span>}
+      {chainIcon && <img className="tbadge" src={chainIcon} alt="" width={badge} height={badge} loading="lazy" referrerPolicy="no-referrer" />}
+    </span>
+  );
+}
 
 const POPULAR = ["USDC", "USDT", "ETH", "BTC", "NEAR", "SOL", "ZEC", "XRP", "TON", "DOGE", "SUI", "TRX", "BNB"];
+const PREFERRED_CHAINS = ["near", "base", "eth"];
 
-// Pick a coin, then the network it lives on. Simple, native, and works on every phone.
+function sortForPicking(assets: AssetInfo[]) {
+  const rank = (a: AssetInfo) => {
+    const i = POPULAR.indexOf(a.symbol);
+    const c = PREFERRED_CHAINS.indexOf(a.chain);
+    return (i === -1 ? 99 : i) * 10 + (c === -1 ? 9 : c);
+  };
+  return [...assets].sort((a, b) => rank(a) - rank(b) || a.symbol.localeCompare(b.symbol) || a.chainName.localeCompare(b.chainName));
+}
+
+// Choose a coin and the chain it lives on from one searchable list, each with its real logo.
 export function AssetPicker({ label, assets, value, onChange, hint }: { label: string; assets: AssetInfo[]; value: string; onChange: (assetId: string) => void; hint?: string }) {
-  const coins = useMemo(() => {
-    const symbols = [...new Set(assets.map((a) => a.symbol))];
-    return symbols.sort((a, b) => {
-      const ia = POPULAR.indexOf(a), ib = POPULAR.indexOf(b);
-      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib) || a.localeCompare(b);
-    });
-  }, [assets]);
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const box = useRef<HTMLDivElement>(null);
+  const sorted = useMemo(() => sortForPicking(assets), [assets]);
   const current = assets.find((a) => a.assetId === value);
-  const networks = assets.filter((a) => a.symbol === (current?.symbol ?? coins[0]));
 
   useEffect(() => {
-    if (!current && assets.length) onChange(preferred(assets.filter((a) => a.symbol === coins[0]))?.assetId ?? assets[0].assetId);
-  }, [current, assets, coins, onChange]);
+    if (!current && sorted.length) onChange(sorted[0].assetId);
+  }, [current, sorted, onChange]);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: Event) => {
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", close); };
+  }, [open]);
+
+  const q = query.trim().toLowerCase();
+  const shown = q ? sorted.filter((a) => `${a.symbol} ${a.chainName}`.toLowerCase().includes(q)) : sorted;
 
   return (
-    <fieldset className="field picker">
-      <legend>{label}</legend>
+    <div className="field picker" ref={box}>
+      <span className="picker-label">{label}</span>
       {hint && <small>{hint}</small>}
-      <div className="form-row">
-        <select className="select" aria-label={`${label}: coin`} value={current?.symbol ?? ""} onChange={(e) => {
-          const options = assets.filter((a) => a.symbol === e.target.value);
-          onChange(preferred(options, current?.network).assetId);
-        }}>
-          {coins.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <select className="select" aria-label={`${label}: network`} value={current?.assetId ?? ""} onChange={(e) => onChange(e.target.value)}>
-          {networks.map((n) => <option key={n.assetId} value={n.assetId}>{n.networkName}</option>)}
-        </select>
-      </div>
-    </fieldset>
+      <button type="button" className="picker-button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        {current ? (
+          <><TokenLogo icon={current.icon} symbol={current.symbol} chainIcon={current.chainIcon} /><span><b>{current.symbol}</b><small>{current.chainName}</small></span></>
+        ) : <span className="muted">Loading coins…</span>}
+        <span className="picker-caret" aria-hidden="true">▾</span>
+      </button>
+      {open && (
+        <div className="picker-panel">
+          <input className="input" autoFocus placeholder="Search a coin or chain" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search coins" />
+          <ul role="listbox" aria-label={label}>
+            {shown.length === 0 && <li className="picker-empty">Nothing matches "{query}"</li>}
+            {shown.map((a) => (
+              <li key={a.assetId} role="option" aria-selected={a.assetId === value}>
+                <button type="button" onClick={() => { onChange(a.assetId); setOpen(false); setQuery(""); }}>
+                  <TokenLogo icon={a.icon} symbol={a.symbol} chainIcon={a.chainIcon} size={32} />
+                  <span><b>{a.symbol}</b><small>{a.chainName}</small></span>
+                  {a.priceUsd !== null && <span className="muted picker-price">{usd(a.priceUsd)}</span>}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -86,12 +126,12 @@ export function StateChip({ status }: { status: string }) {
 
 export const KIND_LABEL: Record<string, string> = { add: "Added money", swap: "Swapped", send: "Sent privately", withdraw: "Sent out", link_payment: "Received by link" };
 
+type Leg = { assetId: string; symbol: string; chainName: string; decimals: number; icon: string | null; chainIcon: string | null };
 export type TransferView = {
   id: string; kind: string; status: string; createdAt: string; expiresAt: string;
-  fromAsset: { assetId: string; symbol: string; networkName: string; decimals: number };
-  toAsset: { assetId: string; symbol: string; networkName: string; decimals: number };
+  fromAsset: Leg; toAsset: Leg;
   amountIn: string; amountOut: string; recipient: string | null; note: string;
-  deposit: { address: string; memo: string | null; network: string; minimum: string | null } | null;
+  deposit: { address: string; memo: string | null; chainName: string; minimum: string | null } | null;
   intentToSign: { message: string; nonce: string; recipient: string } | null;
   resultHashes: string[]; etaSeconds: number | null; teamRequestId: string | null;
 };
@@ -108,17 +148,12 @@ export function Heading({ eyebrow, title, text }: { eyebrow: string; title: stri
   );
 }
 
-// Shown wherever money can move, until the payment network connection is switched on.
-export function useCapabilities() {
-  const [caps, setCaps] = useState<{ privateTransfers: boolean } | null>(null);
+// What each network can do right now, as reported by the service.
+export type NetworkCapabilities = { enabled: boolean; signIn: boolean; teams: boolean; privateBalance: boolean; movingMoney: boolean; paymentLinks: boolean; proofs: boolean };
+export function useCapabilities(network: string): NetworkCapabilities | null {
+  const [caps, setCaps] = useState<NetworkCapabilities | null>(null);
   useEffect(() => {
-    fetch("/api/health").then((r) => r.json()).then((h) => setCaps({ privateTransfers: Boolean(h.capabilities?.privateTransfers) })).catch(() => setCaps({ privateTransfers: true }));
-  }, []);
+    fetch("/api/health").then((r) => r.json()).then((h) => setCaps(h.networks?.[network] ?? null)).catch(() => setCaps(null));
+  }, [network]);
   return caps;
-}
-
-export function NotSwitchedOn() {
-  const caps = useCapabilities();
-  if (!caps || caps.privateTransfers) return null;
-  return <div className="notice">Adding money, swapping and sending are being switched on. You can already unlock your private balance and see what you hold.</div>;
 }

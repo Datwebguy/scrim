@@ -2,10 +2,11 @@
 import { useState } from "react";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
-import { AssetPicker, CopyField, Heading, NotSwitchedOn, useAssets } from "./money";
+import { NotSwitchedOn } from "./Gates";
+import { AssetPicker, CopyField, Heading, useAssets } from "./money";
 import { Spinner, useToast } from "./ui";
 
-type Link = { code: string; symbol: string; networkName: string; display: string; note: string; status: string; expiresAt: string };
+type Link = { code: string; symbol: string; chainName: string; display: string; note: string; status: string; expiresAt: string };
 
 export function Requests() {
   const toast = useToast();
@@ -44,7 +45,7 @@ export function Requests() {
       {fresh ? (
         <div className="card card-pad form-grid">
           <h2>Your link is ready</h2>
-          <p className="muted">Asking for <b>{fresh.display} {fresh.symbol}</b> on {fresh.networkName}{fresh.note ? ` · ${fresh.note}` : ""}</p>
+          <p className="muted">Asking for <b>{fresh.display} {fresh.symbol}</b> on {fresh.chainName}{fresh.note ? ` · ${fresh.note}` : ""}</p>
           <CopyField label="Share this link" value={url(fresh.code)} />
           <div className="between">
             <button className="btn btn-ghost" onClick={() => setFresh(null)}>Make another</button>
@@ -59,7 +60,7 @@ export function Requests() {
             <label className="field">Link stays open for
               <select className="select" value={days} onChange={(e) => setDays(Number(e.target.value))}><option value={1}>1 day</option><option value={7}>7 days</option><option value={30}>30 days</option></select></label>
           </div>
-          <label className="field">What is it for? <small>The payer sees this.</small><input className="input" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder="Logo design, October" /></label>
+          <label className="field">What is it for? <small>The payer sees this.</small><input className="input" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder="What it is for" /></label>
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="btn btn-primary btn-lg" disabled={busy || !assetId}>{busy && <Spinner />} Create link</button>
         </form>

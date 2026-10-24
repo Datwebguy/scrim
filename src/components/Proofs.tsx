@@ -82,7 +82,7 @@ export function Proofs() {
             </>
           )}
           <label className="field">Who is this for?<small>Their name or company. It's written into the proof, so it only makes sense for them.</small>
-            <input className="input" value={reader} onChange={(e) => setReader(e.target.value)} placeholder="Northwind Bank" maxLength={80} required /></label>
+            <input className="input" value={reader} onChange={(e) => setReader(e.target.value)} placeholder="A bank, landlord or client" maxLength={80} required /></label>
           <label className="field">Valid for<select className="select" value={days} onChange={(e) => setDays(Number(e.target.value))}><option value={1}>1 day</option><option value={7}>7 days</option><option value={30}>30 days</option></select></label>
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="btn btn-primary btn-lg" disabled={busy}>{busy && <Spinner />} Create proof</button>

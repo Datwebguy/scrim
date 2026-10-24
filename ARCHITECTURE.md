@@ -52,7 +52,8 @@ Any NEAR wallet, through NEAR Connect. The wallet signs (a) a one-time ownership
 - **Proofs are signed statements today.** Scrim checks the private balance and vouches. They are not zero-knowledge proofs. Proving on the device is on the roadmap.
 - **Scrim keeps its own activity record.** NEAR Intents' history endpoint is invite-only; Scrim's record is sealed and shown only to its owner.
 - **Team limits are enforced by Scrim,** not by an on-chain contract yet.
-- **Private balances exist on NEAR mainnet only.** Testnet is used to develop team features.
+- **Private balances exist on NEAR mainnet only.** NEAR Intents has no testnet. People can choose testnet at sign-in for real NEAR testnet balances, team approvals, spending limits and on-chain-verified transfers; private money screens say plainly that they need mainnet.
+- **All token, price, logo and chain data is live** (1Click, CoinGecko, FastNEAR, NEAR RPC). Nothing is hardcoded or mocked.
 - **Contract wallets and multisig accounts can't sign in yet.** Standard accounts and implicit accounts can.
 - **Rate limiting is not built.** It must be added before a public launch (see BACKEND_SPEC §12).
 - **No external security review has happened.** Treat it as new software and start with small amounts.

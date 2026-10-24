@@ -129,3 +129,42 @@ describe("NEAR Intents ownership message", async () => {
     expect(isImplicitAccount("alice.near")).toBe(false);
   });
 });
+
+describe("proofs", async () => {
+  const { checkProof, describeClaim, signProof } = await import("@/protocol/proof");
+  const secret = ed25519.utils.randomSecretKey();
+  const publicKey = ed25519.getPublicKey(secret);
+  const issued = new Date("2026-11-01T10:00:00Z");
+  const payload = {
+    v: 1 as const, id: "11111111-1111-4111-8111-111111111111", reader: "A reader", holder: null,
+    issuedAt: issued.toISOString(), expiresAt: new Date(issued.getTime() + 7 * 86_400_000).toISOString(),
+    claim: { type: "balance_at_least" as const, amount: "10,000", symbol: null, unit: "usd" as const },
+  };
+  const token = signProof(payload, secret);
+
+  it("verifies a genuine proof and describes its single claim", () => {
+    const check = checkProof(token, publicKey, { now: new Date("2026-11-02T00:00:00Z"), viewer: "a reader" });
+    expect(check.ok && check.expired).toBe(false);
+    expect(check.ok && check.readerMatches).toBe(true);
+    expect(check.ok && describeClaim(check.payload.claim)).toBe("holds at least $10,000 in private funds");
+  });
+  it("expires at the time inside the signed statement", () => {
+    const check = checkProof(token, publicKey, { now: new Date("2026-11-08T10:00:00Z") });
+    expect(check.ok && check.expired).toBe(true);
+  });
+  it("fails closed on any change, a wrong key, a wrong version, or junk", () => {
+    const [prefix, body, sig] = token.split(".");
+    const changed = Buffer.from(JSON.stringify({ ...payload, reader: "Someone else" })).toString("base64url");
+    expect(checkProof(`${prefix}.${changed}.${sig}`, publicKey)).toEqual({ ok: false, reason: "signature" });
+    expect(checkProof(token, ed25519.getPublicKey(ed25519.utils.randomSecretKey())).ok).toBe(false);
+    expect(checkProof(token.replace("scrimproof1", "scrimproof2"), publicKey)).toEqual({ ok: false, reason: "version" });
+    expect(checkProof("junk", publicKey)).toEqual({ ok: false, reason: "format" });
+  });
+  it("flags a different reader", () => {
+    const check = checkProof(token, publicKey, { viewer: "Someone else" });
+    expect(check.ok && check.readerMatches).toBe(false);
+  });
+  it("never puts a balance or an account in the statement", () => {
+    expect(Buffer.from(token.split(".")[1], "base64url").toString()).not.toMatch(/accountId|account_id|balance"/i);
+  });
+});

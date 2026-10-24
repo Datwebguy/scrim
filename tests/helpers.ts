@@ -16,7 +16,12 @@ export async function resetDatabase() {
   await migrate(() => {});
 }
 
-export type Wallet = { accountId: string; publicKey: string; sign(challenge: IssuedChallenge): SignedEnvelope };
+export type Wallet = {
+  accountId: string;
+  publicKey: string;
+  sign(challenge: IssuedChallenge): SignedEnvelope;
+  signPayload(payload: { message: string; nonce: string; recipient: string }): { publicKey: string; signature: string };
+};
 
 // A local stand-in for a NEAR wallet: holds an ed25519 key and signs NEP-413 payloads.
 export function wallet(accountId: string): Wallet {
@@ -28,6 +33,10 @@ export function wallet(accountId: string): Wallet {
     sign(challenge) {
       const digest = nep413Digest({ message: challenge.message, nonce: Buffer.from(challenge.nonce, "base64"), recipient: challenge.recipient });
       return { challengeId: challenge.challengeId, accountId, publicKey, signature: Buffer.from(ed25519.sign(digest, secret)).toString("base64") };
+    },
+    signPayload(payload) {
+      const digest = nep413Digest({ message: payload.message, nonce: Buffer.from(payload.nonce, "base64"), recipient: payload.recipient });
+      return { publicKey, signature: Buffer.from(ed25519.sign(digest, secret)).toString("base64") };
     },
   };
 }

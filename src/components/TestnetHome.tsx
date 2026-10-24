@@ -5,6 +5,8 @@ import { NETWORK_INFO } from "@/protocol/networks";
 import { Heading, TokenLogo } from "./money";
 import { useSession } from "./session";
 
+const short = (v: string) => v.replace(/^(\d[\d,]*\.\d{0,4})\d*$/, "$1");
+
 type Holding = { id: string; symbol: string; name: string; display: string; icon: string | null };
 
 export function TestnetHome() {
@@ -17,9 +19,9 @@ export function TestnetHome() {
     <>
       <Heading eyebrow="Home" title="Your testnet wallet" text="Practice with free test coins. Everything here is real testnet data read from the blockchain, and nothing is private or worth money." />
       <section className="balance-hero" aria-label="Testnet balance">
-        <div>
+        <div className="balance-body">
           <span className="muted-on-dark">Test NEAR</span>
-          <strong className="balance-figure">{native ? native.display : loading ? "…" : "—"}</strong>
+          <strong className="balance-figure">{native ? short(native.display) : loading ? "…" : "—"}</strong>
           <span className="muted-on-dark">{accountId}</span>
         </div>
         <div className="quick">
@@ -36,7 +38,7 @@ export function TestnetHome() {
             <li key={h.id}>
               <TokenLogo icon={h.icon} symbol={h.symbol} />
               <span><b>{h.symbol}</b><small>{h.id === "near" ? "Native coin" : h.name}</small></span>
-              <span className="right"><b>{h.display}</b></span>
+              <span className="right"><b>{short(h.display)}</b></span>
             </li>
           ))}
           {data && data.holdings.length === 1 && native && native.display === "0.00" && <li><span /><span><b>No test coins yet</b><small>Fund this account with free test NEAR from a testnet faucet.</small></span><span /></li>}

@@ -64,12 +64,14 @@ npm run dev             # http://localhost:3000
 ```
 
 ```sh
-npm test                # 54 tests; uses TEST_DATABASE_URL (default scrim_test) and resets it
+npm test                # protocol tests plus live tests against real NEAR testnet and mainnet; resets TEST_DATABASE_URL
 npm run typecheck
 npm run build
 ```
 
-Sign-in uses real NEAR mainnet reads, so it needs internet access. To exercise money screens without funds, point `ONECLICK_URL` at a stand-in service.
+Everything runs against real services (NEAR RPC, NEAR Intents, CoinGecko, FastNEAR), so tests need internet access. Tests create real testnet accounts and send real testnet NEAR. Three mainnet tests that quote private transfers are skipped unless `ONECLICK_API_KEY` is set. There are no mocks or sample data.
+
+**Two networks.** People choose mainnet or testnet when they sign in. NEAR Intents has no testnet, so private money (add, swap, links, proofs) is mainnet-only; testnet covers sign-in, team approvals, spending limits and real NEAR transfers verified on-chain.
 
 ## Configuration
 
@@ -78,7 +80,8 @@ Sign-in uses real NEAR mainnet reads, so it needs internet access. To exercise m
 | `DATABASE_URL` | Postgres |
 | `SCRIM_SECRET_KEY`, `SCRIM_PROOF_KEY` | Seal private records; sign proofs. `npm run keys` makes both. |
 | `ONECLICK_API_KEY` | Free partner key from partners.near-intents.org. Switches on moving money. |
-| `NEXT_PUBLIC_NEAR_NETWORK` | `mainnet` (default) or `testnet` |
+| `SCRIM_NETWORKS` | Networks offered: `mainnet,testnet` (default) |
+| `NEAR_RPC_URL_MAINNET/TESTNET`, `NEAR_INDEXER_URL_*`, `COINGECKO_URL` | Optional endpoint overrides |
 
 `GET /api/health` reports which features are on and names any missing setting (never values). On Vercel, `npm run vercel-build` runs migrations when `DATABASE_URL` is set.
 

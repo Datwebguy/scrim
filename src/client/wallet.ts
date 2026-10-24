@@ -125,13 +125,21 @@ export async function turnOnPrivateMode(network: Network, publicKey: string) {
   });
 }
 
+// Wallets report a finished transaction in slightly different shapes. Find its hash in any of them.
+function transactionHash(outcome: unknown): string {
+  const first = (Array.isArray(outcome) ? outcome[0] : outcome) as Record<string, unknown> | undefined;
+  const nested = (key: string) => (first?.[key] as Record<string, unknown> | undefined) ?? {};
+  const hash = nested("transaction").hash ?? nested("transaction_outcome").id ?? first?.transactionHash ?? first?.txHash ?? first?.hash;
+  return typeof hash === "string" ? hash : "";
+}
+
 // A plain on-chain NEAR transfer, signed and sent by the wallet.
 export async function sendNear(network: Network, receiverId: string, yocto: string): Promise<string> {
   const { wallet, accountId } = await connectedWallet(network);
   const outcome = await wallet.signAndSendTransaction({
     network, signerId: accountId, receiverId, actions: [{ type: "Transfer", params: { deposit: yocto } }],
   });
-  return String((outcome as { transaction?: { hash?: string } })?.transaction?.hash ?? "");
+  return transactionHash(outcome);
 }
 
 export async function signOutWallet(network: Network) {

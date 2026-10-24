@@ -9,6 +9,9 @@ import { fmt, Heading, KIND_LABEL, StateChip, TokenLogo, usd, type TransferView 
 import { useSession } from "./session";
 import { Spinner, useToast } from "./ui";
 
+// The one-time registration costs a tiny network fee, but wallets want some headroom in the account.
+const SETUP_MIN_NEAR = 110n * 10n ** 21n; // 0.11 NEAR
+
 type Holding = { assetId: string; symbol: string; chainName: string; display: string; usd: number | null; icon: string | null; chainIcon: string | null };
 type Overview = { status: string; detail: string | null; publicKey: string | null; totalUsd: number; holdings: Holding[] };
 
@@ -20,6 +23,10 @@ export function Home() {
   const { data: tx } = useApi<{ transfers: TransferView[] }>("/transfers", { every: 15_000 });
   const [view, setView] = useState<"you" | "public">("you");
   const [busy, setBusy] = useState(false);
+  const needsSetup = data?.status === "needs_setup";
+  const { data: wallet } = useApi<{ holdings: { id: string; amount: string }[] }>(needsSetup ? "/wallet" : null, { every: 20_000 });
+  const nativeBalance = wallet ? BigInt(wallet.holdings.find((h) => h.id === "near")?.amount ?? "0") : null;
+  const tooLow = nativeBalance !== null && nativeBalance < SETUP_MIN_NEAR;
 
   async function unlock(setup = false) {
     setBusy(true);
@@ -30,7 +37,8 @@ export function Home() {
       await reload();
       router.refresh();
     } catch (e) {
-      toast(e instanceof Error ? e.message : "That didn't work. Try again.", "error");
+      const message = e instanceof Error ? e.message : "";
+      toast(/enough balance/i.test(message) ? "Your wallet needs a little more NEAR for the network fee. Add some and try again." : message || "That didn't work. Try again.", "error");
     } finally {
       setBusy(false);
     }
@@ -51,8 +59,13 @@ export function Home() {
           {data.status === "needs_setup" ? (
             <>
               <h2>One quick step to turn on private mode</h2>
-              <p className="muted">Your wallet needs to be registered once so it can hold private money. It takes a single approval in your wallet and a tiny network fee.</p>
-              <button className="btn btn-signal btn-lg" onClick={() => unlock(true)} disabled={busy}>{busy && <Spinner />} Turn on private mode</button>
+              <p className="muted">Your wallet is registered once so it can hold private money. You approve one transaction in your wallet. The small fee goes to the NEAR network, not to Scrim, and you only pay it this once.</p>
+              {tooLow && (
+                <div className="notice info">
+                  <b>Add a little NEAR first.</b> {accountId} needs about 0.1 NEAR in it to cover the network fee. The fee itself is under 0.01 NEAR. Send some NEAR to this account from an exchange or another wallet, then come back.
+                </div>
+              )}
+              <button className="btn btn-signal btn-lg" onClick={() => unlock(true)} disabled={busy || tooLow}>{busy && <Spinner />} Turn on private mode</button>
             </>
           ) : data.status === "unavailable" ? (
             <>

@@ -41,7 +41,7 @@ export function TestnetHome() {
               <span className="right"><b>{short(h.display)}</b></span>
             </li>
           ))}
-          {data && data.holdings.length === 1 && native && native.display === "0.00" && <li><span /><span><b>No test coins yet</b><small>Fund this account with free test NEAR from a testnet faucet.</small></span><span /></li>}
+          {data && data.holdings.length === 1 && native && native.display === "0.00" && <li><span /><span><b>No test coins yet</b><small>Get free test NEAR from the <a href="https://near-faucet.io" target="_blank" rel="noreferrer">NEAR testnet faucet ↗</a>, then come back.</small></span><span /></li>}
         </ul>
       </section>
       <div className="notice info" style={{ marginTop: 16 }}>Adding money, swaps, payment links and proofs need NEAR Intents, which only exists on mainnet. Team approvals, spending limits and real NEAR transfers all work here.</div>

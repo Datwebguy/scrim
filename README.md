@@ -225,3 +225,7 @@ GitHub Actions runs type check, unused-code check, tests and build on every push
 - Team rules enforced on-chain
 - Contract-wallet sign-in
 - A shielded pool of its own
+
+## License
+
+[MIT](LICENSE)

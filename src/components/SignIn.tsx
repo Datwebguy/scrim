@@ -87,7 +87,7 @@ export function SignIn({ networks }: { networks: Network[] }) {
             </fieldset>
           )}
 
-          {network === "testnet" && <div className="notice info">Testnet uses free test coins and your testnet wallet account. Private money (adding money, swaps, payment links, proofs) only exists on mainnet.</div>}
+          {network === "testnet" && <div className="notice info">Testnet uses free test coins, so nothing here is worth money.</div>}
           <button className="btn btn-primary btn-lg" onClick={connect} disabled={busy}>{busy && <Spinner />}{busy ? "Check your wallet…" : known ? `Continue as ${known}` : `Connect wallet on ${NETWORK_INFO[network].label.toLowerCase()}`}</button>
           {stuck && <p className="fine">Wallet didn&apos;t open, or you came back without finishing? <button type="button" className="link-btn" onClick={() => { setBusy(false); setError(""); }}>Tap here to try again</button>.</p>}
           {error && <p className="form-error" role="alert">{error}</p>}

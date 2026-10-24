@@ -92,7 +92,7 @@ function chainFacts(slug: string, tokensOnChain: TokenInfo[], bridgeIds: Set<str
   return { name: slug.toUpperCase(), icon: null };
 }
 
-export const catalogMemo = memo(5 * 60_000, async (): Promise<Asset[]> => {
+const catalogMemo = memo(5 * 60_000, async (): Promise<Asset[]> => {
   const [list, bridge, plats, byId] = await Promise.all([oneClickTokens(), bridgeTokens(), platforms().catch(() => [] as Platform[]), markets().catch(() => new Map<string, Market>())]);
   const bridgeById = new Map<string, { chainId: string; min: string | null }>();
   for (const b of bridge) {

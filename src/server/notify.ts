@@ -1,4 +1,5 @@
 import { createHash, createHmac } from "node:crypto";
+import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { after } from "next/server";
 import { formatAmount } from "@/protocol/amount";
@@ -39,7 +40,7 @@ export async function deliver(requestId: string, event: PaymentEvent) {
 
 /* ── Agent webhooks ──────────────────────────────────────────────────────── */
 
-export function webhookPayload(row: EventRow, event: PaymentEvent, at = new Date()) {
+function webhookPayload(row: EventRow, event: PaymentEvent, at = new Date()) {
   const unit = corridorFor(row.network as Network);
   return {
     type: event,
@@ -64,7 +65,11 @@ export function signWebhook(secret: string, body: string, timestamp: number) {
 }
 
 async function agentWebhook(row: EventRow, event: PaymentEvent) {
-  if (!row.agent_id || !row.webhook_url || !row.webhook_secret || !safeWebhookUrl(row.webhook_url)) return;
+  if (!row.agent_id || !row.webhook_url || !row.webhook_secret) return;
+  if (!safeWebhookUrl(row.webhook_url) || !(await resolvesPublicly(row.webhook_url))) {
+    await sql`INSERT INTO webhook_deliveries (agent_id, request_id, event, status_code, ok) VALUES (${row.agent_id}, ${row.id}, ${event}, NULL, false)`;
+    return;
+  }
   const secret = open<string>(row.webhook_secret, `agent-webhook:${row.agent_id}`);
   const body = JSON.stringify(webhookPayload(row, event));
   let status: number | null = null;
@@ -83,6 +88,17 @@ async function agentWebhook(row: EventRow, event: PaymentEvent) {
   await sql`INSERT INTO webhook_deliveries (agent_id, request_id, event, status_code, ok) VALUES (${row.agent_id}, ${row.id}, ${event}, ${status}, ${status !== null && status >= 200 && status < 300})`;
 }
 
+// True for addresses that are not on the public internet.
+export function isPrivateAddress(address: string): boolean {
+  const host = address.replace(/^\[|\]$/g, "").toLowerCase();
+  if (isIP(host) === 6) return /^(::1?$|fc|fd|fe80|::ffff:)/.test(host);
+  if (isIP(host) === 4) {
+    const [a, b] = host.split(".").map(Number);
+    return a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
+  }
+  return false;
+}
+
 // Webhooks go to public HTTPS addresses only, never to this server's own network.
 export function safeWebhookUrl(raw: string): boolean {
   let url: URL;
@@ -94,12 +110,19 @@ export function safeWebhookUrl(raw: string): boolean {
   if (url.protocol !== "https:" || url.username || url.password) return false;
   const host = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
   if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal") || host.endsWith(".local")) return false;
-  if (isIP(host)) {
-    if (isIP(host) === 6) return !/^(::1?$|fc|fd|fe80|::ffff:)/.test(host);
-    const [a, b] = host.split(".").map(Number);
-    if (a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127)) return false;
+  return !isPrivateAddress(host);
+}
+
+// A public-looking name can still point at an internal address, so check where it leads right before sending.
+async function resolvesPublicly(raw: string): Promise<boolean> {
+  const host = new URL(raw).hostname.replace(/^\[|\]$/g, "");
+  if (isIP(host)) return !isPrivateAddress(host);
+  try {
+    const found = await lookup(host, { all: true });
+    return found.length > 0 && found.every((a) => !isPrivateAddress(a.address));
+  } catch {
+    return false;
   }
-  return true;
 }
 
 /* ── Telegram alerts ─────────────────────────────────────────────────────── */

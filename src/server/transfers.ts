@@ -24,7 +24,7 @@ import { privateAccessToken, toIntentsSignature } from "./private-access";
 import { open, seal } from "./secrets";
 
 export type TransferKind = "add" | "swap" | "send" | "withdraw" | "link_payment";
-export type TransferStatus = "awaiting_deposit" | "awaiting_signature" | "processing" | "success" | "refunded" | "failed" | "expired" | "cancelled";
+type TransferStatus = "awaiting_deposit" | "awaiting_signature" | "processing" | "success" | "refunded" | "failed" | "expired" | "cancelled";
 
 export type TransferInput = {
   kind: TransferKind;
@@ -193,7 +193,7 @@ export async function preview(session: Session, input: TransferInput): Promise<P
   };
 }
 
-export type Row = { id: string; account_id: string; kind: TransferKind; status: TransferStatus; deposit_address: string | null; deposit_memo: string | null; details_sealed: string; team_request_id: string | null; pay_link_id: string | null; expires_at: Date; created_at: Date };
+type Row = { id: string; account_id: string; kind: TransferKind; status: TransferStatus; deposit_address: string | null; deposit_memo: string | null; details_sealed: string; team_request_id: string | null; pay_link_id: string | null; expires_at: Date; created_at: Date };
 
 async function toTransfer(row: Row): Promise<Transfer> {
   const d = open<Details>(row.details_sealed, aad(row.id, row.account_id));
@@ -313,7 +313,7 @@ async function refreshOne(session: Session, id: string): Promise<Transfer> {
 
 // Follows a transfer to the end and records the result. Safe to call from a person's session or
 // from the public payment-link page, which holds only the transfer's random ID.
-export async function refreshRow(row: Row): Promise<Transfer> {
+async function refreshRow(row: Row): Promise<Transfer> {
   const id = row.id;
   if (row.status === "awaiting_deposit" || row.status === "processing") {
     try {

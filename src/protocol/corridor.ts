@@ -26,4 +26,3 @@ const CORRIDORS: Record<Network, Corridor> = {
 };
 
 export const corridorFor = (network: Network): Corridor => CORRIDORS[network];
-export const corridorById = (id: string): Corridor | undefined => Object.values(CORRIDORS).find((c) => c.id === id);

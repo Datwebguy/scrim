@@ -21,13 +21,61 @@ function connector(network: Network) {
 
 const nonceBytes = (b64: string) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 
+// On a phone the wallet opens in another tab, and the page can lose track of it while it is away.
+// So while we wait we also keep checking whether the wallet has connected, and again the moment the
+// person comes back to this page.
+function waitForWallet(near: NearConnector): Promise<NearWalletBase> {
+  return new Promise((resolve, reject) => {
+    let finished = false;
+    const stop = () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+    const done = (wallet: NearWalletBase) => {
+      if (finished) return;
+      finished = true;
+      stop();
+      resolve(wallet);
+    };
+    const check = async () => {
+      try {
+        done((await near.getConnectedWallet()).wallet);
+      } catch {
+        // Not connected yet.
+      }
+    };
+    const onVisible = () => {
+      if (!document.hidden) void check();
+    };
+    const timer = setInterval(check, 1000);
+    document.addEventListener("visibilitychange", onVisible);
+    near.connect().then(done, (error) => {
+      if (finished) return;
+      finished = true;
+      stop();
+      reject(error);
+    });
+  });
+}
+
+// The account already connected in this browser, if any, so the sign-in screen can offer to continue with it.
+export async function connectedAccount(network: Network): Promise<string | null> {
+  try {
+    const near = await connector(network);
+    const { wallet } = await near.getConnectedWallet();
+    return (await wallet.getAccounts({ network }))[0]?.accountId ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function connectedWallet(network: Network): Promise<{ wallet: NearWalletBase; accountId: string }> {
   const near = await connector(network);
-  let wallet: NearWalletBase | null = null;
+  let wallet: NearWalletBase;
   try {
     wallet = (await near.getConnectedWallet()).wallet;
   } catch {
-    wallet = await near.connect();
+    wallet = await waitForWallet(near);
   }
   const accounts = await wallet.getAccounts({ network });
   if (!accounts[0]) throw new Error("Your wallet didn't share an account. Try again.");
@@ -73,7 +121,7 @@ export async function turnOnPrivateMode(network: Network, publicKey: string) {
   const { wallet, accountId } = await connectedWallet(network);
   await wallet.signAndSendTransaction({
     network, signerId: accountId, receiverId: "intents.near",
-    actions: [{ type: "FunctionCall", params: { methodName: "add_public_key", args: { public_key: publicKey }, gas: "100000000000000", deposit: "1" } }],
+    actions: [{ type: "FunctionCall", params: { methodName: "add_public_key", args: { public_key: publicKey }, gas: "30000000000000", deposit: "1" } }],
   });
 }
 

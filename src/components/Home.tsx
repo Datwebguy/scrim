@@ -6,7 +6,7 @@ import { useApi } from "@/client/use-api";
 import { turnOnPrivateMode, unlockPrivateBalance } from "@/client/wallet";
 import { NotSwitchedOn } from "./Gates";
 import { fmt, Heading, KIND_LABEL, StateChip, TokenLogo, usd, type TransferView } from "./money";
-import { useSession } from "./session";
+import { useSession, useSwitchNetwork } from "./session";
 import { Spinner, useToast } from "./ui";
 
 // The one-time registration costs a tiny network fee, but wallets want some headroom in the account.
@@ -16,7 +16,8 @@ type Holding = { assetId: string; symbol: string; chainName: string; display: st
 type Overview = { status: string; detail: string | null; publicKey: string | null; totalUsd: number; holdings: Holding[] };
 
 export function Home() {
-  const { accountId, network } = useSession();
+  const { accountId, network, otherNetworks } = useSession();
+  const switchNetwork = useSwitchNetwork();
   const toast = useToast();
   const router = useRouter();
   const { data, loading, reload } = useApi<Overview>("/private", { every: 30_000 });
@@ -79,6 +80,9 @@ export function Home() {
               <p className="muted">Approve one message in your wallet. It proves it's you and can't move any money.</p>
               <button className="btn btn-signal btn-lg" onClick={() => unlock()} disabled={busy}>{busy && <Spinner />} Unlock</button>
             </>
+          )}
+        {otherNetworks.includes("testnet") && (
+            <p className="fine">Want to practice first with free test coins? <button type="button" className="link-btn" onClick={() => switchNetwork("testnet")}>Use testnet instead</button></p>
           )}
         </div>
       )}

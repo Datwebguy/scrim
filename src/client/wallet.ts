@@ -143,7 +143,11 @@ export async function sendNear(network: Network, receiverId: string, yocto: stri
 }
 
 export async function signOutWallet(network: Network) {
-  await api("/auth/logout", { method: "POST" });
+  try {
+    await api("/auth/logout", { method: "POST" });
+  } catch {
+    // The session may already have ended.
+  }
   try {
     await (await connector(network)).disconnect();
   } catch {

@@ -803,3 +803,6 @@ button.chip.on { background: var(--ink); color: #fff; border-color: var(--ink); 
 .tg-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; background: #229ed9; color: #fff; font-size: 16px; }
 @media (max-width: 480px) { .tg-bar { flex-wrap: wrap; } .tg-bar .btn { width: 100%; } }
 .link-btn { background: none; border: 0; padding: 0; color: var(--orange-deep); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.ws-top-actions { display: flex; gap: 8px; }
+.gate-card .fine { margin-top: 14px; }
+@media (max-width: 380px) { .ws-top .brand { font-size: 0; } .ws-top .brand img { width: 24px; height: 24px; } }

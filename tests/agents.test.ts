@@ -133,3 +133,23 @@ describe("Telegram linking", () => {
     expect(still.chat_id).toBe("4242");
   });
 });
+
+describe("request limits", () => {
+  it("allows a budget per minute per client and then says to wait", async () => {
+    const { rateLimit, limitFor } = await import("@/server/rate-limit");
+    expect(limitFor("/api/v1/auth/challenge")).toEqual({ group: "/api/v1/auth", perMinute: 20 });
+    expect(limitFor("/api/v1/treasuries")).toEqual({ group: "default", perMinute: 300 });
+    const headers = new Headers({ "x-forwarded-for": "203.0.113.9, 10.0.0.1" });
+    const now = Date.UTC(2030, 0, 1, 12, 0, 5);
+    for (let i = 0; i < 20; i++) await rateLimit(headers, "/api/v1/auth/challenge", now);
+    await expect(rateLimit(headers, "/api/v1/auth/challenge", now)).rejects.toThrow(/Too many requests/);
+    await rateLimit(headers, "/api/v1/auth/challenge", now + 60_000); // next minute is fresh
+    await rateLimit(new Headers({ "x-forwarded-for": "203.0.113.10" }), "/api/v1/auth/challenge", now); // other client is unaffected
+  });
+
+  it("refuses webhook addresses that lead inside the network", async () => {
+    const { isPrivateAddress } = await import("@/server/notify");
+    for (const a of ["127.0.0.1", "10.0.0.8", "172.20.1.1", "192.168.1.1", "169.254.169.254", "::1", "fd00::1"]) expect(isPrivateAddress(a)).toBe(true);
+    for (const a of ["8.8.8.8", "93.184.216.34", "2606:4700:4700::1111"]) expect(isPrivateAddress(a)).toBe(false);
+  });
+});

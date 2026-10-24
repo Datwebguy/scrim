@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { sessionFromToken, type Session } from "./auth";
 import { config } from "./config";
 import { HttpError, badRequest, unauthorized } from "./errors";
+import { rateLimit } from "./rate-limit";
 
 type Context<P> = { params: Promise<P> };
 type Handler<P> = (request: NextRequest, params: P) => Promise<unknown>;
@@ -16,6 +17,7 @@ const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 export function route<P = Record<string, never>>(handler: Handler<P>, options: { browser?: boolean } = { browser: true }) {
   return async (request: NextRequest, context: Context<P>) => {
     try {
+      await rateLimit(request.headers, request.nextUrl.pathname);
       if (MUTATING.has(request.method)) {
         if (options.browser !== false) assertSameOrigin(request);
         const length = Number(request.headers.get("content-length") ?? 0);

@@ -15,7 +15,7 @@ import { finalTransaction } from "./near-rpc";
 import { emitPaymentEvent } from "./notify";
 import { treasuryForMember, type Treasury } from "./treasuries";
 
-export type PaymentStatus = "policy_rejected" | "awaiting_approval" | "approved" | "quoted" | "submitting" | "settled" | "failed" | "expired" | "cancelled";
+type PaymentStatus = "policy_rejected" | "awaiting_approval" | "approved" | "quoted" | "submitting" | "settled" | "failed" | "expired" | "cancelled";
 
 export type Payment = {
   id: string;

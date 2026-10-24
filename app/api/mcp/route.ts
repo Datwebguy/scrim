@@ -1,11 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { HttpError } from "@/server/errors";
 import { handleMcp } from "@/server/mcp";
+import { rateLimit } from "@/server/rate-limit";
 
 const MAX_BODY_BYTES = 32 * 1024;
 const headers = { "cache-control": "no-store" };
 
 // MCP endpoint for AI agents. Authenticate with: Authorization: Bearer scrim_sk_…
 export async function POST(request: NextRequest) {
+  try {
+    await rateLimit(request.headers, request.nextUrl.pathname);
+  } catch (error) {
+    if (error instanceof HttpError) return NextResponse.json({ jsonrpc: "2.0", id: null, error: { code: -32029, message: error.message } }, { status: error.status, headers });
+    throw error;
+  }
   const text = await request.text();
   if (text.length > MAX_BODY_BYTES) return NextResponse.json({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "Request is too large." } }, { status: 413, headers });
   let body: unknown;

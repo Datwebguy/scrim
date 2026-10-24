@@ -35,7 +35,7 @@ async function tokenMetadata(network: Network, contract: string): Promise<FtMeta
 }
 
 // Token logos live on chain as a web address or an embedded image. Accept only safe, small images.
-export function safeIcon(icon: string | null | undefined): string | null {
+function safeIcon(icon: string | null | undefined): string | null {
   if (!icon) return null;
   if (/^https:\/\/[^\s"'<>]{1,500}$/.test(icon)) return icon;
   if (icon.length <= 100_000 && /^data:image\/(png|jpeg|gif|webp|svg\+xml)(;charset=[\w-]+)?;(base64,[A-Za-z0-9+/=]+|utf8,[^\s]+|[^,]*,[^\s]+)$/i.test(icon)) return icon;

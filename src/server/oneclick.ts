@@ -121,13 +121,25 @@ export function submitIntent(signedData: SignedNep413) {
   return call<{ intentHash: string }>("/v0/submit-intent", { body: { type: "swap_transfer", signedData }, partner: true });
 }
 
-export type ExecutionStatus = "KNOWN_DEPOSIT_TX" | "PENDING_DEPOSIT" | "INCOMPLETE_DEPOSIT" | "PROCESSING" | "SUCCESS" | "REFUNDED" | "FAILED";
+type ExecutionStatus = "KNOWN_DEPOSIT_TX" | "PENDING_DEPOSIT" | "INCOMPLETE_DEPOSIT" | "PROCESSING" | "SUCCESS" | "REFUNDED" | "FAILED";
+
+export type StatusResponse = {
+  status: ExecutionStatus;
+  updatedAt: string;
+  quoteResponse?: { quoteRequest?: { recipient?: string; destinationAsset?: string; amount?: string } };
+  swapDetails?: { amountIn?: string; amountOut?: string; originChainTxHashes?: { hash: string }[]; destinationChainTxHashes?: { hash: string; explorerUrl?: string }[]; refundReason?: string };
+};
 
 export function status(depositAddress: string, depositMemo?: string | null) {
-  return call<{ status: ExecutionStatus; updatedAt: string; swapDetails?: { amountIn?: string; amountOut?: string; destinationChainTxHashes?: { hash: string; explorerUrl?: string }[] } }>(
+  return call<StatusResponse>(
     "/v0/status",
     { partner: true, query: { depositAddress, ...(depositMemo ? { depositMemo } : {}) } },
   );
+}
+
+// Tells 1Click about a deposit so it is picked up sooner. Optional; status polling works without it.
+export function submitDeposit(txHash: string, depositAddress: string, memo?: string | null) {
+  return call<unknown>("/v0/deposit/submit", { body: { txHash, depositAddress, ...(memo ? { memo } : {}) }, partner: true });
 }
 
 // The bridge gives an address on an external chain that forwards deposits to a NEAR Intents account.

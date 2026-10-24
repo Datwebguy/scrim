@@ -317,8 +317,22 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
         await api(`/payments/${payment.id}/approve`, { body: signed });
         toast("Approval signed");
       } else if (kind === "pay" && network === "testnet") {
-        const txHash = await sendNear(network, payment.recipient, payment.amount);
-        await api(`/payments/${payment.id}/payout`, { body: { txHash } });
+        // Remember the transfer once the wallet has sent it. If confirming fails, trying again only
+        // confirms it; it never sends the money a second time.
+        const saved = `scrim:payout:${payment.id}`;
+        let txHash = "";
+        try { txHash = sessionStorage.getItem(saved) ?? ""; } catch { /* optional */ }
+        if (!txHash) {
+          txHash = await sendNear(network, payment.recipient, payment.amount);
+          if (!txHash) throw new Error("Your wallet sent the payment but didn't share its receipt. Check your wallet's history before trying again.");
+          try { sessionStorage.setItem(saved, txHash); } catch { /* optional */ }
+        }
+        try {
+          await api(`/payments/${payment.id}/payout`, { body: { txHash } });
+        } catch (e) {
+          throw new Error(`${(e as Error).message} Your payment was already sent. Tap Pay again to confirm it; it won't be sent twice.`);
+        }
+        try { sessionStorage.removeItem(saved); } catch { /* optional */ }
         toast("Paid. The transfer is confirmed on testnet.");
       } else if (kind === "pay") {
         const { transfer } = await api<{ transfer: { id: string; intentToSign: { message: string; nonce: string; recipient: string } } }>(`/payments/${payment.id}/pay`, { method: "POST" });

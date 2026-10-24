@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { catalog } from "@/server/assets";
 import { FlowDemo } from "@/components/landing/FlowDemo";
-import { HeroCard, PaidScene, ProofScene, SendScene, SwapScene, TeamScene } from "@/components/landing/Scenes";
+import { HeroCard, PaidScene, ProofScene, SendScene, SwapScene, TeamScene, AgentScene } from "@/components/landing/Scenes";
 import { Reveal } from "@/components/landing/Reveal";
 
 export const revalidate = 300;
@@ -20,6 +20,7 @@ export default async function Home() {
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
           <a href="#teams">Teams</a>
+          <a href="#agents">Agents</a>
           <a href="#proofs">Proofs</a>
           <a href="#questions">FAQ</a>
         </nav>
@@ -78,6 +79,12 @@ export default async function Home() {
           </div>
         </section>
 
+        <section className="section l-story" id="agents">
+          <div className="wrap">
+            <Row eyebrow="Agents" title="Let software pay. Within your rules." text="Give an agent its own key and spending limits. Anything outside them is stopped. People still approve." flip><AgentScene /></Row>
+          </div>
+        </section>
+
         <section className="section" id="proofs">
           <div className="wrap l-proof">
             <Reveal>
@@ -97,6 +104,7 @@ export default async function Home() {
               <details open><summary>Is it really private?</summary><p>Your money sits on NEAR Intents&apos; private ledger, not the public chain.</p></details>
               <details><summary>Does Scrim hold my money?</summary><p>No. Only your wallet can move it.</p></details>
               <details><summary>Can I try it free?</summary><p>Yes, on testnet. Private money runs on mainnet only.</p></details>
+              <details><summary>Can AI agents use it?</summary><p>Yes. Each agent gets its own key and limits, and your team approves what it asks to pay.</p></details>
               <details><summary>What does it cost?</summary><p>Free to open. Network fees are shown before you confirm.</p></details>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { catalog } from "@/server/assets";
 import { FlowDemo } from "@/components/landing/FlowDemo";
+import { HeroCard, PaidScene, ProofScene, SendScene, SwapScene, TeamScene } from "@/components/landing/Scenes";
 import { Reveal } from "@/components/landing/Reveal";
 
 export const revalidate = 300;
@@ -10,11 +11,13 @@ const REPO = "https://github.com/Datwebguy/scrim";
 export default async function Home() {
   const live = await liveNetworks();
   const icons = (live?.chains ?? []).filter((c) => c.icon).slice(0, 12);
+  const coins = live?.coins ?? [];
   return (
     <>
       <header className="site-nav">
         <Link href="/" className="brand" aria-label="Scrim home"><img src="/scrim-mark.png" alt="" />scrim</Link>
         <nav aria-label="Primary">
+          <a href="#how">How it works</a>
           <a href="#features">Features</a>
           <a href="#teams">Teams</a>
           <a href="#proofs">Proofs</a>
@@ -25,6 +28,7 @@ export default async function Home() {
 
       <main>
         <section className="l-hero">
+          <div className="l-bg" aria-hidden="true"><span className="orb o1" /><span className="orb o2" /><span className="orb o3" /><span className="grid" /></div>
           <div className="wrap l-hero-grid">
             <Reveal>
               <span className="eyebrow">Private money on NEAR</span>
@@ -32,10 +36,10 @@ export default async function Home() {
               <p className="lead">Hold, send, swap and get paid. Only you see it.</p>
               <div className="hero-actions">
                 <Link href="/app" className="btn btn-signal btn-lg">Get started <span className="arrow">→</span></Link>
-                <a href="#features" className="btn btn-ghost btn-lg">See how</a>
+                <a href="#how" className="btn btn-ghost btn-lg">See how</a>
               </div>
             </Reveal>
-            <Reveal delay={120}><FlowDemo icons={icons} /></Reveal>
+            <Reveal delay={120}><HeroCard coins={coins} /></Reveal>
           </div>
         </section>
 
@@ -52,27 +56,25 @@ export default async function Home() {
           </section>
         )}
 
-        <section className="section" id="features">
+        <section className="section" id="how">
           <div className="wrap">
-            <Reveal className="l-head"><span className="eyebrow">Features</span><h2>Everything money does. Without the audience.</h2></Reveal>
-            <div className="l-tiles">
-              {FEATURES.map((f, i) => (
-                <Reveal key={f.title} delay={i * 60}>
-                  <article className="l-tile"><span className="l-ico">{f.icon}</span><h3>{f.title}</h3><p>{f.text}</p></article>
-                </Reveal>
-              ))}
-            </div>
+            <Reveal className="l-head center"><span className="eyebrow">How it moves</span><h2>One balance. Every move private.</h2></Reveal>
+            <Reveal><div className="l-demo-wrap"><FlowDemo icons={icons} /></div></Reveal>
+          </div>
+        </section>
+
+        <section className="section l-story" id="features">
+          <div className="wrap">
+            <Row eyebrow="Send" title="Pay anyone, on any chain." text="Nobody can trace it back to you."><SendScene nets={icons} /></Row>
+            <Row eyebrow="Swap" title="Swap without an audience." text="Trade inside your private balance." flip><SwapScene coins={coins} /></Row>
+            <Row eyebrow="Get paid" title="Share a link. Get paid." text="They pay from any coin. No account needed."><PaidScene nets={icons} /></Row>
           </div>
         </section>
 
         <section className="section dark-section" id="teams">
           <div className="wrap">
             <Reveal className="l-head"><span className="eyebrow">For teams</span><h2>Private to the market. Clear to your accountant.</h2></Reveal>
-            <ol className="l-pipe">
-              {["Request", "Limits check", "Approvals", "Paid & recorded"].map((step, i) => (
-                <li key={step} style={{ animationDelay: `${i * 0.6}s` }}><i>{i + 1}</i><b>{step}</b></li>
-              ))}
-            </ol>
+            <Reveal><TeamScene /></Reveal>
           </div>
         </section>
 
@@ -84,14 +86,7 @@ export default async function Home() {
               <p className="lead">Made for one reader. Expires. Revocable.</p>
               <Link href="/verify" className="btn btn-primary">Check a proof</Link>
             </Reveal>
-            <Reveal delay={120}>
-              <div className="l-proof-card">
-                <div className="ok"><span>✓</span>Made for one named reader</div>
-                <div className="ok"><span>✓</span>Holds at least an amount</div>
-                <div className="ok"><span>✓</span>Valid for 1, 7 or 30 days</div>
-                <div className="no"><span>✕</span>Balance and history stay hidden</div>
-              </div>
-            </Reveal>
+            <Reveal delay={120}><ProofScene /></Reveal>
           </div>
         </section>
 
@@ -130,16 +125,29 @@ export default async function Home() {
   );
 }
 
-const FEATURES = [
-  { icon: "↓", title: "Add", text: "From 30+ networks." },
-  { icon: "↗", title: "Send", text: "To anyone, any chain." },
-  { icon: "⇄", title: "Swap", text: "Inside your balance." },
-  { icon: "¤", title: "Get paid", text: "Share a link." },
-  { icon: "◇", title: "Prove", text: "One fact, one reader." },
-  { icon: "☰", title: "Teams", text: "Approvals and limits." },
-];
 
-type Live = { assets: number; chains: { name: string; icon: string | null }[] } | null;
+function Row({ eyebrow, title, text, flip, children }: { eyebrow: string; title: string; text: string; flip?: boolean; children: React.ReactNode }) {
+  return (
+    <div className={`l-row ${flip ? "flip" : ""}`}>
+      <Reveal><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p className="lead">{text}</p></Reveal>
+      <Reveal delay={120}>{children}</Reveal>
+    </div>
+  );
+}
+
+type Live = { assets: number; chains: { name: string; icon: string | null }[]; coins: { symbol: string; icon: string | null }[] } | null;
+
+// Coins shown in the animations: the most widely supported ones in the live list, with a logo.
+function topCoins(assets: { symbol: string; icon: string | null }[]) {
+  const counts = new Map<string, { symbol: string; icon: string | null; n: number }>();
+  for (const a of assets) {
+    if (!a.icon) continue;
+    const c = counts.get(a.symbol) ?? { symbol: a.symbol, icon: a.icon, n: 0 };
+    c.n += 1;
+    counts.set(a.symbol, c);
+  }
+  return [...counts.values()].sort((a, b) => b.n - a.n).slice(0, 6).map(({ symbol, icon }) => ({ symbol, icon }));
+}
 
 // Real, current data from NEAR Intents and CoinGecko: how many coins and chains Scrim can move between.
 async function liveNetworks(): Promise<Live> {
@@ -152,7 +160,7 @@ async function liveNetworks(): Promise<Live> {
       byChain.set(a.chain, c);
     }
     const chains = [...byChain.values()].sort((a, b) => b.count - a.count);
-    return { assets: assets.length, chains };
+    return { assets: assets.length, chains, coins: topCoins(assets) };
   } catch {
     return null;
   }

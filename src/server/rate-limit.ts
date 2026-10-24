@@ -10,6 +10,7 @@ const LIMITS: [prefix: string, perMinute: number][] = [
   ["/api/v1/proofs/state", 120],
   ["/api/v1/agent", 120],
   ["/api/mcp", 120],
+  ["/api/x402", 30],
 ];
 const DEFAULT_PER_MINUTE = 300;
 

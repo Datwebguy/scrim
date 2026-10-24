@@ -60,7 +60,7 @@ Scrim keeps your money private, works across 30+ networks, and lets you show exa
 | **Get paid** | Share a payment link. The payer needs no account and can pay from any coin on any chain. |
 | **Proofs** | Show that you hold at least an amount, or that a payment was made, to one named reader. The proof expires (1, 7 or 30 days), can be taken back, and is checked in the reader's browser without revealing your balance or history. |
 | **Teams** | Shared accounts where M of N people approve each payment, with spending limits and a history your accountant can read. |
-| **Agents** | Give software its own key and limits. It can ask to pay; people still approve. See [Agents](#agents). |
+| **Agents** | Give software its own key and limits. It can ask to pay; people still approve. Agents can also pay your links over x402. See [Agents](#agents). |
 
 <p align="center"><img src="docs/images/add-money.png" alt="Add money screen with real coins and networks" width="420"></p>
 
@@ -182,6 +182,8 @@ Tools: `get_limits`, `request_payment`, `list_payments`, `get_payment`.
 | `GET /api/v1/agent/payments/:id` | One request |
 
 **Updates (webhooks).** Set an `https://` address under **Connect** and Scrim calls it when a request is created, stopped, approved, being paid, paid, failed or cancelled. Each call carries `Scrim-Signature: t=<unix seconds>,v1=<hex>`, where `v1` is the HMAC-SHA256 of `"<t>.<raw body>"` with the signing secret (`whsec_…`, shown once). Reject calls with a wrong signature or a timestamp older than five minutes. Only public addresses are allowed.
+
+**Get paid by agents (x402).** Every payment link also has an agent address, `/api/x402/pay/<code>`, that speaks [x402](https://x402.org) with the `exact` scheme and the `near-intents` upfront method (as proposed in x402-foundation/x402#3370). An agent gets a `402 Payment Required` listing USDC and USDT on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche and Solana, asks for a quote, pays the one-time deposit address, and presents the transaction. NEAR Intents delivers the money into the link owner's private balance, so the payer never sees where it went. Scrim acts as the facilitator: operation tokens are HMAC-bound to the deposit, the resource and the destination, each operation settles once, and refunds go straight back to the payer.
 
 **Alerts for people.** Approvers can tap **Connect Telegram** on the Team screen to get a message when a payment needs them.
 

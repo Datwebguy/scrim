@@ -1,10 +1,9 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { signOutWallet } from "@/client/wallet";
 import { NETWORK_INFO, type Network } from "@/protocol/networks";
-import { SessionProvider } from "./session";
+import { SessionProvider, useSwitchNetwork } from "./session";
 import { Initials, ToastProvider } from "./ui";
 
 const NAV: { href: string; label: string; privateMoney?: boolean; match?: (p: string) => boolean }[] = [
@@ -19,21 +18,23 @@ const NAV: { href: string; label: string; privateMoney?: boolean; match?: (p: st
 ];
 
 export function Shell({ accountId, network, otherNetworks, teamPending, children }: { accountId: string; network: Network; otherNetworks: Network[]; teamPending: number; children: React.ReactNode }) {
+  return (
+    <SessionProvider value={{ accountId, network, otherNetworks }}>
+      <ToastProvider>
+        <Frame accountId={accountId} network={network} otherNetworks={otherNetworks} teamPending={teamPending}>{children}</Frame>
+      </ToastProvider>
+    </SessionProvider>
+  );
+}
+
+function Frame({ accountId, network, otherNetworks, teamPending, children }: { accountId: string; network: Network; otherNetworks: Network[]; teamPending: number; children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
+  const leave = useSwitchNetwork();
   const [open, setOpen] = useState(false);
   const short = accountId.length > 26 ? `${accountId.slice(0, 10)}…${accountId.slice(-6)}` : accountId;
   const info = NETWORK_INFO[network];
 
-  async function leave(next?: Network) {
-    await signOutWallet(network);
-    router.push(next ? `/app?network=${next}` : "/app");
-    router.refresh();
-  }
-
   return (
-    <SessionProvider value={{ accountId, network }}>
-      <ToastProvider>
         <div className="ws">
           <aside className={`ws-side ${open ? "open" : ""}`}>
             <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" />scrim</Link>
@@ -63,13 +64,14 @@ export function Shell({ accountId, network, otherNetworks, teamPending, children
           <div className="ws-main">
             <div className="ws-top">
               <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" style={{ width: 24, height: 24 }} />scrim</Link>
-              <button onClick={() => setOpen((v) => !v)} aria-expanded={open}>{open ? "Close" : "Menu"}</button>
+              <span className="ws-top-actions">
+                {otherNetworks.map((n) => <button key={n} onClick={() => leave(n)}>Use {NETWORK_INFO[n].label.toLowerCase()}</button>)}
+                <button onClick={() => setOpen((v) => !v)} aria-expanded={open}>{open ? "Close" : "Menu"}</button>
+              </span>
             </div>
             {network === "testnet" && <div className="net-banner">You're on testnet: free test coins, no real money.</div>}
             <div className="ws-body">{children}</div>
           </div>
         </div>
-      </ToastProvider>
-    </SessionProvider>
   );
 }

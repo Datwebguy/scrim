@@ -3,14 +3,15 @@ import Link from "next/link";
 import { useApi } from "@/client/use-api";
 import { NETWORK_INFO } from "@/protocol/networks";
 import { Heading, TokenLogo } from "./money";
-import { useSession } from "./session";
+import { useSession, useSwitchNetwork } from "./session";
 
 const short = (v: string) => v.replace(/^(\d[\d,]*\.\d{0,4})\d*$/, "$1");
 
 type Holding = { id: string; symbol: string; name: string; display: string; icon: string | null };
 
 export function TestnetHome() {
-  const { accountId, network } = useSession();
+  const { accountId, network, otherNetworks } = useSession();
+  const switchNetwork = useSwitchNetwork();
   const { data, loading, error } = useApi<{ holdings: Holding[] }>("/wallet", { every: 20_000 });
   const explorer = `${NETWORK_INFO[network].explorerUrl}/address/${accountId}`;
   const native = data?.holdings.find((h) => h.id === "near");
@@ -44,7 +45,7 @@ export function TestnetHome() {
           {data && data.holdings.length === 1 && native && native.display === "0.00" && <li><span /><span><b>No test coins yet</b><small>Get free test NEAR from the <a href="https://near-faucet.io" target="_blank" rel="noreferrer">NEAR testnet faucet ↗</a>, then come back.</small></span><span /></li>}
         </ul>
       </section>
-      <div className="notice info" style={{ marginTop: 16 }}>Adding money, swaps, payment links and proofs need NEAR Intents, which only exists on mainnet. Team approvals, spending limits and real NEAR transfers all work here.</div>
+      <div className="notice info" style={{ marginTop: 16 }}>Adding money, swaps, payment links and proofs need NEAR Intents, which only exists on mainnet. Team approvals, spending limits and real NEAR transfers all work here.{otherNetworks.includes("mainnet") && <> Ready for the real thing? <button type="button" className="link-btn" onClick={() => switchNetwork("mainnet")}>Use mainnet</button></>}</div>
     </>
   );
 }

@@ -260,11 +260,13 @@ export async function cancelPayment(session: Session, paymentId: string): Promis
   return cancelled;
 }
 
-// Links an approved team request to the private transfer that pays it, and records the outcome.
-export async function markTeamRequest(tx: Tx, requestId: string, status: "submitting" | "settled" | "failed" | "approved", actor: Actor) {
+// Moves a team request along as its payout progresses, only from the states it is allowed to leave,
+// so a cancelled or already-paid request can never be changed by a late transfer update.
+export async function markTeamRequest(tx: Tx, requestId: string, status: "submitting" | "settled" | "failed" | "approved", actor: Actor, from: string[]): Promise<boolean> {
   const [row] = await tx<{ treasury_id: string }[]>`
-    UPDATE payment_requests SET status = ${status}, updated_at = now() WHERE id = ${requestId} RETURNING treasury_id`;
+    UPDATE payment_requests SET status = ${status}, updated_at = now() WHERE id = ${requestId} AND status IN ${tx(from)} RETURNING treasury_id`;
   if (row) await audit(tx, row.treasury_id, actor, `payment.${status}`, requestId);
+  return Boolean(row);
 }
 
 export async function approvedTeamRequest(session: Session, requestId: string) {
@@ -288,7 +290,7 @@ export async function recordTestnetPayout(session: Session, requestId: string, t
   if (session.network !== "testnet") throw badRequest("This is only for testnet. On mainnet, pay from your private balance.");
   if (!/^[1-9A-HJ-NP-Za-km-z]{43,44}$/.test(txHash)) throw badRequest("That doesn't look like a transaction hash.");
   const payment = await approvedTeamRequest(session, requestId);
-  const [seen] = await sql`SELECT 1 FROM audit_events WHERE action = 'payment.settled' AND data->>'txHash' = ${txHash}`;
+  const [seen] = await sql`SELECT 1 FROM payment_requests WHERE settled_tx_hash = ${txHash}`;
   if (seen) throw conflict("That transaction was already used to pay a request.");
   const outcome = await finalTransaction("testnet", txHash, session.accountId);
   if (!outcome) throw conflict("We can't find that transaction yet. Wait a few seconds and try again.");
@@ -298,11 +300,17 @@ export async function recordTestnetPayout(session: Session, requestId: string, t
   if (transaction.receiver_id !== payment.recipient) throw badRequest("That transaction paid a different account than this request.");
   const sent = transaction.actions.reduce((total, action) => total + BigInt(action.Transfer?.deposit ?? "0"), 0n);
   if (sent !== BigInt(payment.amount)) throw badRequest("That transaction sent a different amount than this request.");
-  await sql.begin(async (tx) => {
-    const done = await tx`UPDATE payment_requests SET status = 'settled', updated_at = now() WHERE id = ${payment.id} AND status = 'approved' RETURNING treasury_id`;
-    if (done.length !== 1) throw conflict("This request was already paid.");
-    await audit(tx, payment.treasuryId, { type: "human", id: session.accountId }, "payment.settled", payment.id, { txHash, network: "testnet" });
-  });
+  try {
+    await sql.begin(async (tx) => {
+      // The unique index on settled_tx_hash means one transaction can pay only one request, even if two arrive at once.
+      const done = await tx`UPDATE payment_requests SET status = 'settled', settled_tx_hash = ${txHash}, updated_at = now() WHERE id = ${payment.id} AND status = 'approved' RETURNING treasury_id`;
+      if (done.length !== 1) throw conflict("This request was already paid.");
+      await audit(tx, payment.treasuryId, { type: "human", id: session.accountId }, "payment.settled", payment.id, { txHash, network: "testnet" });
+    });
+  } catch (error) {
+    if ((error as { code?: string }).code === "23505") throw conflict("That transaction was already used to pay a request.");
+    throw error;
+  }
   emitPaymentEvent(payment.id, "payment.settled");
   return (await paymentForMember(sql, session, requestId)).payment;
 }

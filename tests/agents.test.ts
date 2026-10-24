@@ -149,7 +149,44 @@ describe("request limits", () => {
 
   it("refuses webhook addresses that lead inside the network", async () => {
     const { isPrivateAddress } = await import("@/server/notify");
-    for (const a of ["127.0.0.1", "10.0.0.8", "172.20.1.1", "192.168.1.1", "169.254.169.254", "::1", "fd00::1"]) expect(isPrivateAddress(a)).toBe(true);
+    for (const a of ["127.0.0.1", "10.0.0.8", "172.20.1.1", "192.168.1.1", "169.254.169.254", "198.18.0.1", "224.0.0.1", "255.255.255.255", "::1", "::", "fd00::1", "64:ff9b::a00:1"]) expect(isPrivateAddress(a)).toBe(true);
     for (const a of ["8.8.8.8", "93.184.216.34", "2606:4700:4700::1111"]) expect(isPrivateAddress(a)).toBe(false);
+  });
+});
+
+describe("team payout rules", () => {
+  it("never takes a team request from a request body", async () => {
+    const { transferFromBody } = await import("@/server/transfer-input");
+    const input = transferFromBody({ kind: "withdraw", amount: "1", recipient: "x", teamRequestId: "11111111-1111-1111-1111-111111111111" });
+    expect("teamRequestId" in input).toBe(false);
+  });
+
+  it("only moves a request from the states it may leave, so a cancelled one stays cancelled", async () => {
+    const { markTeamRequest } = await import("@/server/payments");
+    const agent = await agentFromApiKey(`Bearer ${apiKey}`);
+    const p = await createAgentPayment(agent, { recipient: payee.accountId, amount: "0.01", idempotencyKey: "rules-req-0001" }).catch(() => null);
+    const [row] = await sql<{ id: string }[]>`SELECT id FROM payment_requests WHERE agent_id = ${agentId} ORDER BY created_at DESC LIMIT 1`;
+    const id = p?.id ?? row.id;
+    await sql`UPDATE payment_requests SET status = 'cancelled' WHERE id = ${id}`;
+    const actor = { type: "system" as const, id: "test" };
+    expect(await sql.begin((tx) => markTeamRequest(tx, id, "submitting", actor, ["approved"]))).toBe(false);
+    expect(await sql.begin((tx) => markTeamRequest(tx, id, "settled", actor, ["submitting"]))).toBe(false);
+    const [after] = await sql<{ status: string }[]>`SELECT status FROM payment_requests WHERE id = ${id}`;
+    expect(after.status).toBe("cancelled");
+  });
+
+  it("lets one testnet transaction settle only one request", async () => {
+    const ids = (await sql<{ id: string }[]>`SELECT id FROM payment_requests WHERE agent_id = ${agentId} LIMIT 2`).map((r) => r.id);
+    await sql`UPDATE payment_requests SET settled_tx_hash = 'same-hash-0001' WHERE id = ${ids[0]}`;
+    await expect(sql`UPDATE payment_requests SET settled_tx_hash = 'same-hash-0001' WHERE id = ${ids[1]}`).rejects.toMatchObject({ code: "23505" });
+  });
+
+  it("doesn't deliver a webhook when the address can't be confirmed as public", async () => {
+    await setAgentWebhook(ownerSession, agentId, "https://localtest.me/hook");
+    const [request] = await sql<{ id: string }[]>`SELECT id FROM payment_requests WHERE agent_id = ${agentId} LIMIT 1`;
+    await deliver(request.id, "payment.approved");
+    const [row] = await sql<{ ok: boolean; status_code: number | null }[]>`SELECT ok, status_code FROM webhook_deliveries WHERE agent_id = ${agentId} ORDER BY id DESC LIMIT 1`;
+    expect(row).toMatchObject({ ok: false, status_code: null });
+    await setAgentWebhook(ownerSession, agentId, null);
   });
 });

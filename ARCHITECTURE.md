@@ -1,5 +1,7 @@
 # Scrim architecture
 
+> Implementation status: the Phase A control plane (identity, treasuries, agent mandates, approvals, Intents quotes) is built. The shielded-value and proof layers below are designed but not implemented. See BACKEND_SPEC.md §17.
+
 Scrim separates sealed value from public coordination. The browser and proving runtime own private keys, notes, witnesses, amounts, and proof inputs. NEAR contracts own only commitments, nullifiers, policy commitments, roles, thresholds, and the minimum settlement state required to prevent double-spends and coordinate approved outcomes.
 
 ## Shielded value layer

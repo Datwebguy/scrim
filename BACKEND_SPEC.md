@@ -380,3 +380,26 @@ No milestone progresses based on interface completion alone.
 - Proofs: wrong-reader, expired, replayed, changed-statement, and wrong-key-version verification tests fail closed.
 - Native pool: nullifier replay, invalid root, malformed proof input, unauthorized relay target, and partial re-shield tests fail closed.
 - Operations: recovery drill, incident runbook, key rotation, rollback, reconciliation, and encrypted-export restoration drill pass.
+
+## 17. Implementation status (Phase A control plane)
+
+This section records what the code does today and where it intentionally differs from the plan above.
+
+### Implemented
+
+- **Identity.** `POST /api/v1/auth/challenge` issues a single-use 32-byte nonce with a five-minute expiry. `POST /api/v1/auth/verify` checks the NEP-413 signature (borsh payload, `2^31 + 413` tag, SHA-256, ed25519). It then confirms on-chain, at `final` finality, that the signing key is a current **full-access key** on the claimed account, and consumes the nonce atomically. Sessions are random 256-bit tokens stored only as SHA-256 hashes, delivered as httpOnly, SameSite=Lax cookies (Secure in production), and bound to the network.
+- **Treasuries.** Individual (1-of-1) and team (M-of-N, up to 20 signers) treasuries. Non-members get `404`, so treasury IDs do not reveal membership.
+- **Agent mandates.** `request_only` agents with hashed API keys. Mandates hold a per-action cap, a rolling cap over a window, a counterparty allowlist, and an optional expiry. Every change publishes a new immutable version with a SHA-256 policy commitment (`agent_policies`). Only the owner can create agents, change mandates, or resume an agent. Any signer can pause one.
+- **Policy enforcement.** `src/protocol/policy.ts` is pure and unit-tested. The server evaluates it inside a transaction holding a row lock on the agent, so concurrent requests cannot together exceed the rolling cap (covered by a test). Rejected requests are recorded as `policy_rejected` with the failing checks, and they never reach a signer.
+- **Approvals.** Each approval is a fresh NEP-413 signature over a message stating the treasury, amount, recipient, request ID, and request commitment. The challenge is bound to the requesting session and to `requestId:commitment`, so a signature cannot be replayed on another request or by another session. The request moves to `approved` when the threshold is reached.
+- **Settlement quotes.** The 1Click adapter requests `EXACT_OUTPUT` quotes, so the recipient receives the exact amount. When `ONECLICK_JWT` is set it requests the confidential path, because unauthenticated confidential quotes are rejected. Quotes are dry (indicative). A quote commitment binds the request and the quote response.
+- **Cross-cutting.** Idempotency keys on payment creation, JSON-only mutating requests with same-origin checks, 32 KB body cap, `no-store` on every API response, and an append-only `audit_events` table.
+
+### Deviations and open items
+
+- **NEP-641 resolution.** §6 calls for NEP-641 block-pinned resolution. The implementation instead verifies NEP-413 signatures against a full-access key read at `final` finality. That covers standard accounts. Contract-based wallets and multisig accounts that authorize without an ed25519 full-access key are **not yet supported**.
+- **Server-visible amounts in Phase A.** Enforcing caps on the server requires the server to see the request amount and recipient. They are stored in the operational database, not client-encrypted. Privacy from the public chain comes from the settlement path. Moving enforcement to contract-verified commitments (Milestone 2) and device-side proofs (Milestone 4) removes this exposure.
+- **Contract enforcement.** Mandates and thresholds are enforced by the backend. The treasury-policy contract (§8), which makes them binding without trusting the backend, is not deployed yet.
+- **Execution.** No deposit is submitted. The next step is a signer-initiated `ft_transfer_call` of the quoted `amountIn` to the 1Click deposit address from the treasury wallet, followed by a status watcher and reconciliation.
+- **Infrastructure.** Postgres is in place. Redis-backed rate limiting, the separate worker service, and multi-provider RPC quorum (§14) are not built yet. Add rate limiting before a public launch.
+- **Corridor.** 1Click is mainnet-only. Testnet treasuries receive real but indicative mainnet quotes, and the UI says so.

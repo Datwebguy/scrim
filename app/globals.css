@@ -767,3 +767,19 @@ button.chip.on { background: var(--ink); color: #fff; border-color: var(--ink); 
 }
 @media (max-width: 480px) { .sc-team { grid-template-columns: 1fr; } .sc-card { padding: 16px; } }
 @media (prefers-reduced-motion: reduce) { .l-bg *, .sc-hero, .sc-hero * { animation: none !important; } }
+
+.sc-agent { gap: 14px; }
+.sc-agent-head { display: flex; align-items: center; gap: 10px; }
+.sc-agent-bot { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--ink); color: var(--orange); font-weight: 800; animation: pulse 2.4s ease-in-out infinite; }
+.sc-agent-head b { flex: 1; }
+.sc-agent-head em { font-style: normal; font: 500 11px var(--mono); padding: 4px 8px; border-radius: 6px; background: var(--paper-2); color: var(--muted); transition: background .3s, color .3s; }
+.sc-agent-head em.on { background: var(--orange); color: #1a0c06; }
+.sc-agent-limits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.sc-agent-limits span { padding: 10px 6px; border-radius: 10px; background: var(--paper); text-align: center; font-size: 12px; font-weight: 700; color: var(--muted); border: 1px solid transparent; transition: background .3s, color .3s, border-color .3s; }
+.sc-agent-limits span.pass { background: var(--green-wash); color: var(--green); }
+.sc-agent-limits span.fail { background: var(--red-wash); color: var(--red); border-color: #e7c3ba; animation: shake .35s; }
+@keyframes shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.sc-agent-out { padding: 14px; border-radius: 12px; background: var(--paper); font-weight: 700; text-align: center; animation: fdin .35s ease; }
+.sc-agent-out.ok { background: var(--green-wash); color: var(--green); }
+.sc-agent-out.stop { background: var(--red-wash); color: var(--red); }
+.l-story#agents { padding-top: 0; }

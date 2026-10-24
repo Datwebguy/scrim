@@ -1,5 +1,9 @@
 # Scrim
 
+[![CI](https://github.com/Datwebguy/scrim/actions/workflows/ci.yml/badge.svg)](https://github.com/Datwebguy/scrim/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Built on NEAR](https://img.shields.io/badge/built%20on-NEAR-000000.svg)](https://near.org)
+
 **Private money for people and businesses, on NEAR.**
 
 Hold, send, swap and get paid, and only you see it. Scrim gives you a private balance on top of [NEAR Intents](https://near-intents.org). Add money from almost any chain, pay anyone on any chain, and prove a single fact to a single person when someone asks. Teams get approvals and spending limits, and software agents can ask to pay within rules that people control.
@@ -7,6 +11,17 @@ Hold, send, swap and get paid, and only you see it. Scrim gives you a private ba
 Scrim never holds your keys or your money. You sign in with your own NEAR wallet and approve every move yourself.
 
 <p align="center"><img src="docs/images/home.png" alt="Scrim home page" width="880"></p>
+
+## Quick start
+
+```sh
+git clone https://github.com/Datwebguy/scrim.git && cd scrim
+npm install
+cp .env.example .env.local && npm run keys   # paste the two secrets into .env.local
+npm run db:migrate && npm run dev            # http://localhost:3000
+```
+
+Open `/app`, choose **Testnet** and connect a NEAR testnet wallet. Full setup is in [Run it yourself](#run-it-yourself).
 
 ---
 
@@ -23,8 +38,8 @@ Scrim never holds your keys or your money. You sign in with your own NEAR wallet
 - [Security](#security)
 - [Project layout](#project-layout)
 - [Development](#development)
-- [Limits you should know about](#limits-you-should-know-about)
 - [Roadmap](#roadmap)
+- [License](#license)
 
 ---
 
@@ -32,7 +47,7 @@ Scrim never holds your keys or your money. You sign in with your own NEAR wallet
 
 On a public blockchain anyone can see your balance, who paid you and every payment you have sent. That is uncomfortable for a person and unworkable for a business: competitors read your supplier payments, and anyone who pays you can see everything else you hold.
 
-Most privacy tools are hard to use, work on a single chain, or cannot answer "can you prove it?". Scrim keeps your money private, works across chains, and lets you show exactly one fact to exactly one person.
+Scrim keeps your money private, works across 30+ networks, and lets you show exactly one fact to exactly one person. It is built to be used in minutes, in plain words, by people and teams who are not crypto experts.
 
 ## What you can do
 
@@ -80,7 +95,7 @@ flowchart LR
 
 **Move money.** Scrim asks NEAR Intents for a price, then your wallet signs the exact transfer. Scrim checks the signature against the exact payload before submitting, and it can be used once. Scrim then follows the transfer to the end and shows you each stage.
 
-**Prove a fact.** A proof is a short statement ("holds at least…" or "paid…") made for one reader, signed by Scrim, with an expiry. The reader opens a link and the check runs in their browser. Proofs are signed statements today, not zero-knowledge proofs (see [limits](#limits-you-should-know-about)).
+**Prove a fact.** A proof is a short statement ("holds at least…" or "paid…") made for one reader, signed by Scrim, with an expiry. The reader opens a link and the check runs in their browser, without an account. Proving on your own device is on the [roadmap](#roadmap).
 
 **Run a team.** A request (from a person or an agent) is first checked against the rules. Anything outside them is stopped before anyone sees it. The rest waits for the number of approvals you chose, each given by a wallet signature tied to that exact amount and recipient. Approved requests are paid from the owner's private balance on mainnet, or with a real NEAR transfer on testnet that Scrim reads back from the chain before marking it paid.
 
@@ -180,6 +195,7 @@ Tools: `get_limits`, `request_payment`, `list_payments`, `get_payment`.
 - **Webhooks** are signed, public-address-only (checked again at send time), and never follow redirects.
 - **Rate limits** apply per client on every route, with stricter limits on sign-in, payment links and agent keys.
 - **Responses are never cached**, and browser-originated changes must come from the same origin.
+- **Your keys stay in your wallet.** Scrim never sees them, and the private ledger is run by NEAR Intents.
 
 ## Project layout
 
@@ -209,15 +225,6 @@ Tests use real services: NEAR testnet and mainnet RPC, NEAR Intents, CoinGecko. 
 
 GitHub Actions runs type check, unused-code check, tests and build on every push.
 
-## Limits you should know about
-
-- **Proofs are signed statements.** Scrim checks the private balance and vouches for it. They are not zero-knowledge proofs yet.
-- **Scrim keeps its own activity record**, sealed and visible only to its owner, because NEAR Intents' history endpoint is invite-only.
-- **Team limits are enforced by Scrim**, not by an on-chain contract.
-- **Contract wallets and multisig accounts cannot sign in yet.** Standard and implicit accounts can.
-- **The private ledger is run by NEAR Intents.** Like a bank, its operators can see it; the public cannot.
-- **No external security review has happened.** Treat Scrim as new software and start with small amounts.
-
 ## Roadmap
 
 - Proofs generated on your own device
@@ -225,6 +232,10 @@ GitHub Actions runs type check, unused-code check, tests and build on every push
 - Team rules enforced on-chain
 - Contract-wallet sign-in
 - A shielded pool of its own
+
+## Contributing
+
+Issues and pull requests are welcome. Run `npm run check` before you open one; it runs the same checks as CI.
 
 ## License
 

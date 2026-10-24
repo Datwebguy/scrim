@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { formatAmount, parseAmount } from "@/protocol/amount";
 import { commitment } from "@/protocol/canonical";
 import { corridorFor, type Corridor } from "@/protocol/corridor";
-import { normalizeEvmAddress, normalizeNearAccount } from "@/protocol/identifiers";
+import { normalizeEvmAddress, normalizeNearAccount, normalizeOrigin } from "@/protocol/identifiers";
 import type { Network } from "@/protocol/networks";
 import { evaluatePolicy, type PolicyDecision } from "@/protocol/policy";
 import { agentSpendInWindow, type Agent } from "./agents";
@@ -34,7 +34,7 @@ export type Payment = {
   approvals: { accountId: string; createdAt: Date }[];
 };
 
-export type CreatePaymentInput = { recipient: string; amount: string; memo?: string; idempotencyKey: string };
+export type CreatePaymentInput = { recipient: string; amount: string; memo?: string; idempotencyKey: string; x402?: boolean };
 
 type PaymentRow = {
   id: string; treasury_id: string; created_by_type: "human" | "agent"; created_by_id: string; agent_name: string | null;
@@ -73,7 +73,8 @@ const selectPayments = (tx: Tx) => tx`
   FROM payment_requests p LEFT JOIN agents a ON a.id = p.agent_id`;
 
 function validate(input: CreatePaymentInput, corridor: Corridor) {
-  const recipient = corridor.recipient === "evm" ? normalizeEvmAddress(input.recipient ?? "") : normalizeNearAccount(input.recipient ?? "");
+  // x402 purchases name the seller by its web address; everything else pays an address on the team's network.
+  const recipient = input.x402 ? normalizeOrigin(input.recipient ?? "") : corridor.recipient === "evm" ? normalizeEvmAddress(input.recipient ?? "") : normalizeNearAccount(input.recipient ?? "");
   if (!recipient) throw badRequest(corridor.recipient === "evm" ? "Recipient must be a Base address (0x followed by 40 hex characters)." : "Recipient must be a NEAR testnet account, like name.testnet.");
   let amount: bigint;
   try {

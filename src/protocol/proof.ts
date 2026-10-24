@@ -12,7 +12,7 @@ export const PROOF_PREFIX = "scrimproof1";
 
 export type ProofClaim =
   | { type: "balance_at_least"; amount: string; symbol: string | null; unit: "asset" | "usd" }
-  | { type: "payment"; amount: string; symbol: string; networkName: string; exact: boolean; paidAt: string };
+  | { type: "payment"; amount: string; symbol: string; chainName: string; exact: boolean; paidAt: string };
 
 export type ProofPayload = {
   v: 1;
@@ -60,5 +60,5 @@ export function describeClaim(claim: ProofClaim): string {
   if (claim.type === "balance_at_least") {
     return claim.unit === "usd" ? `holds at least $${claim.amount} in private funds` : `holds at least ${claim.amount} ${claim.symbol}`;
   }
-  return `${claim.exact ? "sent exactly" : "sent at least"} ${claim.amount} ${claim.symbol} to ${claim.networkName}`;
+  return `${claim.exact ? "sent exactly" : "sent at least"} ${claim.amount} ${claim.symbol} to ${claim.chainName}`;
 }

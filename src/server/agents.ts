@@ -1,7 +1,8 @@
 import { randomBytes, randomUUID, createHash } from "node:crypto";
 import bs58 from "bs58";
 import { parseAmount } from "@/protocol/amount";
-import { normalizeEvmAddress } from "@/protocol/identifiers";
+import { corridorFor, type Corridor } from "@/protocol/corridor";
+import { normalizeEvmAddress, normalizeNearAccount } from "@/protocol/identifiers";
 import { policyCommitment, type MandatePolicy } from "@/protocol/policy";
 import { audit } from "./audit";
 import type { Session } from "./auth";
@@ -31,11 +32,11 @@ export type MandateInput = {
 
 const hashKey = (key: string) => createHash("sha256").update(key).digest();
 
-function buildPolicy(input: MandateInput, version: number): MandatePolicy {
+function buildPolicy(input: MandateInput, version: number, corridor: Corridor): MandatePolicy {
   let perAction: bigint, rolling: bigint;
   try {
-    perAction = parseAmount(input.perActionCap);
-    rolling = parseAmount(input.rollingCap);
+    perAction = parseAmount(input.perActionCap, corridor.decimals);
+    rolling = parseAmount(input.rollingCap, corridor.decimals);
   } catch (error) {
     throw badRequest((error as Error).message);
   }
@@ -46,12 +47,12 @@ function buildPolicy(input: MandateInput, version: number): MandatePolicy {
   if (input.counterparties.length > 100) throw badRequest("At most 100 counterparties per mandate.");
   const seen = new Set<string>();
   const counterparties = input.counterparties.map(({ address, label }) => {
-    const normalized = normalizeEvmAddress(address);
-    if (!normalized) throw badRequest(`"${address}" is not a valid Base address.`);
+    const normalized = corridor.recipient === "evm" ? normalizeEvmAddress(address) : normalizeNearAccount(address);
+    if (!normalized) throw badRequest(`"${address}" is not ${corridor.recipientLabel}.`);
     if (seen.has(normalized)) throw badRequest(`${address} is listed twice.`);
     seen.add(normalized);
     const name = (label ?? "").trim().slice(0, 60);
-    return { address: normalized, label: name || `${normalized.slice(0, 6)}…${normalized.slice(-4)}` };
+    return { address: normalized, label: name || (normalized.length > 14 ? `${normalized.slice(0, 6)}…${normalized.slice(-4)}` : normalized) };
   });
   let expiresAt: string | null = null;
   if (input.expiresAt) {
@@ -89,10 +90,10 @@ const selectAgents = (tx: Tx) => tx`
 export async function createAgent(session: Session, treasuryId: string, input: { name: string } & MandateInput): Promise<{ agent: Agent; apiKey: string }> {
   const name = input.name.trim();
   if (!name || name.length > 60) throw badRequest("Name the agent (up to 60 characters).");
-  const policy = buildPolicy(input, 1);
   return sql.begin(async (tx) => {
-    const { role } = await treasuryForMember(tx, session.accountId, treasuryId);
+    const { role, treasury } = await treasuryForMember(tx, session.accountId, treasuryId, session.network);
     requireOwner(role);
+    const policy = buildPolicy(input, 1, corridorFor(treasury.network));
     const id = randomUUID();
     const apiKey = `scrim_sk_${bs58.encode(randomBytes(32))}`;
     const commitment = policyCommitment(policy);
@@ -110,10 +111,10 @@ export async function updateMandate(session: Session, agentId: string, input: Ma
   return sql.begin(async (tx) => {
     const [current] = await tx<{ treasury_id: string; policy_version: number }[]>`SELECT treasury_id, policy_version FROM agents WHERE id = ${agentId} FOR UPDATE`;
     if (!current) throw notFound("Agent not found.");
-    const { role } = await treasuryForMember(tx, session.accountId, current.treasury_id);
+    const { role, treasury } = await treasuryForMember(tx, session.accountId, current.treasury_id, session.network);
     requireOwner(role);
     const version = current.policy_version + 1;
-    const policy = buildPolicy(input, version);
+    const policy = buildPolicy(input, version, corridorFor(treasury.network));
     const commitment = policyCommitment(policy);
     await tx`INSERT INTO agent_policies (agent_id, version, policy, commitment, created_by) VALUES (${agentId}, ${version}, ${tx.json(policy as never)}, ${commitment}, ${session.accountId})`;
     await tx`UPDATE agents SET policy_version = ${version} WHERE id = ${agentId}`;
@@ -128,7 +129,7 @@ export async function setAgentEnabled(session: Session, agentId: string, enabled
   return sql.begin(async (tx) => {
     const [current] = await tx<{ treasury_id: string }[]>`SELECT treasury_id FROM agents WHERE id = ${agentId} FOR UPDATE`;
     if (!current) throw notFound("Agent not found.");
-    const { role } = await treasuryForMember(tx, session.accountId, current.treasury_id);
+    const { role } = await treasuryForMember(tx, session.accountId, current.treasury_id, session.network);
     if (enabled) requireOwner(role);
     await tx`UPDATE agents SET enabled = ${enabled}, paused_at = ${enabled ? null : new Date()} WHERE id = ${agentId}`;
     await audit(tx, current.treasury_id, { type: "human", id: session.accountId }, enabled ? "agent.resumed" : "agent.paused", agentId);
@@ -138,7 +139,7 @@ export async function setAgentEnabled(session: Session, agentId: string, enabled
 }
 
 export async function listAgents(session: Session, treasuryId: string): Promise<Agent[]> {
-  await treasuryForMember(sql, session.accountId, treasuryId);
+  await treasuryForMember(sql, session.accountId, treasuryId, session.network);
   const rows = await sql<AgentRow[]>`${selectAgents(sql)} WHERE a.treasury_id = ${treasuryId} ORDER BY a.created_at`;
   return rows.map(toAgent);
 }

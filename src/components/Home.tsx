@@ -4,12 +4,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApi } from "@/client/use-api";
 import { turnOnPrivateMode, unlockPrivateBalance } from "@/client/wallet";
-import { fmt, Heading, KIND_LABEL, NotSwitchedOn, StateChip, usd, type TransferView } from "./money";
+import { NotSwitchedOn } from "./Gates";
+import { fmt, Heading, KIND_LABEL, StateChip, TokenLogo, usd, type TransferView } from "./money";
+import { useSession } from "./session";
 import { Spinner, useToast } from "./ui";
 
-type Overview = { status: string; detail: string | null; publicKey: string | null; totalUsd: number; holdings: { assetId: string; symbol: string; networkName: string; display: string; usd: number }[] };
+type Holding = { assetId: string; symbol: string; chainName: string; display: string; usd: number | null; icon: string | null; chainIcon: string | null };
+type Overview = { status: string; detail: string | null; publicKey: string | null; totalUsd: number; holdings: Holding[] };
 
-export function Home({ accountId }: { accountId: string }) {
+export function Home() {
+  const { accountId, network } = useSession();
   const toast = useToast();
   const router = useRouter();
   const { data, loading, reload } = useApi<Overview>("/private", { every: 30_000 });
@@ -20,8 +24,8 @@ export function Home({ accountId }: { accountId: string }) {
   async function unlock(setup = false) {
     setBusy(true);
     try {
-      if (setup && data?.publicKey) await turnOnPrivateMode(data.publicKey);
-      await unlockPrivateBalance(accountId);
+      if (setup && data?.publicKey) await turnOnPrivateMode(network, data.publicKey);
+      await unlockPrivateBalance(network, accountId);
       toast("Private balance unlocked");
       await reload();
       router.refresh();
@@ -103,9 +107,9 @@ export function Home({ accountId }: { accountId: string }) {
                 <ul className="rows">
                   {data.holdings.map((h) => (
                     <li key={h.assetId}>
-                      <span className="coin">{h.symbol.slice(0, 3)}</span>
-                      <span><b>{h.symbol}</b><small>{h.networkName}</small></span>
-                      <span className="right"><b>{h.display}</b><small>{usd(h.usd)}</small></span>
+                      <TokenLogo icon={h.icon} symbol={h.symbol} chainIcon={h.chainIcon} />
+                      <span><b>{h.symbol}</b><small>{h.chainName}</small></span>
+                      <span className="right"><b>{h.display}</b>{h.usd !== null && <small>{usd(h.usd)}</small>}</span>
                     </li>
                   ))}
                 </ul>

@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { formatUsdc, parseAmount } from "@/protocol/amount";
+import { formatAmount, parseAmount } from "@/protocol/amount";
 import { commitment } from "@/protocol/canonical";
-import { USDC_NEAR_TO_BASE } from "@/protocol/corridor";
-import { normalizeEvmAddress } from "@/protocol/identifiers";
+import { corridorFor, type Corridor } from "@/protocol/corridor";
+import { normalizeEvmAddress, normalizeNearAccount } from "@/protocol/identifiers";
+import type { Network } from "@/protocol/networks";
 import { evaluatePolicy, type PolicyDecision } from "@/protocol/policy";
 import { agentSpendInWindow, type Agent } from "./agents";
 import { audit, type Actor } from "./audit";
@@ -10,6 +11,7 @@ import { consumeSignedChallenge, issueChallenge, type Session, type SignedEnvelo
 import { config } from "./config";
 import { sql, type Tx } from "./db";
 import { badRequest, conflict, forbidden, notFound } from "./errors";
+import { finalTransaction } from "./near-rpc";
 import { treasuryForMember, type Treasury } from "./treasuries";
 
 export type PaymentStatus = "policy_rejected" | "awaiting_approval" | "approved" | "quoted" | "submitting" | "settled" | "failed" | "expired" | "cancelled";
@@ -69,12 +71,12 @@ const selectPayments = (tx: Tx) => tx`
          p.memo, p.policy_version, p.policy_decision, p.commitment, p.status, p.expires_at, p.created_at
   FROM payment_requests p LEFT JOIN agents a ON a.id = p.agent_id`;
 
-function validate(input: CreatePaymentInput) {
-  const recipient = normalizeEvmAddress(input.recipient ?? "");
-  if (!recipient) throw badRequest("Recipient must be a Base address (0x followed by 40 hex characters).");
+function validate(input: CreatePaymentInput, corridor: Corridor) {
+  const recipient = corridor.recipient === "evm" ? normalizeEvmAddress(input.recipient ?? "") : normalizeNearAccount(input.recipient ?? "");
+  if (!recipient) throw badRequest(corridor.recipient === "evm" ? "Recipient must be a Base address (0x followed by 40 hex characters)." : "Recipient must be a NEAR testnet account, like name.testnet.");
   let amount: bigint;
   try {
-    amount = parseAmount(String(input.amount ?? ""));
+    amount = parseAmount(String(input.amount ?? ""), corridor.decimals);
   } catch (error) {
     throw badRequest((error as Error).message);
   }
@@ -87,7 +89,8 @@ function validate(input: CreatePaymentInput) {
 }
 
 async function insertPayment(tx: Tx, treasury: Treasury, actor: Actor, agent: Agent | null, input: CreatePaymentInput): Promise<Payment> {
-  const { recipient, amount, memo, idempotencyKey } = validate(input);
+  const corridor = corridorFor(treasury.network);
+  const { recipient, amount, memo, idempotencyKey } = validate(input, corridor);
 
   const [existing] = await tx<PaymentRow[]>`${selectPayments(tx)} WHERE p.treasury_id = ${treasury.id} AND p.idempotency_key = ${idempotencyKey}`;
   if (existing) {
@@ -101,7 +104,7 @@ async function insertPayment(tx: Tx, treasury: Treasury, actor: Actor, agent: Ag
     // Serialize requests per agent so concurrent calls cannot both fit under the rolling cap.
     const [lock] = await tx<{ enabled: boolean }[]>`SELECT enabled FROM agents WHERE id = ${agent.id} FOR UPDATE`;
     const spent = await agentSpendInWindow(tx, agent.id, agent.policy.rollingCap.windowSeconds);
-    decision = evaluatePolicy(agent.policy, { recipient, amount, spentInWindow: spent, enabled: lock.enabled });
+    decision = evaluatePolicy(agent.policy, { recipient, amount, unit: corridor, spentInWindow: spent, enabled: lock.enabled });
   }
 
   const id = randomUUID();
@@ -109,7 +112,7 @@ async function insertPayment(tx: Tx, treasury: Treasury, actor: Actor, agent: Ag
   const requestCommitment = commitment("payment-request", {
     id,
     treasuryId: treasury.id,
-    corridor: USDC_NEAR_TO_BASE.id,
+    corridor: corridor.id,
     recipient,
     amount,
     createdBy: actor,
@@ -119,7 +122,7 @@ async function insertPayment(tx: Tx, treasury: Treasury, actor: Actor, agent: Ag
   await tx`
     INSERT INTO payment_requests (id, treasury_id, created_by_type, created_by_id, agent_id, corridor, recipient, amount, memo,
       policy_version, policy_decision, commitment, idempotency_key, status, expires_at)
-    VALUES (${id}, ${treasury.id}, ${actor.type === "agent" ? "agent" : "human"}, ${actor.id}, ${agent?.id ?? null}, ${USDC_NEAR_TO_BASE.id},
+    VALUES (${id}, ${treasury.id}, ${actor.type === "agent" ? "agent" : "human"}, ${actor.id}, ${agent?.id ?? null}, ${corridor.id},
       ${recipient}, ${amount.toString()}, ${memo}, ${decision?.policyVersion ?? null}, ${decision ? tx.json(decision as never) : null},
       ${requestCommitment}, ${idempotencyKey}, ${status}, ${expiresAt})`;
   await audit(tx, treasury.id, actor, status === "policy_rejected" ? "payment.policy_rejected" : "payment.requested", id, {
@@ -132,7 +135,7 @@ async function insertPayment(tx: Tx, treasury: Treasury, actor: Actor, agent: Ag
 
 export async function createHumanPayment(session: Session, treasuryId: string, input: CreatePaymentInput): Promise<Payment> {
   return sql.begin(async (tx) => {
-    const { treasury } = await treasuryForMember(tx, session.accountId, treasuryId);
+    const { treasury } = await treasuryForMember(tx, session.accountId, treasuryId, session.network);
     if (treasury.status !== "active") throw forbidden("This treasury is not accepting payment requests.");
     return insertPayment(tx, treasury, { type: "human", id: session.accountId }, null, input);
   });
@@ -149,7 +152,7 @@ export async function createAgentPayment(agent: Agent, input: CreatePaymentInput
 }
 
 export async function listPayments(session: Session, treasuryId: string): Promise<Payment[]> {
-  await treasuryForMember(sql, session.accountId, treasuryId);
+  await treasuryForMember(sql, session.accountId, treasuryId, session.network);
   const rows = await sql<PaymentRow[]>`${selectPayments(sql)} WHERE p.treasury_id = ${treasuryId} ORDER BY p.created_at DESC LIMIT 200`;
   return hydrate(sql, rows);
 }
@@ -165,7 +168,7 @@ async function paymentForMember(tx: Tx, session: Session, paymentId: string, loc
     ? await tx<PaymentRow[]>`${selectPayments(tx)} WHERE p.id = ${paymentId} FOR UPDATE OF p`
     : await tx<PaymentRow[]>`${selectPayments(tx)} WHERE p.id = ${paymentId}`;
   if (!row) throw notFound("Payment request not found.");
-  const { treasury, role } = await treasuryForMember(tx, session.accountId, row.treasury_id).catch(() => {
+  const { treasury, role } = await treasuryForMember(tx, session.accountId, row.treasury_id, session.network).catch(() => {
     throw notFound("Payment request not found.");
   });
   const [payment] = await hydrate(tx, [row]);
@@ -189,13 +192,14 @@ export async function createApprovalChallenge(session: Session, paymentId: strin
     if (payment.approvals.some((a) => a.accountId === session.accountId)) throw conflict("You already approved this request.");
     return issueChallenge(tx, {
       purpose: "approve_payment",
+      network: session.network,
       subject: approvalSubject(payment),
       sessionId: session.id,
       lines: [
         "Approve a Scrim payment",
         "",
         `Treasury: ${treasury.name}`,
-        `Pay: ${formatUsdc(payment.amount)} on Base`,
+        `Pay: ${formatAmount(BigInt(payment.amount), corridorFor(treasury.network).decimals)} ${corridorFor(treasury.network).symbol} (${corridorFor(treasury.network).routeLabel})`,
         `To: ${payment.recipient}`,
         `Request: ${payment.id}`,
         `Commitment: ${payment.commitment}`,
@@ -209,7 +213,7 @@ export async function approvePayment(session: Session, paymentId: string, envelo
     const { payment, treasury } = await paymentForMember(tx, session, paymentId, true);
     if (payment.status !== "awaiting_approval") throw conflict(`This request is ${payment.status.replace("_", " ")} and cannot be approved.`);
     if (envelope.accountId !== session.accountId) throw forbidden("Approve with the account you signed in with.");
-    const signed = await consumeSignedChallenge(tx, envelope, { purpose: "approve_payment", subject: approvalSubject(payment), sessionId: session.id });
+    const signed = await consumeSignedChallenge(tx, envelope, { purpose: "approve_payment", subject: approvalSubject(payment), sessionId: session.id, network: session.network });
     const inserted = await tx`
       INSERT INTO approvals (request_id, account_id, public_key, signature, challenge_id)
       VALUES (${payment.id}, ${signed.accountId}, ${signed.publicKey}, ${envelope.signature}, ${signed.challengeId})
@@ -252,9 +256,33 @@ export async function approvedTeamRequest(session: Session, requestId: string) {
 }
 
 export async function listAudit(session: Session, treasuryId: string) {
-  await treasuryForMember(sql, session.accountId, treasuryId);
+  await treasuryForMember(sql, session.accountId, treasuryId, session.network);
   return sql<{ id: string; actor_type: string; actor_id: string; action: string; subject_id: string | null; data: Record<string, unknown>; created_at: Date }[]>`
     SELECT id::text, actor_type, actor_id, action, subject_id, data, created_at FROM audit_events
     WHERE treasury_id = ${treasuryId} ORDER BY id DESC LIMIT 100`;
 }
 
+
+// Testnet payout. The owner's wallet sent real test NEAR straight to the recipient. Before marking the
+// request paid, read the transaction back from the chain and check who sent it, to whom, and how much.
+export async function recordTestnetPayout(session: Session, requestId: string, txHash: string): Promise<Payment> {
+  if (session.network !== "testnet") throw badRequest("This is only for testnet. On mainnet, pay from your private balance.");
+  if (!/^[1-9A-HJ-NP-Za-km-z]{43,44}$/.test(txHash)) throw badRequest("That doesn't look like a transaction hash.");
+  const payment = await approvedTeamRequest(session, requestId);
+  const [seen] = await sql`SELECT 1 FROM audit_events WHERE action = 'payment.settled' AND data->>'txHash' = ${txHash}`;
+  if (seen) throw conflict("That transaction was already used to pay a request.");
+  const outcome = await finalTransaction("testnet", txHash, session.accountId);
+  if (!outcome) throw conflict("We can't find that transaction yet. Wait a few seconds and try again.");
+  const { transaction, status } = outcome;
+  if (status.Failure) throw conflict("That transaction failed on the network, so nothing was paid.");
+  if (transaction.signer_id !== session.accountId) throw forbidden("That transaction was not sent from your account.");
+  if (transaction.receiver_id !== payment.recipient) throw badRequest("That transaction paid a different account than this request.");
+  const sent = transaction.actions.reduce((total, action) => total + BigInt(action.Transfer?.deposit ?? "0"), 0n);
+  if (sent !== BigInt(payment.amount)) throw badRequest("That transaction sent a different amount than this request.");
+  await sql.begin(async (tx) => {
+    const done = await tx`UPDATE payment_requests SET status = 'settled', updated_at = now() WHERE id = ${payment.id} AND status = 'approved' RETURNING treasury_id`;
+    if (done.length !== 1) throw conflict("This request was already paid.");
+    await audit(tx, payment.treasuryId, { type: "human", id: session.accountId }, "payment.settled", payment.id, { txHash, network: "testnet" });
+  });
+  return (await paymentForMember(sql, session, requestId)).payment;
+}

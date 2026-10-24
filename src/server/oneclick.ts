@@ -3,15 +3,6 @@
 import { config } from "./config";
 import { HttpError } from "./errors";
 
-type Fetch = typeof fetch;
-let transport: Fetch = (...args) => fetch(...args);
-
-// Test seam only.
-export function setOneClickTransportForTests(next: Fetch | null) {
-  if (process.env.NODE_ENV === "production") throw new Error("Transport cannot be replaced in production.");
-  transport = next ?? ((...args) => fetch(...args));
-}
-
 export class UpstreamError extends HttpError {
   constructor(readonly upstreamStatus: number, message: string) {
     super(upstreamStatus >= 500 || upstreamStatus === 429 ? 503 : 502, "upstream", message);
@@ -26,7 +17,7 @@ async function call<T>(path: string, init: { method?: "GET" | "POST"; body?: unk
   if (init.userToken) headers.authorization = `Bearer ${init.userToken}`;
   let response: Response;
   try {
-    response = await transport(url, {
+    response = await fetch(url, {
       method: init.method ?? (init.body === undefined ? "GET" : "POST"),
       headers,
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
@@ -51,7 +42,7 @@ function friendly(message: string): string {
   return message;
 }
 
-export type TokenInfo = { assetId: string; decimals: number; blockchain: string; symbol: string; price: number; contractAddress?: string | null };
+export type TokenInfo = { assetId: string; decimals: number; blockchain: string; symbol: string; price: number; contractAddress?: string | null; coingeckoId?: string | null };
 
 let tokenCache: { at: number; tokens: TokenInfo[] } | null = null;
 export async function tokens(): Promise<TokenInfo[]> {
@@ -144,7 +135,7 @@ export async function bridgeDepositAddress(accountId: string, chain: string): Pr
   for (const mode of ["SIMPLE", "MEMO"]) {
     let response: Response;
     try {
-      response = await transport(config.bridgeRpcUrl, {
+      response = await fetch(config.bridgeRpcUrl, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ jsonrpc: "2.0", id: "scrim", method: "deposit_address", params: [{ account_id: accountId, chain, deposit_mode: mode }] }),

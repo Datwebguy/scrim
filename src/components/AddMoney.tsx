@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "@/client/api";
-import { AssetPicker, CopyField, fmt, Heading, NotSwitchedOn, StateChip, useAssets, type TransferView } from "./money";
+import { NotSwitchedOn } from "./Gates";
+import { AssetPicker, CopyField, fmt, Heading, StateChip, useAssets, type TransferView } from "./money";
 import { Spinner } from "./ui";
 
 export function AddMoney() {
@@ -45,13 +46,13 @@ export function AddMoney() {
         </div>
       ) : (
         <div className="card card-pad form-grid">
-          <div className="between"><h2>Send {transfer.fromAsset.symbol} on {transfer.fromAsset.networkName}</h2><StateChip status={transfer.status} /></div>
+          <div className="between"><h2>Send {transfer.fromAsset.symbol} on {transfer.fromAsset.chainName}</h2><StateChip status={transfer.status} /></div>
           {transfer.deposit && (
             <>
-              <CopyField label={`Your deposit address on ${transfer.deposit.network}`} value={transfer.deposit.address} />
+              <CopyField label={`Your deposit address on ${transfer.deposit.chainName}`} value={transfer.deposit.address} />
               {transfer.deposit.memo && <CopyField label="Memo (required)" value={transfer.deposit.memo} />}
               <ul className="checklist">
-                <li>Send only <b>{transfer.fromAsset.symbol}</b> on the <b>{transfer.fromAsset.networkName}</b> network. Anything else can be lost.</li>
+                <li>Send only <b>{transfer.fromAsset.symbol}</b> on the <b>{transfer.fromAsset.chainName}</b> network. Anything else can be lost.</li>
                 {transfer.deposit.minimum && <li>Minimum: {fmt(transfer.deposit.minimum, transfer.fromAsset.decimals, 0)} {transfer.fromAsset.symbol}. Smaller deposits aren't credited.</li>}
                 <li>Use this address once. Create a new one for your next deposit.</li>
                 <li>It stays open for 24 hours.</li>

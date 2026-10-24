@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
+import { corridorFor, type Corridor } from "@/protocol/corridor";
 import { normalizeNearAccount } from "@/protocol/identifiers";
+import type { Network } from "@/protocol/networks";
 import { audit } from "./audit";
 import type { Session } from "./auth";
-import { config } from "./config";
 import { sql, type Tx } from "./db";
 import { badRequest, forbidden, notFound } from "./errors";
 
@@ -13,7 +14,8 @@ export type Treasury = {
   ownerAccountId: string;
   thresholdRequired: number;
   status: string;
-  network: string;
+  network: Network;
+  unit: Pick<Corridor, "symbol" | "decimals" | "recipientLabel" | "routeLabel">;
   createdAt: Date;
   signers: { accountId: string; role: "owner" | "signer" }[];
 };
@@ -33,7 +35,8 @@ async function hydrate(tx: Tx, rows: TreasuryRow[]): Promise<Treasury[]> {
     ownerAccountId: r.owner_account_id,
     thresholdRequired: r.threshold_required,
     status: r.status,
-    network: r.network,
+    network: r.network as Network,
+    unit: (({ symbol, decimals, recipientLabel, routeLabel }) => ({ symbol, decimals, recipientLabel, routeLabel }))(corridorFor(r.network as Network)),
     createdAt: r.created_at,
     signers: signers.filter((s) => s.treasury_id === r.id).map((s) => ({ accountId: s.account_id, role: s.role })),
   }));
@@ -60,7 +63,7 @@ export async function createTreasury(session: Session, input: CreateTreasuryInpu
     const id = randomUUID();
     const [row] = await tx<TreasuryRow[]>`
       INSERT INTO treasuries (id, name, kind, owner_account_id, threshold_required, network)
-      VALUES (${id}, ${name}, ${input.kind}, ${session.accountId}, ${threshold}, ${config.network}) RETURNING *`;
+      VALUES (${id}, ${name}, ${input.kind}, ${session.accountId}, ${threshold}, ${session.network}) RETURNING *`;
     await tx`INSERT INTO treasury_signers (treasury_id, account_id, role) VALUES (${id}, ${session.accountId}, 'owner')`;
     for (const signer of others) await tx`INSERT INTO treasury_signers (treasury_id, account_id, role) VALUES (${id}, ${signer}, 'signer')`;
     await audit(tx, id, { type: "human", id: session.accountId }, "treasury.created", id, { kind: input.kind, threshold, signers: total });
@@ -71,17 +74,17 @@ export async function createTreasury(session: Session, input: CreateTreasuryInpu
 export async function listTreasuries(session: Session): Promise<Treasury[]> {
   const rows = await sql<TreasuryRow[]>`
     SELECT t.* FROM treasuries t JOIN treasury_signers s ON s.treasury_id = t.id
-    WHERE s.account_id = ${session.accountId} AND t.network = ${config.network} ORDER BY t.created_at`;
+    WHERE s.account_id = ${session.accountId} AND t.network = ${session.network} ORDER BY t.created_at`;
   return hydrate(sql, rows);
 }
 
 // Loads a treasury only when the caller is one of its signers. Non-members get 404, not 403,
 // so treasury IDs do not leak membership.
-export async function treasuryForMember(tx: Tx, accountId: string, treasuryId: string): Promise<{ treasury: Treasury; role: TreasuryRole }> {
+export async function treasuryForMember(tx: Tx, accountId: string, treasuryId: string, network?: string): Promise<{ treasury: Treasury; role: TreasuryRole }> {
   if (!/^[0-9a-f-]{36}$/i.test(treasuryId)) throw notFound("Treasury not found.");
   const rows = await tx<TreasuryRow[]>`
     SELECT t.* FROM treasuries t JOIN treasury_signers s ON s.treasury_id = t.id
-    WHERE t.id = ${treasuryId} AND s.account_id = ${accountId}`;
+    WHERE t.id = ${treasuryId} AND s.account_id = ${accountId} AND (${network ?? null}::text IS NULL OR t.network = ${network ?? null})`;
   if (!rows[0]) throw notFound("Treasury not found.");
   const [treasury] = await hydrate(tx, rows);
   return { treasury, role: treasury.signers.find((s) => s.accountId === accountId)!.role };

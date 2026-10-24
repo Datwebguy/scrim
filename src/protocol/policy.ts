@@ -1,6 +1,6 @@
 // The mandate policy engine. Pure and deterministic: the server calls it before any
 // request can reach approval, and the UI calls the same code to preview a decision.
-import { formatUsdc } from "./amount";
+import { formatAmount } from "./amount";
 import { commitment } from "./canonical";
 
 export type Counterparty = { address: string; label: string };
@@ -22,8 +22,11 @@ export type PolicyDecision = {
   policyCommitment: string;
 };
 
+export type PolicyUnit = { symbol: string; decimals: number };
+
 export type PolicyInput = {
   recipient: string;
+  unit?: PolicyUnit;
   amount: bigint;
   spentInWindow: bigint; // committed spend inside the rolling window, excluding this request
   enabled: boolean;
@@ -44,6 +47,8 @@ export function evaluatePolicy(policy: MandatePolicy, input: PolicyInput): Polic
   const afterSpend = input.spentInWindow + input.amount;
   const match = policy.counterparties.find((c) => c.address === input.recipient);
   const windowLabel = describeWindow(policy.rollingCap.windowSeconds);
+  const unit = input.unit ?? { symbol: "USDC", decimals: 6 };
+  const show = (minor: bigint) => `${formatAmount(minor, unit.decimals)} ${unit.symbol}`;
 
   const checks: PolicyCheck[] = [
     {
@@ -64,12 +69,12 @@ export function evaluatePolicy(policy: MandatePolicy, input: PolicyInput): Polic
     {
       rule: "per_action_cap",
       passed: input.amount > 0n && input.amount <= perAction,
-      detail: `${formatUsdc(input.amount)} against a ${formatUsdc(perAction)} per-action cap.`,
+      detail: `${show(input.amount)} against a ${show(perAction)} per-action cap.`,
     },
     {
       rule: "rolling_cap",
       passed: afterSpend <= rolling,
-      detail: `${formatUsdc(afterSpend)} of ${formatUsdc(rolling)} used in the ${windowLabel} window after this request.`,
+      detail: `${show(afterSpend)} of ${show(rolling)} used in the ${windowLabel} window after this request.`,
     },
   ];
 

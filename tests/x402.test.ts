@@ -6,6 +6,10 @@ import { catalog } from "@/server/assets";
 import { sql } from "@/server/db";
 import { createPayLink } from "@/server/paylinks";
 import { checkToken, decodeHeader, encodeHeader, handleX402, issueToken } from "@/server/x402";
+import { chooseEntry, requestPurchase } from "@/server/x402-client";
+import { createAgent, agentFromApiKey } from "@/server/agents";
+import { createTreasury } from "@/server/treasuries";
+import { safeRequest } from "@/server/safe-fetch";
 import { mainnetImplicitWallet, resetDatabase, signInAs } from "./live";
 
 const hasKey = Boolean(process.env.ONECLICK_API_KEY);
@@ -89,4 +93,34 @@ describe.skipIf(!hasKey)("paying a link over x402 (needs the partner key)", () =
     const bad = await handleX402(code, RES(code), encodeHeader({ x402Version: 2, resource: { url: RES(code) }, accepted, payload: { type: "quote", refundTo: "not-an-address" } }));
     expect(bad.kind === "failed" && "error" in bad.body && bad.body.error).toBe("invalid_exact_near_intents_refund_address");
   });
+});
+
+describe("agents buying over x402", () => {
+  it("never reaches internal addresses or plain http", async () => {
+    expect(await safeRequest("https://localhost/x")).toBeNull();
+    expect(await safeRequest("https://127.0.0.1/x")).toBeNull();
+    expect(await safeRequest("http://example.com/x")).toBeNull();
+  });
+
+  it("asks only for https seller addresses, and only on mainnet teams", async () => {
+    const team = await createTreasury(session, { name: "Buyers", kind: "individual", signers: [], threshold: 1 });
+    const { apiKey } = await createAgent(session, team.id, { name: "Shopper", perActionCap: "5", rollingCap: "20", windowHours: 24, counterparties: [{ address: "https://api.example.com", label: "Example API" }] });
+    const agent = await agentFromApiKey(`Bearer ${apiKey}`);
+    expect(agent.policy.counterparties[0].address).toBe("https://api.example.com");
+    await expect(requestPurchase(agent, "http://api.example.com/data", "buy-0001-plain")).rejects.toThrow(/https/);
+    await expect(requestPurchase(agent, "https://api.example.com/data", "buy-0002-nopay")).rejects.toThrow(/didn't ask for payment|Couldn't reach/);
+  }, 60_000);
+});
+
+describe.skipIf(!hasKey)("choosing how to pay a seller (needs the partner key)", () => {
+  it("picks USDC on Base from a real 402 and can price it", async () => {
+    const usdc = (await catalog()).find((a) => a.symbol === "USDC" && a.chain === "near")!;
+    const code = (await createPayLink(session, { assetId: usdc.assetId, amount: "2", note: "buyer test", days: 1 })).code;
+    const result = await handleX402(code, RES(code), null);
+    if (result.kind !== "required") throw new Error("expected 402");
+    const choice = await chooseEntry(result.body);
+    expect(choice?.entry.network).toBe("eip155:8453");
+    expect(choice?.asset.symbol).toBe("USDC");
+    expect(await chooseEntry({ accepts: [{ ...result.body.accepts[0], extra: { ...result.body.accepts[0].extra, assetTransferMethod: "eip3009" } }] })).toBeNull();
+  }, 60_000);
 });

@@ -7,7 +7,8 @@ import { agentFromApiKey, createAgent, rotateAgentKey, setAgentWebhook } from "@
 import type { Session } from "@/server/auth";
 import { sql } from "@/server/db";
 import { handleMcp } from "@/server/mcp";
-import { deliver, safeWebhookUrl, signWebhook } from "@/server/notify";
+import { deliver, signWebhook } from "@/server/notify";
+import { safePublicUrl } from "@/server/safe-fetch";
 import { createAgentPayment, getAgentPayment } from "@/server/payments";
 import { handleTelegramUpdate } from "@/server/telegram";
 import { createTreasury } from "@/server/treasuries";
@@ -63,9 +64,9 @@ describe("replacing a key", () => {
 
 describe("webhooks", () => {
   it("only accepts public https addresses", () => {
-    expect(safeWebhookUrl("https://agent.example.com/hook")).toBe(true);
+    expect(safePublicUrl("https://agent.example.com/hook")).toBe(true);
     for (const bad of ["http://agent.example.com", "https://localhost/x", "https://127.0.0.1/x", "https://10.1.2.3", "https://192.168.0.5", "https://[::1]/", "https://169.254.169.254/latest", "https://user:pw@example.com"]) {
-      expect(safeWebhookUrl(bad)).toBe(false);
+      expect(safePublicUrl(bad)).toBe(false);
     }
   });
 
@@ -98,7 +99,7 @@ describe("MCP server", () => {
     expect((await call({ jsonrpc: "2.0", method: "notifications/initialized" })).status).toBe(202);
     expect((await call({ jsonrpc: "2.0", id: 2, method: "tools/list" }, "scrim_sk_notakey")).status).toBe(401);
     const tools = (await call({ jsonrpc: "2.0", id: 3, method: "tools/list" })).body as { result: { tools: { name: string }[] } };
-    expect(tools.result.tools.map((t) => t.name)).toEqual(["get_limits", "request_payment", "list_payments", "get_payment"]);
+    expect(tools.result.tools.map((t) => t.name)).toEqual(["get_limits", "request_payment", "pay_x402", "list_payments", "get_payment"]);
   });
 
   it("asks to pay through a tool, and the request follows the same limits", async () => {
@@ -148,7 +149,7 @@ describe("request limits", () => {
   });
 
   it("refuses webhook addresses that lead inside the network", async () => {
-    const { isPrivateAddress } = await import("@/server/notify");
+    const { isPrivateAddress } = await import("@/server/safe-fetch");
     for (const a of ["127.0.0.1", "10.0.0.8", "172.20.1.1", "192.168.1.1", "169.254.169.254", "198.18.0.1", "224.0.0.1", "255.255.255.255", "::1", "::", "fd00::1", "64:ff9b::a00:1"]) expect(isPrivateAddress(a)).toBe(true);
     for (const a of ["8.8.8.8", "93.184.216.34", "2606:4700:4700::1111"]) expect(isPrivateAddress(a)).toBe(false);
   });

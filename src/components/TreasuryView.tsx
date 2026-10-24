@@ -515,7 +515,7 @@ function NewPaymentDialog({ open, treasuryId, unit, onClose, onCreated }: { open
       <form id="new-payment" className="form-grid" onSubmit={submit}>
         <label className="field">
           Recipient<small>{unit.recipientLabel.replace(/^a /, "A ")}</small>
-          <input className="input mono" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder={unit.symbol === "NEAR" ? "account.testnet" : "0x…"} spellCheck={false} autoComplete="off" required />
+          <input className="input mono" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder={unit.symbol === "NEAR" ? "account.testnet" : "0x… or https://api.seller.com"} spellCheck={false} autoComplete="off" required />
         </label>
         <div className="form-row">
           <label className="field">
@@ -743,11 +743,11 @@ function AgentDialog({ state, treasuryId, unit, onClose, onSaved }: { state: { m
         </label>
         <div className="field">
           Approved counterparties
-          <small>{unit.recipientLabel.replace(/^a /, "")}es this agent may pay. Anything else is blocked automatically.</small>
+          <small>{unit.recipientLabel.replace(/^a /, "")}es this agent may pay{unit.symbol === "NEAR" ? "" : ", or https:// sellers it may buy from (x402)"}. Anything else is blocked automatically.</small>
           {counterparties.map((c, i) => (
             <div key={i} className="counterparty-row">
               <input className="input" value={c.label} onChange={(e) => setCounterparties((list) => list.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="Label" maxLength={60} />
-              <input className="input mono" value={c.address} onChange={(e) => setCounterparties((list) => list.map((x, j) => (j === i ? { ...x, address: e.target.value } : x)))} placeholder={unit.symbol === "NEAR" ? "account.testnet" : "0x…"} spellCheck={false} />
+              <input className="input mono" value={c.address} onChange={(e) => setCounterparties((list) => list.map((x, j) => (j === i ? { ...x, address: e.target.value } : x)))} placeholder={unit.symbol === "NEAR" ? "account.testnet" : "0x… or https://api.seller.com"} spellCheck={false} />
               <button type="button" className="icon-btn" aria-label="Remove" onClick={() => setCounterparties((list) => (list.length > 1 ? list.filter((_, j) => j !== i) : [{ address: "", label: "" }]))}>
                 ×
               </button>

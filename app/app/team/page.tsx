@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CreateTreasuryForm } from "@/components/CreateTreasury";
+import { TelegramAlerts } from "@/components/TelegramAlerts";
 import { currentSession } from "@/server/http";
 import { shellTreasuries } from "@/server/workspace";
 
@@ -16,6 +17,7 @@ export default async function TeamPage() {
           <p className="muted" style={{ marginTop: 8, maxWidth: 560 }}>For businesses and groups. Choose who has to approve a payment, set spending limits for people and software that pay on your behalf, and keep a record for your accountant.</p>
         </div>
       </div>
+      {teams.length > 0 && <TelegramAlerts />}
       {teams.length > 0 && (
         <div className="agents-grid" style={{ marginBottom: 24 }}>
           {teams.map((t) => (

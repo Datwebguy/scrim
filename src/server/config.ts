@@ -28,6 +28,18 @@ export const config = {
   get coinGeckoUrl(): string {
     return trim(process.env.COINGECKO_URL) ?? "https://api.coingecko.com/api/v3";
   },
+  // Telegram alerts for approvers. Create a bot with @BotFather and set both values.
+  get telegramBotToken(): string | undefined {
+    return trim(process.env.TELEGRAM_BOT_TOKEN);
+  },
+  get telegramBotUsername(): string | undefined {
+    return trim(process.env.TELEGRAM_BOT_USERNAME)?.replace(/^@/, "");
+  },
+  // Public address of this site, used in alerts and for the Telegram webhook.
+  get siteUrl(): string {
+    const host = trim(process.env.SCRIM_SITE_URL) ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined);
+    return (host ?? "http://localhost:3000").replace(/\/$/, "");
+  },
   sessionTtlSeconds: 12 * 60 * 60,
   challengeTtlSeconds: 5 * 60,
   paymentTtlSeconds: 24 * 60 * 60,

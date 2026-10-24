@@ -80,6 +80,7 @@ Everything runs against real services (NEAR RPC, NEAR Intents, CoinGecko, FastNE
 | `DATABASE_URL` | Postgres |
 | `SCRIM_SECRET_KEY`, `SCRIM_PROOF_KEY` | Seal private records; sign proofs. `npm run keys` makes both. |
 | `ONECLICK_API_KEY` | Free partner key from partners.near-intents.org. Switches on moving money. |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` | Optional. Telegram alerts for approvers |
 | `SCRIM_NETWORKS` | Networks offered: `mainnet,testnet` (default) |
 | `NEAR_RPC_URL_MAINNET/TESTNET`, `NEAR_INDEXER_URL_*`, `COINGECKO_URL` | Optional endpoint overrides |
 
@@ -99,4 +100,4 @@ tests/            protocol and service tests
 
 ## Documents
 
-[PRODUCT.md](PRODUCT.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [BACKEND_SPEC.md](BACKEND_SPEC.md) · [NEAR_TOOLS.md](NEAR_TOOLS.md) · [HACKATHON.md](HACKATHON.md) · [RESEARCH.md](RESEARCH.md)
+[PRODUCT.md](PRODUCT.md) · [AGENTS.md](AGENTS.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [BACKEND_SPEC.md](BACKEND_SPEC.md) · [NEAR_TOOLS.md](NEAR_TOOLS.md) · [HACKATHON.md](HACKATHON.md) · [RESEARCH.md](RESEARCH.md)

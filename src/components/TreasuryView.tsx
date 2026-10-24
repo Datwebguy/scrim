@@ -10,6 +10,7 @@ import type { Agent } from "@/server/agents";
 import type { Payment } from "@/server/payments";
 import type { Treasury, TreasuryRole } from "@/server/treasuries";
 import { useSession } from "./session";
+import { TelegramAlerts } from "./TelegramAlerts";
 import { Initials, Modal, newIdempotencyKey, Spinner, StatusPill, useToast } from "./ui";
 
 type AuditEvent = { id: string; actor_type: string; actor_id: string; action: string; subject_id: string | null; data: Record<string, unknown>; created_at: string };
@@ -29,7 +30,8 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
   const [selected, setSelected] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const [agentDialog, setAgentDialog] = useState<{ mode: "create" } | { mode: "edit"; agent: Agent } | null>(null);
-  const [revealedKey, setRevealedKey] = useState<{ name: string; key: string } | null>(null);
+  const [revealedKey, setRevealedKey] = useState<{ name: string; key: string; renewed?: boolean } | null>(null);
+  const [connecting, setConnecting] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -132,6 +134,8 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
         ))}
       </div>
 
+      <TelegramAlerts />
+
       {tab === "requests" && <Requests payments={payments} treasury={treasury} onOpen={setSelected} onNew={() => setPaying(true)} />}
       {tab === "agents" && (
         <Agents
@@ -141,6 +145,7 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
           unit={treasury.unit}
           onCreate={() => setAgentDialog({ mode: "create" })}
           onEdit={(agent) => setAgentDialog({ mode: "edit", agent })}
+          onConnect={(agent) => setConnecting(agent.id)}
           onToggle={async (agent) => {
             try {
               await api(`/agents/${agent.id}`, { method: "PATCH", body: { enabled: !agent.enabled } });
@@ -184,6 +189,17 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
         }}
       />
       <KeyReveal state={revealedKey} onClose={() => setRevealedKey(null)} />
+      <ConnectDialog
+        agent={agents.find((a) => a.id === connecting) ?? null}
+        role={role}
+        onClose={() => setConnecting(null)}
+        onNewKey={(agent, key) => {
+          setConnecting(null);
+          setRevealedKey({ name: agent.name, key, renewed: true });
+          refresh();
+        }}
+        onChanged={refresh}
+      />
     </>
   );
 }
@@ -526,7 +542,7 @@ function agentUsage(agent: Agent, payments: Payment[]) {
     .reduce((sum, p) => sum + BigInt(p.amount), 0n);
 }
 
-function Agents({ agents, payments, role, unit, onCreate, onEdit, onToggle }: { agents: Agent[]; payments: Payment[]; role: TreasuryRole; unit: Unit; onCreate: () => void; onEdit: (a: Agent) => void; onToggle: (a: Agent) => void }) {
+function Agents({ agents, payments, role, unit, onCreate, onEdit, onToggle, onConnect }: { agents: Agent[]; payments: Payment[]; role: TreasuryRole; unit: Unit; onCreate: () => void; onEdit: (a: Agent) => void; onToggle: (a: Agent) => void; onConnect: (a: Agent) => void }) {
   if (agents.length === 0) {
     return (
       <div className="card empty">
@@ -600,7 +616,10 @@ function Agents({ agents, payments, role, unit, onCreate, onEdit, onToggle }: { 
             </div>
             <footer>
               <code>{agent.keyPrefix}…</code>
-              <span style={{ display: "flex", gap: 6 }}>
+              <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => onConnect(agent)}>
+                  Connect
+                </button>
                 {role === "owner" && (
                   <button className="btn btn-ghost btn-sm" onClick={() => onEdit(agent)}>
                     Edit limits
@@ -743,45 +762,171 @@ function AgentDialog({ state, treasuryId, unit, onClose, onSaved }: { state: { m
   );
 }
 
-function KeyReveal({ state, onClose }: { state: { name: string; key: string } | null; onClose: () => void }) {
-  const [copied, setCopied] = useState(false);
-  const origin = typeof window === "undefined" ? "" : window.location.origin;
+function KeyReveal({ state, onClose }: { state: { name: string; key: string; renewed?: boolean } | null; onClose: () => void }) {
   return (
     <Modal
       open={!!state}
       onClose={onClose}
-      eyebrow="Agent created"
-      title={`${state?.name ?? "Agent"}'s API key`}
+      eyebrow={state?.renewed ? "New key" : "Agent created"}
+      title={`${state?.name ?? "Agent"}'s key`}
       footer={
         <button className="btn btn-primary" onClick={onClose}>
           I&apos;ve stored it
         </button>
       }
     >
-      <div className="notice">This is the only time this key will be shown. Scrim keeps only a hash of it. If you lose it, pause the agent and create a new one.</div>
-      <div className="secret">
-        <span>{state?.key}</span>
-        <button
-          className="btn btn-signal btn-sm"
-          onClick={async () => {
-            await navigator.clipboard.writeText(state?.key ?? "");
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          }}
-        >
-          {copied ? "Copied" : "Copy"}
-        </button>
+      <div className="notice">
+        {state?.renewed ? "The old key has stopped working. " : ""}This is the only time this key is shown. If you lose it, make a new one from Connect.
       </div>
-      <div>
-        <span className="section-label">Try it</span>
-        <div className="code">
-          <pre>{`curl -X POST ${origin}/api/v1/agent/payments \\
-  -H "Authorization: Bearer ${state?.key.slice(0, 14)}…" \\
-  -H "Idempotency-Key: first-request-001" \\
+      <Secret value={state?.key ?? ""} />
+      {state && <ConnectGuide apiKey={state.key} />}
+    </Modal>
+  );
+}
+
+function Secret({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="secret">
+      <span>{value}</span>
+      <button
+        className="btn btn-signal btn-sm"
+        onClick={async () => {
+          await navigator.clipboard.writeText(value);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 1500);
+        }}
+      >
+        {copied ? "Copied" : "Copy"}
+      </button>
+    </div>
+  );
+}
+
+// How to plug an agent in: as a tool for an AI assistant (MCP), or from any code over HTTPS.
+function ConnectGuide({ apiKey }: { apiKey: string }) {
+  const [how, setHow] = useState<"ai" | "code">("ai");
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+  const mcp = JSON.stringify({ mcpServers: { scrim: { type: "http", url: `${origin}/api/mcp`, headers: { Authorization: `Bearer ${apiKey}` } } } }, null, 2);
+  const curl = `curl -X POST ${origin}/api/v1/agent/payments \\
+  -H "Authorization: Bearer ${apiKey}" \\
+  -H "Idempotency-Key: <unique-id>" \\
   -H "Content-Type: application/json" \\
-  -d '{"recipient":"<recipient>","amount":"<amount>","memo":"<what it is for>"}'`}</pre>
-        </div>
+  -d '{"recipient":"<recipient>","amount":"<amount>","memo":"<what it is for>"}'`;
+  return (
+    <div className="connect-guide">
+      <div className="seg" role="tablist">
+        <button role="tab" aria-selected={how === "ai"} onClick={() => setHow("ai")}>AI assistant</button>
+        <button role="tab" aria-selected={how === "code"} onClick={() => setHow("code")}>Your code</button>
       </div>
+      {how === "ai" ? (
+        <>
+          <p className="muted">Add Scrim as a tool (MCP server) in Claude or any assistant that supports MCP. It can check its limits and ask to pay. People still approve.</p>
+          <div className="code"><pre>{mcp}</pre></div>
+        </>
+      ) : (
+        <>
+          <p className="muted">Ask to pay from any program. Check its limits with GET /api/v1/agent and a request with GET /api/v1/agent/payments/&lt;id&gt;.</p>
+          <div className="code"><pre>{curl}</pre></div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ConnectDialog({ agent, role, onClose, onNewKey, onChanged }: { agent: Agent | null; role: TreasuryRole; onClose: () => void; onNewKey: (agent: Agent, key: string) => void; onChanged: () => void }) {
+  const toast = useToast();
+  const [url, setUrl] = useState("");
+  const [secret, setSecret] = useState<string | null>(null);
+  const [busy, setBusy] = useState("");
+  const owner = role === "owner";
+
+  useEffect(() => {
+    setUrl(agent?.webhookUrl ?? "");
+    setSecret(null);
+  }, [agent?.id, agent?.webhookUrl]);
+
+  if (!agent) return null;
+
+  const rotate = async () => {
+    if (!confirm(`Make a new key for ${agent.name}? The current key stops working right away.`)) return;
+    setBusy("key");
+    try {
+      const result = await api<{ agent: Agent; apiKey: string }>(`/agents/${agent.id}/key`, { method: "POST" });
+      onNewKey(result.agent, result.apiKey);
+    } catch (e) {
+      toast((e as Error).message, "error");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const saveWebhook = async (value: string | null) => {
+    setBusy("hook");
+    try {
+      const result = await api<{ agent: Agent; signingSecret: string | null }>(`/agents/${agent.id}/webhook`, { method: "PUT", body: { url: value } });
+      setSecret(result.signingSecret);
+      if (!value) setUrl("");
+      toast(value ? "Updates will be sent to this address" : "Updates turned off");
+      onChanged();
+    } catch (e) {
+      toast((e as Error).message, "error");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const last = agent.lastDelivery;
+  return (
+    <Modal open onClose={onClose} eyebrow="Connect" title={`Connect ${agent.name}`}>
+      <section className="connect-block">
+        <span className="section-label">Key</span>
+        <div className="connect-row">
+          <code>{agent.keyPrefix}…</code>
+          <small className="muted">{agent.keyRotatedAt ? `Replaced ${relativeTime(agent.keyRotatedAt)}` : `Made ${relativeTime(agent.createdAt)}`}</small>
+          {owner && (
+            <button className="btn btn-ghost btn-sm" disabled={!!busy} onClick={rotate}>
+              {busy === "key" ? <Spinner /> : "Make a new key"}
+            </button>
+          )}
+        </div>
+        <p className="muted">The key lets this agent ask to pay within its limits. It can&apos;t approve or move money. Lost or leaked? Make a new one.</p>
+      </section>
+
+      <section className="connect-block">
+        <span className="section-label">Updates to your agent</span>
+        <p className="muted">Scrim calls this address when a request is approved, paid, stopped or cancelled, so the agent doesn&apos;t have to keep checking.</p>
+        <div className="connect-row">
+          <input className="input" placeholder="https://your-agent.example/scrim" value={url} disabled={!owner} onChange={(e) => setUrl(e.target.value)} />
+          {owner && (
+            <button className="btn btn-primary btn-sm" disabled={!!busy || !url.trim()} onClick={() => saveWebhook(url.trim())}>
+              {busy === "hook" ? <Spinner /> : "Save"}
+            </button>
+          )}
+          {owner && agent.webhookUrl && (
+            <button className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => saveWebhook(null)}>
+              Remove
+            </button>
+          )}
+        </div>
+        {secret && (
+          <>
+            <div className="notice">Signing secret, shown once. Use it to check the Scrim-Signature header on each update.</div>
+            <Secret value={secret} />
+          </>
+        )}
+        {last && (
+          <small className={last.ok ? "ok-text" : "bad-text"}>
+            Last update: {last.event.replace("payment.", "")} · {last.ok ? "delivered" : `not delivered${last.statusCode ? ` (${last.statusCode})` : ""}`} · {relativeTime(last.at)}
+          </small>
+        )}
+      </section>
+
+      <section className="connect-block">
+        <span className="section-label">Plug it in</span>
+        <ConnectGuide apiKey={`${agent.keyPrefix}…`} />
+        <small className="muted">Use the full key you saved in place of {agent.keyPrefix}…</small>
+      </section>
     </Modal>
   );
 }

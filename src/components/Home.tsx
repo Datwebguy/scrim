@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
 import { turnOnPrivateMode, unlockPrivateBalance } from "@/client/wallet";
 import { NotSwitchedOn } from "./Gates";
@@ -25,23 +26,47 @@ export function Home() {
   const [view, setView] = useState<"you" | "public">("you");
   const [busy, setBusy] = useState(false);
   const needsSetup = data?.status === "needs_setup";
-  const { data: wallet } = useApi<{ holdings: { id: string; amount: string }[] }>(needsSetup ? "/wallet" : null, { every: 20_000 });
-  const nativeBalance = wallet ? BigInt(wallet.holdings.find((h) => h.id === "near")?.amount ?? "0") : null;
+  const { data: wallet, reload: recheck } = useApi<{ holdings: { id: string; amount: string; display: string }[] }>(needsSetup ? "/wallet" : null, { every: 15_000 });
+  const near = wallet?.holdings.find((h) => h.id === "near");
+  const nativeBalance = near ? BigInt(near.amount) : null;
   const tooLow = nativeBalance !== null && nativeBalance < SETUP_MIN_NEAR;
+  const [setupError, setSetupError] = useState("");
+  const [checking, setChecking] = useState(false);
 
   async function unlock(setup = false) {
     setBusy(true);
+    setSetupError("");
     try {
-      if (setup && data?.publicKey) await turnOnPrivateMode(network, data.publicKey);
+      if (setup) {
+        // Check again first: an earlier attempt may have registered the wallet even if the page didn't hear back.
+        const fresh = await api<Overview>("/private");
+        if (fresh.status === "needs_setup" && fresh.publicKey) await turnOnPrivateMode(network, fresh.publicKey);
+      }
       await unlockPrivateBalance(network, accountId);
       toast("Private balance unlocked");
       await reload();
       router.refresh();
     } catch (e) {
       const message = e instanceof Error ? e.message : "";
-      toast(/enough balance/i.test(message) ? "Your wallet needs a little more NEAR for the network fee. Add some and try again." : message || "That didn't work. Try again.", "error");
+      const friendly = /enough balance/i.test(message)
+        ? "Your wallet needs a little more NEAR for the network fee. Add some, then tap Try again."
+        : /reject|cancel|denied|declin/i.test(message)
+          ? "You cancelled it in your wallet. Tap Try again when you're ready."
+          : message || "That didn't go through. Tap Try again.";
+      if (setup) setSetupError(friendly);
+      else toast(friendly, "error");
+      if (setup) void recheck();
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function checkAgain() {
+    setChecking(true);
+    try {
+      await Promise.all([recheck(), reload()]);
+    } finally {
+      setChecking(false);
     }
   }
 
@@ -61,12 +86,17 @@ export function Home() {
             <>
               <h2>One quick step to turn on private mode</h2>
               <p className="muted">Your wallet is registered once so it can hold private money. You approve one transaction in your wallet. The small fee goes to the NEAR network, not to Scrim, and you only pay it this once.</p>
+              {near && <p className="muted">{accountId} has <b>{near.display} NEAR</b>.</p>}
               {tooLow && (
                 <div className="notice info">
-                  <b>Add a little NEAR first.</b> {accountId} needs about 0.1 NEAR in it to cover the network fee. The fee itself is under 0.01 NEAR. Send some NEAR to this account from an exchange or another wallet, then come back.
+                  <b>Add a little NEAR first.</b> This account needs about 0.1 NEAR in it to cover the network fee. The fee itself is under 0.01 NEAR. Send some NEAR to {accountId} from an exchange or another wallet. This page updates by itself, or tap Check again.
                 </div>
               )}
-              <button className="btn btn-signal btn-lg" onClick={() => unlock(true)} disabled={busy || tooLow}>{busy && <Spinner />} Turn on private mode</button>
+              {setupError && <p className="form-error" role="alert">{setupError}</p>}
+              <div className="gate-actions">
+                <button className="btn btn-signal btn-lg" onClick={() => unlock(true)} disabled={busy}>{busy && <Spinner />} {setupError ? "Try again" : tooLow ? "Try anyway" : "Turn on private mode"}</button>
+                <button className="btn btn-ghost btn-lg" onClick={checkAgain} disabled={busy || checking}>{checking && <Spinner />} Check again</button>
+              </div>
             </>
           ) : data.status === "unavailable" ? (
             <>

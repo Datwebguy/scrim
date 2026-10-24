@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { NETWORK_INFO, type Network } from "@/protocol/networks";
+import { AccountMenu } from "./AccountMenu";
 import { SessionProvider, useSwitchNetwork } from "./session";
 import { Initials, ToastProvider } from "./ui";
 
@@ -58,14 +59,14 @@ function Frame({ accountId, network, otherNetworks, teamPending, children }: { a
                 <div style={{ minWidth: 0 }}><b title={accountId}>{short}</b><small>{network === "mainnet" ? "Private account" : "Practice account"}</small></div>
               </div>
               {otherNetworks.map((n) => <button key={n} onClick={() => leave(n)}>Switch to {NETWORK_INFO[n].label.toLowerCase()}</button>)}
-              <button onClick={() => leave()}>Sign out</button>
+              <button onClick={() => leave()}>Disconnect wallet</button>
             </div>
           </aside>
           <div className="ws-main">
             <div className="ws-top">
               <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" style={{ width: 24, height: 24 }} />scrim</Link>
               <span className="ws-top-actions">
-                {otherNetworks.map((n) => <button key={n} onClick={() => leave(n)}>Use {NETWORK_INFO[n].label.toLowerCase()}</button>)}
+                <AccountMenu />
                 <button onClick={() => setOpen((v) => !v)} aria-expanded={open}>{open ? "Close" : "Menu"}</button>
               </span>
             </div>

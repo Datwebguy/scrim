@@ -18,6 +18,7 @@ import { config } from "./config";
 import { sql } from "./db";
 import { badRequest, conflict, HttpError, notFound } from "./errors";
 import * as oneclick from "./oneclick";
+import { emitPaymentEvent } from "./notify";
 import { approvedTeamRequest, markTeamRequest } from "./payments";
 import { privateAccessToken, toIntentsSignature } from "./private-access";
 import { open, seal } from "./secrets";
@@ -285,7 +286,10 @@ export async function submitSigned(session: Session, id: string, signed: { publi
       signature: toIntentsSignature(signed.signature),
     });
     await save(row.id, row.account_id, "processing", details, { intentHash });
-    if (row.team_request_id) await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "submitting", { type: "human", id: session.accountId }));
+    if (row.team_request_id) {
+      await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "submitting", { type: "human", id: session.accountId }));
+      emitPaymentEvent(row.team_request_id, "payment.submitting");
+    }
     await sql.begin((tx) => audit(tx, null, { type: "human", id: session.accountId }, `transfer.${row.kind}.submitted`, id));
   } catch (error) {
     await save(row.id, row.account_id, "failed", details);
@@ -322,6 +326,7 @@ export async function refreshRow(row: Row): Promise<Transfer> {
         if (row.team_request_id) {
           const outcome = ended === "success" ? "settled" : ended === "refunded" ? "approved" : "failed";
           await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, outcome, { type: "system", id: "intents" }));
+          emitPaymentEvent(row.team_request_id, `payment.${outcome}`);
         }
         if (row.pay_link_id && ended === "success") await sql`UPDATE pay_links SET status = 'paid' WHERE id = ${row.pay_link_id} AND status = 'open'`;
       } else if (s.status === "PROCESSING" && row.status === "awaiting_deposit") {

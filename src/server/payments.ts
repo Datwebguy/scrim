@@ -12,6 +12,7 @@ import { config } from "./config";
 import { sql, type Tx } from "./db";
 import { badRequest, conflict, forbidden, notFound } from "./errors";
 import { finalTransaction } from "./near-rpc";
+import { emitPaymentEvent } from "./notify";
 import { treasuryForMember, type Treasury } from "./treasuries";
 
 export type PaymentStatus = "policy_rejected" | "awaiting_approval" | "approved" | "quoted" | "submitting" | "settled" | "failed" | "expired" | "cancelled";
@@ -130,31 +131,45 @@ async function insertPayment(tx: Tx, treasury: Treasury, actor: Actor, agent: Ag
     ...(decision ? { failedRules: decision.checks.filter((c) => !c.passed).map((c) => c.rule) } : {}),
   });
   const [row] = await tx<PaymentRow[]>`${selectPayments(tx)} WHERE p.id = ${id}`;
-  return (await hydrate(tx, [row]))[0];
+  return { ...(await hydrate(tx, [row]))[0], fresh: true } as Payment;
 }
 
 export async function createHumanPayment(session: Session, treasuryId: string, input: CreatePaymentInput): Promise<Payment> {
-  return sql.begin(async (tx) => {
+  return announceNew(await sql.begin(async (tx) => {
     const { treasury } = await treasuryForMember(tx, session.accountId, treasuryId, session.network);
     if (treasury.status !== "active") throw forbidden("This treasury is not accepting payment requests.");
     return insertPayment(tx, treasury, { type: "human", id: session.accountId }, null, input);
-  });
+  }));
 }
 
 export async function createAgentPayment(agent: Agent, input: CreatePaymentInput): Promise<Payment> {
   if (agent.mode !== "request_only") throw forbidden("Autonomous execution is not enabled for this release.");
-  return sql.begin(async (tx) => {
+  return announceNew(await sql.begin(async (tx) => {
     const [row] = await tx<{ id: string; status: string; owner_account_id: string }[]>`SELECT id, status, owner_account_id FROM treasuries WHERE id = ${agent.treasuryId}`;
     const { treasury } = await treasuryForMember(tx, row.owner_account_id, row.id);
     if (treasury.status !== "active") throw forbidden("This treasury is not accepting payment requests.");
     return insertPayment(tx, treasury, { type: "agent", id: agent.id }, agent, input);
-  });
+  }));
+}
+
+// Only a newly created request is announced; a repeat with the same Idempotency-Key is not.
+function announceNew(payment: Payment & { fresh?: boolean }): Payment {
+  if (payment.fresh) emitPaymentEvent(payment.id, payment.status === "policy_rejected" ? "payment.policy_rejected" : "payment.requested");
+  delete payment.fresh;
+  return payment;
 }
 
 export async function listPayments(session: Session, treasuryId: string): Promise<Payment[]> {
   await treasuryForMember(sql, session.accountId, treasuryId, session.network);
   const rows = await sql<PaymentRow[]>`${selectPayments(sql)} WHERE p.treasury_id = ${treasuryId} ORDER BY p.created_at DESC LIMIT 200`;
   return hydrate(sql, rows);
+}
+
+export async function getAgentPayment(agent: Agent, paymentId: string): Promise<Payment> {
+  if (!/^[0-9a-f-]{36}$/i.test(paymentId)) throw notFound("Payment request not found.");
+  const [row] = await sql<PaymentRow[]>`${selectPayments(sql)} WHERE p.id = ${paymentId} AND p.agent_id = ${agent.id}`;
+  if (!row) throw notFound("Payment request not found.");
+  return (await hydrate(sql, [row]))[0];
 }
 
 export async function listAgentPayments(agent: Agent): Promise<Payment[]> {
@@ -209,7 +224,7 @@ export async function createApprovalChallenge(session: Session, paymentId: strin
 }
 
 export async function approvePayment(session: Session, paymentId: string, envelope: SignedEnvelope): Promise<Payment> {
-  return sql.begin(async (tx) => {
+  const payment = await sql.begin(async (tx) => {
     const { payment, treasury } = await paymentForMember(tx, session, paymentId, true);
     if (payment.status !== "awaiting_approval") throw conflict(`This request is ${payment.status.replace("_", " ")} and cannot be approved.`);
     if (envelope.accountId !== session.accountId) throw forbidden("Approve with the account you signed in with.");
@@ -229,16 +244,20 @@ export async function approvePayment(session: Session, paymentId: string, envelo
     });
     return (await paymentForMember(tx, session, paymentId)).payment;
   });
+  if (payment.status === "approved") emitPaymentEvent(payment.id, "payment.approved");
+  return payment;
 }
 
 export async function cancelPayment(session: Session, paymentId: string): Promise<Payment> {
-  return sql.begin(async (tx) => {
+  const cancelled = await sql.begin(async (tx) => {
     const { payment, treasury } = await paymentForMember(tx, session, paymentId, true);
     if (!["awaiting_approval", "approved", "quoted"].includes(payment.status)) throw conflict("This request can no longer be cancelled.");
     await tx`UPDATE payment_requests SET status = 'cancelled', updated_at = now() WHERE id = ${payment.id}`;
     await audit(tx, treasury.id, { type: "human", id: session.accountId }, "payment.cancelled", payment.id);
     return (await paymentForMember(tx, session, paymentId)).payment;
   });
+  emitPaymentEvent(cancelled.id, "payment.cancelled");
+  return cancelled;
 }
 
 // Links an approved team request to the private transfer that pays it, and records the outcome.
@@ -284,5 +303,6 @@ export async function recordTestnetPayout(session: Session, requestId: string, t
     if (done.length !== 1) throw conflict("This request was already paid.");
     await audit(tx, payment.treasuryId, { type: "human", id: session.accountId }, "payment.settled", payment.id, { txHash, network: "testnet" });
   });
+  emitPaymentEvent(payment.id, "payment.settled");
   return (await paymentForMember(sql, session, requestId)).payment;
 }

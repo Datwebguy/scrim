@@ -8,6 +8,8 @@ import { audit } from "./audit";
 import type { Session } from "./auth";
 import { sql, type Tx } from "./db";
 import { badRequest, notFound, unauthorized } from "./errors";
+import { safeWebhookUrl } from "./notify";
+import { seal } from "./secrets";
 import { requireOwner, treasuryForMember } from "./treasuries";
 
 export type Agent = {
@@ -20,6 +22,9 @@ export type Agent = {
   createdAt: Date;
   policy: MandatePolicy;
   policyCommitment: string;
+  webhookUrl: string | null;
+  keyRotatedAt: Date | null;
+  lastDelivery: { event: string; ok: boolean; statusCode: number | null; at: Date } | null;
 };
 
 export type MandateInput = {
@@ -31,6 +36,7 @@ export type MandateInput = {
 };
 
 const hashKey = (key: string) => createHash("sha256").update(key).digest();
+const newApiKey = () => `scrim_sk_${bs58.encode(randomBytes(32))}`;
 
 function buildPolicy(input: MandateInput, version: number, corridor: Corridor): MandatePolicy {
   let perAction: bigint, rolling: bigint;
@@ -69,7 +75,10 @@ function buildPolicy(input: MandateInput, version: number, corridor: Corridor): 
   };
 }
 
-type AgentRow = { id: string; treasury_id: string; name: string; mode: Agent["mode"]; enabled: boolean; key_prefix: string; created_at: Date; policy: MandatePolicy; commitment: string };
+type AgentRow = {
+  id: string; treasury_id: string; name: string; mode: Agent["mode"]; enabled: boolean; key_prefix: string; created_at: Date; policy: MandatePolicy; commitment: string;
+  webhook_url: string | null; key_rotated_at: Date | null; d_event: string | null; d_ok: boolean | null; d_status: number | null; d_at: Date | null;
+};
 
 const toAgent = (r: AgentRow): Agent => ({
   id: r.id,
@@ -81,11 +90,16 @@ const toAgent = (r: AgentRow): Agent => ({
   createdAt: r.created_at,
   policy: r.policy,
   policyCommitment: r.commitment,
+  webhookUrl: r.webhook_url,
+  keyRotatedAt: r.key_rotated_at,
+  lastDelivery: r.d_event ? { event: r.d_event, ok: Boolean(r.d_ok), statusCode: r.d_status, at: r.d_at! } : null,
 });
 
 const selectAgents = (tx: Tx) => tx`
-  SELECT a.id, a.treasury_id, a.name, a.mode, a.enabled, a.key_prefix, a.created_at, p.policy, p.commitment
-  FROM agents a JOIN agent_policies p ON p.agent_id = a.id AND p.version = a.policy_version`;
+  SELECT a.id, a.treasury_id, a.name, a.mode, a.enabled, a.key_prefix, a.created_at, p.policy, p.commitment, a.webhook_url, a.key_rotated_at,
+         d.event AS d_event, d.ok AS d_ok, d.status_code AS d_status, d.created_at AS d_at
+  FROM agents a JOIN agent_policies p ON p.agent_id = a.id AND p.version = a.policy_version
+  LEFT JOIN LATERAL (SELECT event, ok, status_code, created_at FROM webhook_deliveries w WHERE w.agent_id = a.id ORDER BY w.id DESC LIMIT 1) d ON true`;
 
 export async function createAgent(session: Session, treasuryId: string, input: { name: string } & MandateInput): Promise<{ agent: Agent; apiKey: string }> {
   const name = input.name.trim();
@@ -95,7 +109,7 @@ export async function createAgent(session: Session, treasuryId: string, input: {
     requireOwner(role);
     const policy = buildPolicy(input, 1, corridorFor(treasury.network));
     const id = randomUUID();
-    const apiKey = `scrim_sk_${bs58.encode(randomBytes(32))}`;
+    const apiKey = newApiKey();
     const commitment = policyCommitment(policy);
     await tx`
       INSERT INTO agents (id, treasury_id, name, policy_version, key_prefix, key_hash, created_by)
@@ -159,4 +173,37 @@ export async function agentSpendInWindow(tx: Tx, agentId: string, windowSeconds:
       AND created_at > now() - make_interval(secs => ${windowSeconds})
       AND status NOT IN ('policy_rejected', 'cancelled', 'expired', 'failed')`;
   return BigInt(row?.total ?? "0");
+}
+
+// Issues a new key and stops the old one at once. Only the owner can do this.
+export async function rotateAgentKey(session: Session, agentId: string): Promise<{ agent: Agent; apiKey: string }> {
+  return sql.begin(async (tx) => {
+    const [current] = await tx<{ treasury_id: string }[]>`SELECT treasury_id FROM agents WHERE id = ${agentId} FOR UPDATE`;
+    if (!current) throw notFound("Agent not found.");
+    const { role } = await treasuryForMember(tx, session.accountId, current.treasury_id, session.network);
+    requireOwner(role);
+    const apiKey = newApiKey();
+    await tx`UPDATE agents SET key_prefix = ${apiKey.slice(0, 14)}, key_hash = ${hashKey(apiKey)}, key_rotated_at = now() WHERE id = ${agentId}`;
+    await audit(tx, current.treasury_id, { type: "human", id: session.accountId }, "agent.key_rotated", agentId, { keyPrefix: apiKey.slice(0, 14) });
+    const [row] = await tx<AgentRow[]>`${selectAgents(tx)} WHERE a.id = ${agentId}`;
+    return { agent: toAgent(row), apiKey };
+  });
+}
+
+// Sets (or clears, with null) the address Scrim calls when this agent's requests change.
+// Returns a new signing secret, shown once, whenever a URL is set.
+export async function setAgentWebhook(session: Session, agentId: string, url: string | null): Promise<{ agent: Agent; signingSecret: string | null }> {
+  const clean = url?.trim() || null;
+  if (clean && (clean.length > 500 || !safeWebhookUrl(clean))) throw badRequest("Use a public https:// address.");
+  return sql.begin(async (tx) => {
+    const [current] = await tx<{ treasury_id: string }[]>`SELECT treasury_id FROM agents WHERE id = ${agentId} FOR UPDATE`;
+    if (!current) throw notFound("Agent not found.");
+    const { role } = await treasuryForMember(tx, session.accountId, current.treasury_id, session.network);
+    requireOwner(role);
+    const signingSecret = clean ? `whsec_${bs58.encode(randomBytes(32))}` : null;
+    await tx`UPDATE agents SET webhook_url = ${clean}, webhook_secret = ${signingSecret ? seal(signingSecret, `agent-webhook:${agentId}`) : null} WHERE id = ${agentId}`;
+    await audit(tx, current.treasury_id, { type: "human", id: session.accountId }, clean ? "agent.webhook_set" : "agent.webhook_removed", agentId, clean ? { url: clean } : {});
+    const [row] = await tx<AgentRow[]>`${selectAgents(tx)} WHERE a.id = ${agentId}`;
+    return { agent: toAgent(row), signingSecret };
+  });
 }

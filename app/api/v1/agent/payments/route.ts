@@ -1,3 +1,4 @@
+import { agentView } from "@/server/agent-api";
 import { agentFromApiKey } from "@/server/agents";
 import { readJson, route } from "@/server/http";
 import { createAgentPayment, listAgentPayments } from "@/server/payments";
@@ -13,11 +14,10 @@ export const POST = route(async (request) => {
     memo: String(body.memo ?? ""),
     idempotencyKey: request.headers.get("idempotency-key") ?? "",
   });
-  const { approvals: _approvals, ...visible } = payment;
-  return { payment: visible };
+  return { payment: agentView(payment) };
 }, { browser: false });
 
 export const GET = route(async (request) => {
   const agent = await agentFromApiKey(request.headers.get("authorization"));
-  return { payments: (await listAgentPayments(agent)).map(({ approvals: _a, ...p }) => p) };
+  return { payments: (await listAgentPayments(agent)).map(agentView) };
 }, { browser: false });

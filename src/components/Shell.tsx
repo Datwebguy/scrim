@@ -40,13 +40,11 @@ function Frame({ accountId, network, otherNetworks, teamPending, children }: { a
           <aside className={`ws-side ${open ? "open" : ""}`}>
             <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" />scrim</Link>
             <nav aria-label="Main" style={{ display: "grid", gap: 4 }}>
-              {NAV.map((item) => {
+              {NAV.filter((item) => !item.privateMoney || info.privateMoney).map((item) => {
                 const active = item.match ? item.match(pathname) : pathname === item.href || pathname.startsWith(`${item.href}/`);
-                const unavailable = item.privateMoney && !info.privateMoney;
                 return (
                   <Link key={item.href} href={item.href} className={`ws-link ${active ? "active" : ""}`} onClick={() => setOpen(false)} aria-current={active ? "page" : undefined}>
-                    <span style={unavailable ? { opacity: 0.55 } : undefined}>{item.label}</span>
-                    {unavailable && <small>mainnet</small>}
+                    <span>{item.label}</span>
                     {item.href === "/app/team" && teamPending > 0 && <span className="count" title="Waiting for you">{teamPending}</span>}
                   </Link>
                 );

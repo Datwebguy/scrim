@@ -18,7 +18,7 @@ export function TestnetHome() {
 
   return (
     <>
-      <Heading eyebrow="Home" title="Your testnet wallet" text="Practice with free test coins. Everything here is real testnet data read from the blockchain, and nothing is private or worth money." />
+      <Heading eyebrow="Home" title="Your testnet wallet" text="Practice with free test coins." />
       <section className="balance-hero" aria-label="Testnet balance">
         <div className="balance-body">
           <span className="muted-on-dark">Test NEAR</span>
@@ -45,7 +45,9 @@ export function TestnetHome() {
           {data && data.holdings.length === 1 && native && native.display === "0.00" && <li><span /><span><b>No test coins yet</b><small>Get free test NEAR from the <a href="https://near-faucet.io" target="_blank" rel="noreferrer">NEAR testnet faucet ↗</a>, then come back.</small></span><span /></li>}
         </ul>
       </section>
-      <div className="notice info" style={{ marginTop: 16 }}>Adding money, swaps, payment links and proofs need NEAR Intents, which only exists on mainnet. Team approvals, spending limits and real NEAR transfers all work here.{otherNetworks.includes("mainnet") && <> Ready for the real thing? <button type="button" className="link-btn" onClick={() => switchNetwork("mainnet")}>Use mainnet</button></>}</div>
+      {otherNetworks.includes("mainnet") && (
+        <p className="fine" style={{ marginTop: 16 }}>Ready for the real thing? <button type="button" className="link-btn" onClick={() => switchNetwork("mainnet")}>Use mainnet</button></p>
+      )}
     </>
   );
 }

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
 import { turnOnPrivateMode, unlockPrivateBalance } from "@/client/wallet";
-import { NotSwitchedOn } from "./Gates";
 import { fmt, Heading, KIND_LABEL, StateChip, TokenLogo, usd, type TransferView } from "./money";
 import { useSession, useSwitchNetwork } from "./session";
 import { Spinner, useToast } from "./ui";
@@ -76,7 +75,6 @@ export function Home() {
   return (
     <>
       <Heading eyebrow="Home" title="Your private money" />
-      <NotSwitchedOn />
 
       {loading && !data && <div className="skeleton" />}
 
@@ -100,8 +98,8 @@ export function Home() {
             </>
           ) : data.status === "unavailable" ? (
             <>
-              <h2>Private mode isn't available right now</h2>
-              <p className="muted">{data.detail ?? "We couldn't reach the private network. Your money is safe. Try again in a moment."}</p>
+              <h2>Can't reach your private balance</h2>
+              <p className="muted">Your money is safe. Try again in a moment.</p>
               <button className="btn btn-primary" onClick={() => unlock()} disabled={busy}>{busy && <Spinner />} Try again</button>
             </>
           ) : (

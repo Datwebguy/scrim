@@ -147,13 +147,3 @@ export function Heading({ eyebrow, title, text }: { eyebrow: string; title: stri
     </div>
   );
 }
-
-// What each network can do right now, as reported by the service.
-export type NetworkCapabilities = { enabled: boolean; signIn: boolean; teams: boolean; privateBalance: boolean; movingMoney: boolean; paymentLinks: boolean; proofs: boolean };
-export function useCapabilities(network: string): NetworkCapabilities | null {
-  const [caps, setCaps] = useState<NetworkCapabilities | null>(null);
-  useEffect(() => {
-    fetch("/api/health").then((r) => r.json()).then((h) => setCaps(h.networks?.[network] ?? null)).catch(() => setCaps(null));
-  }, [network]);
-  return caps;
-}

@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
-import { NotSwitchedOn } from "./Gates";
 import { AssetPicker, CopyField, Heading, useAssets } from "./money";
 import { Spinner, useToast } from "./ui";
 
@@ -41,7 +40,6 @@ export function Requests() {
   return (
     <div className="narrow">
       <Heading eyebrow="Get paid" title="Ask for money with a link" text="Share a link. Whoever opens it can pay from any chain, with no account. The money goes straight into your private balance." />
-      <NotSwitchedOn />
       {fresh ? (
         <div className="card card-pad form-grid">
           <h2>Your link is ready</h2>

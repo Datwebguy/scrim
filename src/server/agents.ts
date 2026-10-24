@@ -2,13 +2,13 @@ import { randomBytes, randomUUID, createHash } from "node:crypto";
 import bs58 from "bs58";
 import { parseAmount } from "@/protocol/amount";
 import { corridorFor, type Corridor } from "@/protocol/corridor";
-import { normalizeEvmAddress, normalizeNearAccount } from "@/protocol/identifiers";
+import { normalizeEvmAddress, normalizeNearAccount, normalizeOrigin } from "@/protocol/identifiers";
 import { policyCommitment, type MandatePolicy } from "@/protocol/policy";
 import { audit } from "./audit";
 import type { Session } from "./auth";
 import { sql, type Tx } from "./db";
 import { badRequest, notFound, unauthorized } from "./errors";
-import { safeWebhookUrl } from "./notify";
+import { safePublicUrl } from "./safe-fetch";
 import { seal } from "./secrets";
 import { requireOwner, treasuryForMember } from "./treasuries";
 
@@ -53,8 +53,10 @@ function buildPolicy(input: MandateInput, version: number, corridor: Corridor): 
   if (input.counterparties.length > 100) throw badRequest("At most 100 counterparties per mandate.");
   const seen = new Set<string>();
   const counterparties = input.counterparties.map(({ address, label }) => {
-    const normalized = corridor.recipient === "evm" ? normalizeEvmAddress(address) : normalizeNearAccount(address);
-    if (!normalized) throw badRequest(`"${address}" is not ${corridor.recipientLabel}.`);
+    // A recipient is an address on the team's network, or an x402 seller's web address.
+    const normalized = (address.trim().startsWith("https://") ? normalizeOrigin(address) : null)
+      ?? (corridor.recipient === "evm" ? normalizeEvmAddress(address) : normalizeNearAccount(address));
+    if (!normalized) throw badRequest(`"${address}" is not ${corridor.recipientLabel} or an https:// seller address.`);
     if (seen.has(normalized)) throw badRequest(`${address} is listed twice.`);
     seen.add(normalized);
     const name = (label ?? "").trim().slice(0, 60);
@@ -194,7 +196,7 @@ export async function rotateAgentKey(session: Session, agentId: string): Promise
 // Returns a new signing secret, shown once, whenever a URL is set.
 export async function setAgentWebhook(session: Session, agentId: string, url: string | null): Promise<{ agent: Agent; signingSecret: string | null }> {
   const clean = url?.trim() || null;
-  if (clean && (clean.length > 500 || !safeWebhookUrl(clean))) throw badRequest("Use a public https:// address.");
+  if (clean && (clean.length > 500 || !safePublicUrl(clean))) throw badRequest("Use a public https:// address.");
   return sql.begin(async (tx) => {
     const [current] = await tx<{ treasury_id: string }[]>`SELECT treasury_id FROM agents WHERE id = ${agentId} FOR UPDATE`;
     if (!current) throw notFound("Agent not found.");

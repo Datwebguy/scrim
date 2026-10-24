@@ -10,3 +10,13 @@ export function normalizeEvmAddress(input: string): string | null {
   const address = input.trim();
   return EVM_ADDRESS.test(address) ? address.toLowerCase() : null;
 }
+
+// An x402 seller is identified by its web origin, e.g. "https://api.example.com".
+export function normalizeOrigin(input: string): string | null {
+  try {
+    const url = new URL(input.trim());
+    return url.protocol === "https:" && !url.username && !url.password ? url.origin.toLowerCase() : null;
+  } catch {
+    return null;
+  }
+}

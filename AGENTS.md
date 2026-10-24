@@ -16,7 +16,7 @@ Scrim is an MCP server at `https://<your-site>/api/mcp` (Streamable HTTP).
 { "mcpServers": { "scrim": { "type": "http", "url": "https://<your-site>/api/mcp", "headers": { "Authorization": "Bearer scrim_sk_…" } } } }
 ```
 
-Tools: `get_limits`, `request_payment`, `list_payments`, `get_payment`.
+Tools: `get_limits`, `request_payment`, `pay_x402`, `list_payments`, `get_payment`.
 
 ## Option 2: HTTPS
 | Call | What it does |

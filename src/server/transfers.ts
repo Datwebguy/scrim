@@ -345,6 +345,11 @@ async function refreshRow(row: Row): Promise<Transfer> {
           const outcome = ended === "success" ? "settled" : ended === "refunded" ? "approved" : "failed";
           const moved = await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, outcome, { type: "system", id: "intents" }, ["submitting"]));
           if (moved) emitPaymentEvent(row.team_request_id, `payment.${outcome}`);
+          // An agent's x402 purchase: now that the seller's deposit is paid, collect what it sells.
+          if (moved && outcome === "settled") {
+            const requestId = row.team_request_id;
+            void import("./x402-client").then((m) => m.deliverPurchase(requestId)).catch((e) => console.error("[x402] delivery", e));
+          }
         }
         if (row.pay_link_id && ended === "success") await sql`UPDATE pay_links SET status = 'paid' WHERE id = ${row.pay_link_id} AND status = 'open'`;
       } else if (s.status === "PROCESSING" && row.status === "awaiting_deposit") {

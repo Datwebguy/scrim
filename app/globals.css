@@ -438,7 +438,7 @@ button.chip.on { background: var(--ink); color: #fff; border-color: var(--ink); 
 .balance-tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: 10px; background: rgba(255,255,255,0.08); justify-self: start; position: relative; z-index: 1; }
 .balance-tabs button { padding: 7px 12px; border: 0; border-radius: 7px; background: none; color: #bdbcb2; font-size: 13px; font-weight: 700; cursor: pointer; }
 .balance-tabs button[aria-selected="true"] { background: #fff; color: var(--ink); }
-.balance-hero > div:nth-child(2) { display: grid; gap: 6px; position: relative; z-index: 1; }
+.balance-hero > div:nth-child(2), .balance-hero > .balance-body { display: grid; gap: 6px; position: relative; z-index: 1; }
 .muted-on-dark { color: #a9a89e; font-size: 14px; }
 .balance-figure { font-size: clamp(38px, 6vw, 56px); letter-spacing: -0.045em; line-height: 1.05; }
 .balance-figure.faint { color: #6c6b63; }

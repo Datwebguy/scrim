@@ -806,3 +806,28 @@ button.chip.on { background: var(--ink); color: #fff; border-color: var(--ink); 
 .ws-top-actions { display: flex; gap: 8px; }
 .gate-card .fine { margin-top: 14px; }
 @media (max-width: 380px) { .ws-top .brand { font-size: 0; } .ws-top .brand img { width: 24px; height: 24px; } }
+.gate-card { margin-inline: auto; width: 100%; }
+.gate-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.gate-actions .btn { flex: 1 1 160px; }
+
+/* ── Account menu ───────────────────────────────────────────────────────── */
+.acct-menu { position: relative; }
+.ws-top .acct-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 190px; padding: 0 10px; }
+.ws-top .acct-chip b { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.acct-chip .avatar { width: 20px; height: 20px; font-size: 9px; }
+.acct-chip .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.acct-chip .dot.mainnet { background: #3ecf8e; }
+.acct-chip .dot.testnet { background: #f5b942; }
+.acct-pop { position: absolute; right: 0; top: calc(100% + 8px); z-index: 60; width: min(300px, calc(100vw - 24px)); display: grid; gap: 4px; padding: 8px; border-radius: 14px; background: var(--card); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow-lg); }
+.acct-pop-id { display: grid; gap: 6px; padding: 10px; border-radius: 10px; background: var(--paper); }
+.acct-pop-id small { font: 500 10px var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.acct-pop-id code { font: 500 13px var(--mono); word-break: break-all; }
+.acct-item { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; padding: 12px 10px; border: 0; border-radius: 10px; background: none; color: var(--ink); font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+.acct-item small { font-weight: 500; color: var(--muted); font-size: 12px; }
+.acct-item:hover:not(:disabled) { background: var(--paper-2); }
+.acct-item.danger { color: var(--red); }
+.acct-item:disabled { opacity: .5; }
+.ws-top .acct-pop button.btn { height: 30px; border: 1px solid var(--line-2); color: var(--ink); background: none; }
+.ws-top .acct-pop .acct-item { height: auto; border: 0; border-radius: 10px; padding: 12px 10px; color: var(--ink); background: none; font-size: 14px; }
+.ws-top .acct-pop .acct-item.danger { color: var(--red); }
+.ws-top .acct-pop .acct-item:hover:not(:disabled) { background: var(--paper-2); }

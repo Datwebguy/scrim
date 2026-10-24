@@ -3,6 +3,7 @@ import { agentOverview, agentView } from "./agent-api";
 import { agentFromApiKey, type Agent } from "./agents";
 import { HttpError } from "./errors";
 import { createAgentPayment, getAgentPayment, listAgentPayments } from "./payments";
+import { deliverPurchase, requestPurchase } from "./x402-client";
 
 // A Model Context Protocol server (Streamable HTTP, stateless, JSON responses).
 // AI agents connect with their Scrim agent key as a Bearer token and get four tools.
@@ -34,6 +35,22 @@ const TOOLS = [
         idempotency_key: { type: "string", description: "Optional. Reuse the same value when retrying so the payment is only requested once (8–100 characters)." },
       },
       required: ["recipient", "amount"],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+  },
+  {
+    name: "pay_x402",
+    title: "Buy from an x402 seller",
+    description:
+      "Asks the team to pay an x402 (HTTP 402) address, such as a paid API. Scrim reads the seller's price, checks it against this agent's limits (the seller's https:// address must be an allowed recipient), and files a payment request for people to approve. Once paid, call get_payment to read what the seller returned.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        url: { type: "string", description: "The full https:// address that answers 402 Payment Required." },
+        idempotency_key: { type: "string", description: "Optional. Reuse when retrying so it is only requested once (8–100 characters)." },
+      },
+      required: ["url"],
       additionalProperties: false,
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
@@ -76,10 +93,18 @@ async function callTool(agent: Agent, name: string, args: Record<string, unknown
         const view = agentView(payment);
         return toolResult({ payment: view, next: view.status === "policy_rejected" ? "Stopped: outside this agent's limits." : "Waiting for people on the team to approve." });
       }
+      case "pay_x402": {
+        const { payment, purchase } = await requestPurchase(agent, String(args.url ?? ""), String(args.idempotency_key ?? `mcp-${randomUUID()}`));
+        const view = agentView(payment);
+        return toolResult({ payment: view, purchase, next: view.status === "policy_rejected" ? "Stopped: outside this agent's limits." : "Waiting for people on the team to approve and pay. Then call get_payment." });
+      }
       case "list_payments":
         return toolResult({ payments: (await listAgentPayments(agent)).map(agentView) });
       case "get_payment":
-        return toolResult({ payment: agentView(await getAgentPayment(agent, String(args.id ?? ""))) });
+      {
+        const payment = await getAgentPayment(agent, String(args.id ?? ""));
+        return toolResult({ payment: agentView(payment), purchase: await deliverPurchase(payment.id) });
+      }
       default:
         return null;
     }

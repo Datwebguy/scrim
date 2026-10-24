@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "npm run typecheck && npm test",
-    "vercel-build": "tsx scripts/migrate.ts --if-configured && next build"
+    "vercel-build": "tsx scripts/migrate.ts --if-configured && next build",
+    "keys": "tsx scripts/generate-keys.ts"
   },
   "dependencies": {
     "@hot-labs/near-connect": "^0.11.4",

@@ -4,7 +4,14 @@ import { sql } from "@/server/db";
 
 export const dynamic = "force-dynamic";
 
+// Names of required settings that are missing. Never includes values.
+function missingSettings(): string[] {
+  const required = ["DATABASE_URL", "SCRIM_SECRET_KEY", "SCRIM_PROOF_KEY"];
+  return process.env.NODE_ENV === "production" ? required.filter((name) => !process.env[name]) : [];
+}
+
 export async function GET() {
+  const missing = missingSettings();
   let database = "ok";
   try {
     await sql`SELECT 1`;
@@ -16,6 +23,8 @@ export async function GET() {
       service: "scrim",
       network: config.network,
       database,
+      ready: database === "ok" && missing.length === 0,
+      ...(missing.length ? { missing } : {}),
       capabilities: {
         walletSignIn: true,
         treasuries: true,
@@ -23,10 +32,11 @@ export async function GET() {
         walletSignedApprovals: true,
         privateBalances: config.network === "mainnet",
         privateTransfers: config.privateTransfersEnabled,
-        selectiveDisclosure: false,
-        shieldedPool: false,
+        paymentLinks: true,
+        proofs: "signed-by-scrim",
+        deviceProofs: false,
       },
     },
-    { status: database === "ok" ? 200 : 503, headers: { "Cache-Control": "no-store" } },
+    { status: database === "ok" && missing.length === 0 ? 200 : 503, headers: { "Cache-Control": "no-store" } },
   );
 }

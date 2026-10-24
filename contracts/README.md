@@ -1,26 +1,13 @@
-# Scrim contracts
+# Contracts
 
-This directory is reserved for the audited NEAR contract suite.
+Nothing here is deployed. Scrim does not need its own contract to hold money: private balances live on NEAR Intents' private ledger, and the one on-chain action people take is registering a wallet key on `intents.near` (`add_public_key`).
 
-## Required contracts
+## Planned
 
-### Shielded pool
+### Team rules contract
+Moves approval thresholds and spending limits from Scrim's service onto the chain, so they bind even if the service is compromised. Candidate approaches: build on SputnikDAO-style roles and thresholds (the base Trezu uses), or a small purpose-built contract. Decision after the hackathon.
 
-Stores commitment roots, nullifiers, asset configuration, verification keys, and public withdrawal outputs. It must not store plaintext note contents, private witnesses, or user private keys.
+Needs before any mainnet use: state-transition tests for every approval path, role and threshold tests, upgrade and recovery tests, and an independent audit.
 
-### Treasury policy
-
-Stores treasury roles, thresholds, policy commitment hashes, recovery roles, and approval state. It authorizes settlement only after the policy and threshold conditions are satisfied.
-
-### Relay executor
-
-Executes a bounded public call from an approved private-to-public interaction, then requires the remaining value to return to the shielded pool in the same atomic flow.
-
-## Security gates
-
-- Contract state-transition tests for every note lifecycle.
-- Nullifier replay tests.
-- Merkle root and verification-key rotation tests.
-- Role and threshold authorization tests.
-- Formal circuit/contract public-input compatibility tests.
-- Independent audit before mainnet custody.
+### Own shielded pool (research)
+Only if NEAR Intents' private mode can't meet a need. Would require circuits, a verifier contract, device proving and an external review. No claim is made until all of those exist.

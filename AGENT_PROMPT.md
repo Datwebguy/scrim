@@ -1,17 +1,31 @@
-# AGENT_PROMPT.md
+# Guidance for engineering agents working on Scrim
 
-You are an engineering agent building a long-term product called Scrim. This is not a feature and not a hackathon-only project. It is production infrastructure intended for many users over years. Scope the architecture, contracts, proving, agent rails, and interfaces for real volume and real retention. Do not limit design decisions to a two-week demo.
+Scrim is private money for people and businesses on NEAR. It is a long-term product, not a demo. Software that pays on a user's behalf is one use among several; it must never be the headline.
 
-The product provides private-by-default payments and treasuries for humans and AI agents. Balances stay shielded. Selective disclosure proofs reveal only a chosen fact to one named reader and expire. Settlement uses NEAR Intents and Chain Signatures so value moves across chains without traditional bridges or public exposure of counterparties and amounts. Agents operate under hard spending caps, approved counterparties, and proof rules. Teams get multi-party approval and audit exports. Device-side or TEE-assisted proving keeps private keys with the user or agent.
+## Read first
+`PRODUCT.md` (what and why), `ARCHITECTURE.md` (layers, trust), `BACKEND_SPEC.md` (what exists), `NEAR_TOOLS.md`, `RESEARCH.md`, `HACKATHON.md`.
 
-Use NEAR Intents (including Confidential Intents), Chain Signatures, NEAR AI Cloud for any private inference, and SputnikDAO-style treasury contracts. Map patterns from shielded pools, selective disclosure, and agent payment protocols onto these primitives. Keep all external project references inside research notes only. Never mention competitor names, architectures, or links in the public repository, README, UI, or backend.
+## How it is built
+- The private ledger, swaps and bridge are **NEAR Intents and Confidential Intents**. Do not build our own pool or bridge. Use the 1Click API and the official docs at https://docs.near-intents.org.
+- Keys stay in the user's wallet. Scrim only receives signatures. Anything that moves money must be bound to a wallet signature over the exact payload.
+- Anything stored about a user's money (amounts, recipients, notes, session tokens) is sealed with AES-256-GCM before it reaches the database.
+- Shared logic lives in `src/protocol` and is pure and tested. Service logic lives in `src/server`. Screens live in `src/components`.
 
-Primary documentation sources:
-- https://docs.near.org
-- https://docs.near-intents.org
-- https://docs.near.ai
-- https://business.near.com
-- https://nearhackathon.com
-- https://nearhackathon.com/HACKATHON.md
+## Voice
+Write for a normal person. No developer words on screen or in marketing: no "intent", "nonce", "commitment", "mandate", "API", "NEP-413". Say "approve in your wallet", "spending limits", "private balance". Short sentences. Say what a thing does, not what it is built with.
 
-Build for longevity. Prioritize security, clear separation of private and public state, expiry on every proof, enforceable agent limits, and a path from early users to thousands of daily users. The hackathon is an optional early milestone, not the product boundary.
+## Honesty
+Never claim privacy, proofs or security we can't back up. Proofs are signed by Scrim today, not zero-knowledge. Teams' limits are enforced by Scrim, not a contract. Say so wherever it matters. Mark unbuilt things as next or research.
+
+## Security rules
+- Fail closed. Reject on any mismatch (signer, account, recipient, amount, expiry).
+- Single-use challenges; atomic claims for anything that must happen once.
+- No secrets in code, logs or browser. Log request IDs, never amounts or addresses.
+- Keep tests honest: failure cases (wrong signer, replay, tampering, expiry) get tests, not just the happy path.
+- Don't add dependencies without a reason. Pin exact versions.
+
+## Working rules
+- Run `npm run typecheck`, `npm test` and `npm run build` before every push.
+- Commit as the repository owner. **Do not add AI tools as author or co-author, and don't add attribution trailers.**
+- Don't mention competitors in the README, UI or code. Research notes may.
+- Update the docs when behaviour changes.

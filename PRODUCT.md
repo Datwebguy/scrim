@@ -1,11 +1,51 @@
-# PRODUCT.md
+# Scrim
 
-This is a long-term product, not a feature and not a hackathon entry. It is infrastructure for private payments and treasuries that people and AI agents will use every day. The goal is real volume, real users, and durable adoption on NEAR.
+**Private money for people and businesses, on NEAR.**
 
-Scrim lets users and agents hold, send, and receive assets privately by default across chains. Balances live in a shielded environment. Anyone can prove a specific fact to one named reader for a limited time: a payment was made, a balance is above a threshold, a payroll batch totals a certain amount, or an agent stayed inside its spending cap. The proof expires. Settlement happens through NEAR Intents and Chain Signatures so the money moves on the destination chain without a traditional bridge or public exposure of the sender, recipient, or amount.
+Scrim gives you a private balance. You can add money from almost any chain, pay anyone, get paid with a link, swap one coin for another, and show a single fact to a single person when they need to know. Nobody else can see the rest.
 
-Agents get programmable rails. An agent receives a spending limit, a list of approved counterparties, and rules for when it may generate a selective disclosure proof. Humans and teams get the same controls plus multi-party approval. Organizations can run confidential treasuries that add agent-triggered actions, expiry on every proof, and device-side or TEE-assisted proving so no central operator holds the private keys.
+## The problem
 
-The system is built for scale. It can serve individual users, small teams, larger treasuries, and autonomous agents that need to pay for services or settle between themselves. Public settlement records stay minimal. Private state stays private unless a deliberate, time-bounded proof is produced. The architecture combines shielded pool patterns, intent-based settlement, selective disclosure, and agent constraints so the product can grow from a working demo into production infrastructure with thousands of users.
+Public blockchains show everything. Anyone can look up your balance, see who you paid, and follow the trail from your salary to your rent. For a person that is uncomfortable. For a business it is unworkable: competitors read your supplier payments, and anyone who pays you can see everything else you hold.
 
-External patterns that informed the design stay in research notes only and never appear in the public repository, README, UI, or backend.
+The privacy tools that exist are hard to use, work on one chain, or can't answer the question every real business gets asked: *"Can you prove it?"*
+
+## What Scrim does
+
+| You want to… | In Scrim |
+| --- | --- |
+| Keep your balance and payments to yourself | A private balance. Only you can see it. |
+| Bring money in from Bitcoin, Ethereum, Solana, Base, and 30+ networks | **Add money**: pick a coin and network, send to a one-time address. |
+| Pay someone | **Send**: to another Scrim user, or to any address on any chain, in any coin. |
+| Trade one coin for another | **Swap**, inside your private balance. |
+| Get paid without asking the payer to sign up | **Get paid**: share a link. They pay from whatever they hold. |
+| Show a bank, landlord or client one fact | **Proofs**: "holds at least $10,000," or "paid this invoice." Made for one named reader, expires in 1, 7 or 30 days, can be taken back. |
+| Run money as a team | **Team**: choose who must approve, set spending limits for people and software, keep a record. |
+
+## Who it is for
+
+- **People** who want financial privacy as a default, not a hobby.
+- **Businesses and teams** that pay contractors and suppliers and don't want to publish payroll, but still need to answer to accountants, auditors and banks.
+- **Software that pays on your behalf** (automations and AI agents), under limits a person sets. It can ask to pay. Only people approve.
+
+## Principles
+
+1. **Private by default.** Nothing is public unless you choose to show it.
+2. **Your keys, always.** Scrim never holds your keys or your money. Every payment needs your wallet to approve the exact amount and recipient.
+3. **Show only what's needed.** Proofs name one reader, state one fact, and expire.
+4. **Plain words.** If a normal person can't read a screen, we rewrite the screen.
+5. **Honest status.** We say what works, what is being switched on, and what is still research. We never claim privacy we can't back up.
+
+## What Scrim is not
+
+- Not a custodian, a bank, or a mixer.
+- Not a new blockchain or bridge. Scrim is the product layer on top of NEAR Intents and its private mode (Confidential Intents).
+- Not anonymous toward the people who run the private ledger. They can see it, as a bank can see your account. We say so.
+
+## Where it is going
+
+1. **Now:** private balance, add money, send, swap, payment links, signed proofs, team approvals and spending limits.
+2. **Next:** proofs generated on your own device, so even Scrim isn't involved; payroll batches and payroll-total proofs; accountant exports; on-chain approval rules for teams.
+3. **Later:** our own shielded-note pool (research), and private inference through NEAR AI Cloud for software that pays on your behalf.
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for how it works and [BACKEND_SPEC.md](BACKEND_SPEC.md) for the detail.

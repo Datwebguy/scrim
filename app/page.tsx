@@ -2,237 +2,146 @@ import Link from "next/link";
 
 const REPO = "https://github.com/Datwebguy/scrim";
 
-// Static, author-controlled markup for the code sample.
-const AGENT_SNIPPET = `<span class="c"># Your agent asks to pay a vendor</span>
-curl -X POST $SCRIM_URL/api/v1/agent/payments \\
-  -H <span class="s">"Authorization: Bearer $SCRIM_AGENT_KEY"</span> \\
-  -H <span class="s">"Idempotency-Key: inv-1048"</span> \\
-  -H <span class="s">"Content-Type: application/json"</span> \\
-  -d <span class="s">'{"recipient":"0x7a3f…c291","amount":"420.00"}'</span>
-
-<span class="c"># Scrim answers with the policy decision</span>
-{
-  <span class="k">"status"</span>: <span class="s">"awaiting_approval"</span>,
-  <span class="k">"policyDecision"</span>: {
-    <span class="k">"allowed"</span>: true,
-    <span class="k">"checks"</span>: [
-      { "rule": "counterparty",   "passed": true },
-      { "rule": "per_action_cap", "passed": true },
-      { "rule": "rolling_cap",    "passed": true }
-    ]
-  },
-  <span class="k">"commitment"</span>: <span class="s">"9f2c…e41a"</span>
-}`;
-
-
 export default function Home() {
   return (
     <>
       <header className="site-nav">
-        <Link href="/" className="brand" aria-label="Scrim home">
-          <img src="/scrim-mark.png" alt="" />
-          scrim
-        </Link>
+        <Link href="/" className="brand" aria-label="Scrim home"><img src="/scrim-mark.png" alt="" />scrim</Link>
         <nav aria-label="Primary">
           <a href="#how">How it works</a>
-          <a href="#agents">Agent API</a>
-          <a href="#security">Security</a>
-          <a href="#status">Status</a>
+          <a href="#features">What you can do</a>
+          <a href="#proofs">Proofs</a>
+          <a href="#questions">Questions</a>
         </nav>
-        <Link href="/app" className="btn btn-primary">
-          Open workspace <span className="arrow">↗</span>
-        </Link>
+        <Link href="/app" className="btn btn-primary">Open your account <span className="arrow">↗</span></Link>
       </header>
 
       <main>
         <section className="hero">
           <div className="wrap hero-grid">
             <div>
-              <span className="eyebrow">Private treasury on NEAR</span>
-              <h1>
-                Give agents a budget.
-                <br />
-                <em>Never your keys.</em>
-              </h1>
+              <span className="eyebrow">Private money on NEAR</span>
+              <h1>Move money.<br /><em>Keep it private.</em></h1>
               <p className="lead">
-                Scrim puts every payment through a mandate before it can move. Agents request, the policy engine checks,
-                your signers approve from their own wallets, and USDC settles across chains through NEAR Intents.
+                Scrim gives you a private balance. Add money from any chain, pay anyone, get paid with a link, and show one fact to one person when they need to know. Nobody else sees the rest.
               </p>
               <div className="hero-actions">
-                <Link href="/app" className="btn btn-signal btn-lg">
-                  Create a treasury <span className="arrow">→</span>
-                </Link>
-                <a href="#agents" className="btn btn-ghost btn-lg">
-                  See the agent API
-                </a>
+                <Link href="/app" className="btn btn-signal btn-lg">Open your account <span className="arrow">→</span></Link>
+                <a href="#how" className="btn btn-ghost btn-lg">See how it works</a>
               </div>
               <div className="hero-proof">
-                <span>Wallet-signed approvals</span>
-                <span>Versioned spending mandates</span>
-                <span>Live Intents quotes</span>
+                <span>No email or password</span>
+                <span>Works with any NEAR wallet</span>
+                <span>Your keys stay with you</span>
               </div>
             </div>
-            <DemoRequest />
+            <SideBySide />
           </div>
         </section>
 
-        <section className="strip" aria-label="Principles">
+        <section className="strip" aria-label="Why Scrim">
           <div className="wrap">
-            <div>
-              <b>Keys stay in the wallet</b>
-              <span>Scrim only ever sees signatures.</span>
-            </div>
-            <div>
-              <b>Rules before money</b>
-              <span>Caps and allowlists are checked server-side.</span>
-            </div>
-            <div>
-              <b>Threshold approvals</b>
-              <span>1-of-1 for people, M-of-N for teams.</span>
-            </div>
-            <div>
-              <b>Minimal public trail</b>
-              <span>Settlement through NEAR Intents.</span>
-            </div>
+            <div><b>Only you see your balance</b><span>Not the public. Not other users.</span></div>
+            <div><b>Add money from anywhere</b><span>Bitcoin, Ethereum, Solana, Base and more.</span></div>
+            <div><b>Get paid with a link</b><span>The payer needs no account.</span></div>
+            <div><b>Prove only what's needed</b><span>One fact, one person, with an expiry.</span></div>
           </div>
         </section>
 
         <section className="section" id="how">
           <div className="wrap">
             <div className="section-head">
-              <div>
-                <span className="eyebrow">How a payment moves</span>
-                <h2>Four gates between a request and a transfer.</h2>
-              </div>
-              <p>
-                Every request, whether a person or an agent created it, carries a commitment that binds the amount,
-                recipient, corridor and the exact policy version it was judged against. Nothing downstream can quietly
-                change it.
-              </p>
+              <div><span className="eyebrow">How it works</span><h2>Four steps. Nothing to learn first.</h2></div>
+              <p>Everyone can see what happens on a public blockchain: who paid whom, and how much. Scrim moves your money through a private layer, so what you do stays yours.</p>
             </div>
             <div className="steps">
-              <article className="step">
-                <span className="n">01 · REQUEST</span>
-                <h3>Someone asks to pay</h3>
-                <p>A signer in the workspace, or an agent through the API with its own revocable key.</p>
-                <span className="tag">POST /api/v1/agent/payments</span>
-              </article>
-              <article className="step">
-                <span className="n">02 · MANDATE</span>
-                <h3>The policy engine judges it</h3>
-                <p>Approved counterparty, per-action cap, rolling budget, expiry and pause state. Any failure blocks it outright.</p>
-                <span className="tag">policy v3 · 5 checks</span>
-              </article>
-              <article className="step">
-                <span className="n">03 · APPROVE</span>
-                <h3>Signers sign the exact effect</h3>
-                <p>Each approver&apos;s wallet signs a NEP-413 message naming the amount, recipient and request commitment.</p>
-                <span className="tag">2 of 3 signatures</span>
-              </article>
-              <article className="step">
-                <span className="n">04 · SETTLE</span>
-                <h3>Intents route the outcome</h3>
-                <p>An exact-output quote for USDC NEAR → Base: the recipient gets the precise amount and the fee is shown up front.</p>
-                <span className="tag">NEAR Intents · ~22s</span>
-              </article>
+              <article className="step"><span className="n">1 · CONNECT</span><h3>Sign in with your wallet</h3><p>Pick your NEAR wallet and approve one message. No email, no password, no ID check.</p></article>
+              <article className="step"><span className="n">2 · ADD</span><h3>Bring money in</h3><p>Choose a coin and a network. Send to the one-time address we show you. It lands in your private balance.</p><span className="tag">30+ networks</span></article>
+              <article className="step"><span className="n">3 · USE</span><h3>Send, swap, get paid</h3><p>Pay a person or any address on any chain. Swap one coin for another. Share a link to be paid.</p></article>
+              <article className="step"><span className="n">4 · PROVE</span><h3>Show a fact when asked</h3><p>Give a bank, landlord or client a proof made just for them. It expires, and you can take it back.</p></article>
             </div>
           </div>
         </section>
 
-        <section className="section dark-section" id="agents">
+        <section className="section features" id="features" style={{ paddingTop: 0 }}>
+          <div className="wrap">
+            <div className="section-head">
+              <div><span className="eyebrow">What you can do</span><h2>Everything money does, without the audience.</h2></div>
+              <p>One account for holding, paying and getting paid, whether you are one person, a team, or a business.</p>
+            </div>
+            <div className="feature-grid">
+              <article className="card"><span className="ficon">↓</span><h3>Add money</h3><p>Deposit from Bitcoin, Ethereum, Solana, Base, Tron, TON and more than 30 other networks. No bridge to figure out.</p></article>
+              <article className="card"><span className="ficon">↗</span><h3>Send privately</h3><p>Pay another Scrim user, or any wallet or exchange address on any chain. The payment can't be traced to your balance.</p></article>
+              <article className="card"><span className="ficon">⇄</span><h3>Swap</h3><p>Trade one coin for another inside your private balance. Nobody sees what you swapped.</p></article>
+              <article className="card"><span className="ficon">¤</span><h3>Get paid by link</h3><p>Share a link. Your client pays from whichever coin they have, with no account. You see it arrive.</p></article>
+              <article className="card"><span className="ficon">◇</span><h3>Prove it</h3><p>Show you hold at least an amount, or that a payment was made. Made for one reader, valid for 1, 7 or 30 days.</p></article>
+              <article className="card"><span className="ficon">☰</span><h3>Run it as a team</h3><p>Choose who must approve each payment, set spending limits, and keep a clean record for your accountant.</p></article>
+            </div>
+          </div>
+        </section>
+
+        <section className="section dark-section" id="teams">
           <div className="wrap dark-grid">
             <div>
-              <span className="eyebrow">Agent API</span>
-              <h2>A mandate, not a blank check.</h2>
-              <p className="lead">
-                Each agent gets a scoped API key and a versioned mandate. It can ask for money. It cannot approve,
-                raise its own limits, or touch a key that moves funds.
-              </p>
+              <span className="eyebrow">For businesses and teams</span>
+              <h2>Private from the market. Clear to your auditors.</h2>
+              <p className="lead">Pay contractors, suppliers and staff without publishing your payroll. Every payment needs the approvals you choose, and every step is written down.</p>
               <div className="rule-list">
-                <div>
-                  <i>01</i>
-                  <span>Per-action and rolling caps, enforced under a row lock so parallel requests can&apos;t slip past the budget.</span>
-                </div>
-                <div>
-                  <i>02</i>
-                  <span>Counterparty allowlist. Anything else is blocked before a human sees it.</span>
-                </div>
-                <div>
-                  <i>03</i>
-                  <span>Any signer can pause an agent instantly. Only the owner can resume it.</span>
-                </div>
+                <div><i>1</i><span>Require two or three people to approve before money moves.</span></div>
+                <div><i>2</i><span>Set a limit per payment and per day for each person or program that pays for you.</span></div>
+                <div><i>3</i><span>Anything outside the limits is stopped before it reaches the people who approve.</span></div>
+                <div><i>4</i><span>Software can ask to pay, but only people can approve. Pause it with one click.</span></div>
               </div>
             </div>
-            <div className="code">
-              <div className="code-bar">
-                <span>agent → scrim</span>
-                <span>request_only</span>
+            <div className="demo-card" style={{ color: "var(--ink)" }}>
+              <div className="demo-head"><span className="who"><span className="agent-dot">AP</span> Accounts payable</span><span className="pill pill-amber">Needs 1 more approval</span></div>
+              <div className="demo-amount"><span className="section-label">Paying on Base</span><strong>2,400.00<small>USDC</small></strong><div className="demo-route"><span>Northwind Studio</span></div></div>
+              <div className="checks">
+                <div className="check"><span className="mark">✓</span><b>Supplier is on the approved list</b><small>recipient</small></div>
+                <div className="check"><span className="mark">✓</span><b>Under the 5,000 limit per payment</b><small>limit</small></div>
+                <div className="check"><span className="mark">✓</span><b>6,200 of 20,000 used this week</b><small>weekly</small></div>
               </div>
-              <pre dangerouslySetInnerHTML={{ __html: AGENT_SNIPPET }} />
+              <div className="demo-foot"><span className="signers"><span className="stack"><span className="avatar ok">A</span><span className="avatar pending">?</span></span>1 of 2 approved</span><span className="btn btn-primary btn-sm" aria-hidden="true">Approve</span></div>
             </div>
           </div>
         </section>
 
-        <section className="section" id="security">
-          <div className="wrap">
-            <div className="section-head">
-              <div>
-                <span className="eyebrow">Security model</span>
-                <h2>Built so a breached server still can&apos;t spend.</h2>
-              </div>
-              <p>
-                Scrim coordinates. It doesn&apos;t hold custody. The design and the threat model are public in the repository.
-              </p>
+        <section className="proof-band" id="proofs">
+          <div className="wrap proof-grid">
+            <div className="proof-sample" aria-label="Example proof">
+              <div className="verdict good">✓ Valid</div>
+              <p>Studio Ode <b>holds at least $10,000</b> in private funds.</p>
+              <ul className="checks-list">
+                <li className="ok">Signature is genuine</li>
+                <li className="ok">Made for <b>Northwind Bank</b></li>
+                <li className="ok">Valid until Nov 5</li>
+                <li className="ok">Not taken back</li>
+              </ul>
             </div>
-            <div className="split-cards">
-              <div className="card list-card yes">
-                <h3>What Scrim enforces</h3>
-                <ul>
-                  <li>Sign-in only through a NEP-413 signature from a full-access key, checked on-chain</li>
-                  <li>Single-use, five-minute challenges bound to an origin, a purpose and a session</li>
-                  <li>Approvals bound to one request commitment, so a signature can&apos;t be replayed on another payment</li>
-                  <li>Immutable policy history: every request records the mandate version that judged it</li>
-                  <li>Append-only audit trail for every treasury action</li>
-                </ul>
-              </div>
-              <div className="card list-card no">
-                <h3>What Scrim never holds</h3>
-                <ul>
-                  <li>Wallet private keys or seed phrases</li>
-                  <li>Agent keys in recoverable form (they are stored only as hashes)</li>
-                  <li>Authority to move funds without your signers</li>
-                  <li>Session tokens readable by page scripts (they are httpOnly, Secure cookies)</li>
-                </ul>
-              </div>
+            <div>
+              <span className="eyebrow">Proofs</span>
+              <h2>Show one fact.<br />Keep the rest.</h2>
+              <p className="lead">A bank asks for proof of funds. A client asks if you paid. Instead of showing your whole account, you send a link. They see the one fact, made for them, until it expires.</p>
+              <ul className="plain-list">
+                <li>They don't need an account to check it.</li>
+                <li>It names who it's for, so it can't pass for someone else's.</li>
+                <li>It never shows your real balance, your other payments or your history.</li>
+              </ul>
+              <Link href="/verify" className="btn btn-primary">Check a proof you received</Link>
             </div>
           </div>
         </section>
 
-        <section className="section" id="status" style={{ paddingTop: 0 }}>
-          <div className="wrap">
-            <div className="section-head">
-              <div>
-                <span className="eyebrow">Status</span>
-                <h2>What works today, and what&apos;s next.</h2>
-              </div>
-              <p>Scrim makes no claim the code can&apos;t back up. Shielded balances and cryptographic disclosures ship only after their circuits and contracts have been independently reviewed.</p>
-            </div>
-            <div className="roadmap">
-              <div className="card">
-                <span className="pill pill-green">Live</span>
-                <h3>Treasury control plane</h3>
-                <p>Wallet sign-in, individual and team treasuries, agent mandates and keys, policy enforcement, wallet-signed threshold approvals, audit log.</p>
-              </div>
-              <div className="card">
-                <span className="pill pill-amber">In progress</span>
-                <h3>Settlement execution</h3>
-                <p>Live NEAR Intents quotes for USDC NEAR → Base are working. Next: the deposit signature, a finality watcher and an on-chain treasury contract.</p>
-              </div>
-              <div className="card">
-                <span className="pill">Research</span>
-                <h3>Shielded notes &amp; proofs</h3>
-                <p>A note-commitment pool with nullifiers, and reader-bound, expiring receipt, solvency and payroll proofs generated on your device.</p>
-              </div>
+        <section className="section" id="questions">
+          <div className="wrap faq-wrap">
+            <div><span className="eyebrow">Questions</span><h2>Straight answers.</h2></div>
+            <div className="faq">
+              <details open><summary>Is it really private?</summary><p>Your balance and payments live on a private ledger run by NEAR Intents, not on the public blockchain. The public can't see them, and a deposit can't be matched to a later payment. The people who run that private ledger can see it, in the way a bank can see your account.</p></details>
+              <details><summary>Does Scrim hold my money?</summary><p>No. Your money stays in your own private account, and only your wallet can move it. Every payment needs your wallet to approve the exact amount and recipient. We never hold your keys.</p></details>
+              <details><summary>What can Scrim see?</summary><p>Enough to show you your own history. We keep a record of what you do, kept scrambled so only your account can read it, and nothing is sold or shared. A payment link shows the payer only what you chose to ask for.</p></details>
+              <details><summary>How strong is a proof?</summary><p>Today, Scrim checks your private balance and signs the statement, so the reader trusts Scrim's word and the signature. Proving it on your own device, so even Scrim isn't involved, is the next step. We say this up front because it matters.</p></details>
+              <details><summary>What does it cost?</summary><p>Making an account is free. Swaps and payments across chains carry a small network fee, which you see before you confirm anything.</p></details>
+              <details><summary>Is it ready to use?</summary><p>It's new software. Start with small amounts. Everything is open to read on GitHub, and adding and sending money is being switched on in stages.</p></details>
             </div>
           </div>
         </section>
@@ -240,92 +149,41 @@ export default function Home() {
         <section className="closing">
           <div className="wrap">
             <img src="/scrim-mark.png" alt="" />
-            <h2>Move money on purpose.</h2>
-            <p>Connect a NEAR wallet, set your rules, and give your first agent a mandate in under two minutes.</p>
-            <Link href="/app" className="btn btn-primary btn-lg">
-              Open the workspace <span className="arrow">↗</span>
-            </Link>
+            <h2>Your money, your business.</h2>
+            <p>Open an account with your wallet in under a minute.</p>
+            <Link href="/app" className="btn btn-primary btn-lg">Open your account <span className="arrow">↗</span></Link>
           </div>
         </section>
       </main>
 
       <footer className="site-footer">
         <div className="wrap">
-          <Link href="/" className="brand" style={{ fontSize: 18 }}>
-            <img src="/scrim-mark.png" alt="" style={{ width: 24, height: 24 }} />
-            scrim
-          </Link>
-          <span>Private treasury rails for people and autonomous agents.</span>
-          <nav>
-            <a href={REPO}>GitHub</a>
-            <a href={`${REPO}/blob/main/BACKEND_SPEC.md`}>Specification</a>
-            <a href="/api/health">Status</a>
-          </nav>
+          <Link href="/" className="brand" style={{ fontSize: 18 }}><img src="/scrim-mark.png" alt="" style={{ width: 24, height: 24 }} />scrim</Link>
+          <span>Private money for people and businesses. Built on NEAR.</span>
+          <nav><Link href="/verify">Check a proof</Link><a href={REPO}>GitHub</a><a href={`${REPO}/blob/main/BACKEND_SPEC.md`}>How it's built</a></nav>
         </div>
       </footer>
     </>
   );
 }
 
-function DemoRequest() {
+function SideBySide() {
   return (
-    <div className="demo-stage" aria-label="Example payment request awaiting approval">
-      <div className="demo-card">
-        <div className="demo-head">
-          <span className="who">
-            <span className="agent-dot">PA</span> Procurement agent
-          </span>
-          <span className="pill pill-amber">Awaiting approval</span>
-        </div>
-        <div className="demo-amount">
-          <span className="section-label">Pay on Base</span>
-          <strong>
-            420.00<small>USDC</small>
-          </strong>
-          <div className="demo-route">
-            <span>NEAR</span>
-            <i />
-            <span>Intents</span>
-            <i />
-            <span>Base · 0x7a3f…c291</span>
-          </div>
-        </div>
-        <div className="checks">
-          <div className="check">
-            <span className="mark">✓</span>
-            <b>Compute vendor is approved</b>
-            <small>counterparty</small>
-          </div>
-          <div className="check">
-            <span className="mark">✓</span>
-            <b>420 of 500 per action</b>
-            <small>per-action cap</small>
-          </div>
-          <div className="check">
-            <span className="mark">✓</span>
-            <b>1,260 of 2,000 today</b>
-            <small>rolling cap</small>
-          </div>
-        </div>
-        <div className="demo-foot">
-          <span className="signers">
-            <span className="stack">
-              <span className="avatar ok">A</span>
-              <span className="avatar pending">?</span>
-            </span>
-            1 of 2 signatures
-          </span>
-          <span className="btn btn-primary btn-sm" aria-hidden="true">
-            Approve with wallet
-          </span>
-        </div>
+    <div className="side-demo" aria-label="What you see compared with what the public sees">
+      <div className="sd-card you">
+        <span className="section-label">What you see</span>
+        <strong className="sd-total">$12,480.00</strong>
+        <ul>
+          <li><span>Paid Northwind Studio</span><b>−$2,400.00</b></li>
+          <li><span>Received by link · Logo design</span><b className="plus">+$850.00</b></li>
+          <li><span>Swapped USDC to BTC</span><b>$1,000.00</b></li>
+        </ul>
       </div>
-      <div className="float-chip blocked">
-        <span className="x">×</span>
-        <div>
-          <small>Blocked · 09:41</small>
-          600.00 USDC exceeds the per-action cap
-        </div>
+      <div className="sd-card them">
+        <span className="section-label">What the public sees</span>
+        <strong className="sd-total">Nothing</strong>
+        <p>No balance. No payments. No link between money in and money out.</p>
+        <div className="sd-bars" aria-hidden="true"><i /><i /><i /><i /></div>
       </div>
     </div>
   );

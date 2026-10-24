@@ -1,405 +1,119 @@
-# Scrim backend specification
+# Backend specification
 
-**Status:** architecture and implementation contract
+This document describes what Scrim's service does today, why, and where it stops. It replaces the earlier planning draft; everything below is implemented and covered by tests unless marked otherwise.
 
-This document is the implementation source of truth for Scrim’s backend, contracts, client security boundaries, and first release path. It defines a working private-settlement product before the native shielded-note pool is ready, without making the backend a custodian or moving private keys and proof witnesses off the user device.
+Plain-language overview: [PRODUCT.md](PRODUCT.md). Layers and trust: [ARCHITECTURE.md](ARCHITECTURE.md).
 
-## 1. Product boundary
+## 1. Boundary
 
-Scrim is a private treasury for individuals, teams, and AI agents.
+Scrim is a service and web app between a wallet and NEAR Intents' private mode. It never holds keys or funds. It does four jobs: prove who someone is, move money by asking NEAR Intents and passing along what the wallet signed, keep a sealed record for the person, and run team rules.
 
-The first working settlement path is confidential settlement through NEAR Intents. The native shielded-note pool is a required production subsystem, but it is developed and independently audited in parallel rather than blocking the first user settlement path.
+Stack: Next.js (App Router), TypeScript, Postgres, NEAR Connect in the browser. All service logic lives in `src/server`; shared, tested logic in `src/protocol`.
 
-The first corridor is **USDC on NEAR to USDC on Base**. Arbitrum and Ethereum mainnet follow only after the Base route meets reliability, reconciliation, and incident-response gates.
+## 2. Sign-in and private access
 
-The system is not a custodian. User keys remain in the wallet or device-managed key store. Proof witnesses and plaintext financial data remain on the user device or in an approved attested execution environment. The backend stores no decryptable note, balance, amount, private key, or proof witness.
+One signature does both.
 
-## 2. Release phases
+1. `POST /api/v1/auth/challenge { accountId }` returns an ownership message: `{"deadline":…,"intents":[],"signer_id":"<account>"}` with a 32-byte versioned nonce (magic, version 0, the current salt read from `intents.near`, deadline, issue time, 7 random bytes) and recipient `intents.near`. The challenge is stored, single use, valid 5 minutes.
+2. The wallet signs it (NEP-413). `POST /api/v1/auth/verify` checks: the challenge exists, is unused and unexpired; the signature is valid ed25519 over the NEP-413 digest; the account ID in the message matches; **on chain at final finality** the key is a full-access key on that account, or, for an implicit account never seen on chain, the key is the one the account ID is derived from. The challenge is then consumed atomically.
+3. A session is created: random 256-bit token, stored only as a SHA-256 hash, delivered as an httpOnly, SameSite=Lax cookie (Secure in production), 12 hours.
+4. The same signature is then sent to NEAR Intents (`/v0/auth/authenticate`) to open a private session. Named accounts must first have registered their key on `intents.near` (`has_public_key`); if not, the person is shown a one-time "turn on private mode" step (a single wallet transaction calling `add_public_key`). Returned tokens are sealed (AES-256-GCM, bound to session and account) and refreshed when under a minute remains. They are never sent to the browser.
 
-| Phase | User capability | Settlement authority | Privacy source |
-| --- | --- | --- | --- |
-| A — private settlement | Create a treasury, set rules, request USDC NEAR→Base settlement, approve requests, receive encrypted receipts | User wallet and treasury approval | Confidential Intents path |
-| B — device proofs | Create reader-bound receipt, solvency, and payroll-total proofs | User device | Device-side proof package |
-| C — native pool | Shield, transfer, unshield, and relay from encrypted notes | Shielded-pool verifier contract | Note commitments, nullifiers, and client proofs |
-| D — autonomous agents | Opt in an agent to capped autonomous execution | Contract-backed policy + owner recovery | Same settlement and proof layers |
+An "empty intent" authorises reading a balance and nothing else; it cannot move funds.
 
-Phase A is intentionally useful on its own. Phase C changes the private-state implementation; it does not replace the treasury, authorization, policy, proof-reader, or settlement abstractions established in earlier phases.
+## 3. Money movement
 
-## 3. Account and environment ownership
+Four actions, one lifecycle. All need a NEAR Intents partner key (`ONECLICK_API_KEY`) and NEAR mainnet; without it the service answers "Private transfers aren't switched on yet" and sign-in, balances, proofs and team features still work.
 
-Before mainnet work, a human owner creates and controls three distinct named NEAR accounts. Scrim must not invent or create account names.
-
-| Role | Purpose | Required separation |
+| Action | Quote | Result |
 | --- | --- | --- |
-| Deployment account | Deploys and upgrades contracts through a controlled release process | Never used for day-to-day treasury approval |
-| Treasury administration account | Creates initial treasury configuration and recovery roles | Never used as a payout address |
-| Payout account | Receives any event or prize payout | No contract deployment privileges |
+| Add money | `FLEX_INPUT`, deposit type `INTENTS`, recipient type `CONFIDENTIAL_INTENTS`, no private session needed | A one-time deposit address on the chosen network, via the bridge's `deposit_address` (memo handled for chains that need one) |
+| Swap | `EXACT_INPUT`, private → private | Another asset in the same private balance |
+| Send to a person | `EXACT_OUTPUT`, private → private, recipient is a NEAR account | The recipient gets exactly the stated amount |
+| Send to any address | `EXACT_OUTPUT`, private → `DESTINATION_CHAIN` | Payout on any supported chain, in any supported asset (swap and bridge in one step) |
 
-The deployment account is protected by hardware-backed signing and a documented recovery process. Production environments use separate RPC credentials, encrypted-record storage credentials, telemetry credentials, and release permissions. No secret appears in source control or browser code.
+Lifecycle: `awaiting_deposit` / `awaiting_signature` → `processing` → `success`, `refunded`, `failed`, `expired`, `cancelled`.
 
-## 4. System topology
+1. **Create.** Scrim requests a live quote (with the partner key plus the person's private session). It asks NEAR Intents to generate the transfer for signing, and **refuses to continue if the transfer names any signer other than the person**.
+2. **Sign.** The wallet signs the exact payload. `POST /transfers/:id/sign` verifies the signature against that payload and the signed-in key, claims the transfer atomically (so it can only be submitted once), and submits it.
+3. **Follow.** Status is read from NEAR Intents until it ends. The transfer's quote address, amounts, recipient and note are sealed.
+4. **Team requests.** The owner of a team account can pay an approved request from their private balance: it becomes a payout on Base (USDC), marks the request `submitting`, then `settled`, `failed`, or back to `approved` on refund.
 
-```mermaid
-flowchart LR
-  W[Wallet / device] -->|NEP-413 or NEP-641 authorization| A[Authorization service]
-  W -->|private inputs and proofs| P[Device proving package]
-  A --> S[Session + API edge]
-  S --> Q[Policy and approval service]
-  Q --> T[Treasury policy contract]
-  Q --> I[Intent adapter]
-  I --> N[NEAR Intents]
-  I --> C[Chain Signature adapter]
-  C --> B[Base transaction broadcaster]
-  P --> V[Proof verifier]
-  V --> T
-  S --> E[Encrypted record store]
-  T --> SP[Shielded pool contract]
-```
+Fees come from the quote and are shown before signing. With a partner key NEAR Intents charges its partner schedule (typically 0.20%, 0.01% on stablecoins); without one an extra 0.25% applies.
 
-`SP` is not on the critical path of the first release. It becomes the native private-state source of truth in Phase C. The backend and frontend must use versioned adapter interfaces so this transition does not require a product rewrite.
+## 4. Payment links
 
-## 5. Trust boundaries
+`POST /links` creates a 10-character code (no look-alike characters) for an amount in an asset, with a note and 1, 7 or 30 days. Public routes:
 
-### Device and wallet
+- `GET /pay/:code` shows the ask and the requester's account name, nothing else.
+- `POST /pay/:code/start { fromAssetId, refundAddress }` creates a quote from the payer's chosen asset to the requester's private balance and returns an address to pay. The refund address is validated for its network. Ten unfinished payments per link at most.
+- `GET /pay/:code/status/:id` follows one payment by its random ID. The link flips to `paid` on success.
 
-Owns wallet keys, note secrets, witness paths, plaintext payment details, local proof inputs, and plaintext disclosure statements. It signs an exact authorization or transaction only after the user sees its material effect.
+## 5. Proofs
 
-### Smart contracts
+Types: **balance at least** (in dollars, or in one asset) and **payment** (a completed send, exact or "at least"). Each proof names one reader (written into the statement), expires in 1, 7 or 30 days, and can be revoked.
 
-Own commitments, nullifiers, verification-key references, policy commitments, roles, thresholds, approval state, and settlement authorization state. Contracts never store plaintext note contents or private witnesses.
+Format: `scrimproof1.<payload>.<signature>`. The payload is canonical JSON; the signature is ed25519 over `sha256("scrim:proof:v1:" + payload)`. The server refuses to issue a claim the person's private balance doesn't support. A reader opens `/verify#<proof>` (the fragment never reaches a server), the browser fetches Scrim's public key and checks the signature, expiry and, optionally, that the reader name matches; one tiny public call (`/proofs/state/:id`) tells it whether the owner took the proof back. The proof never contains the real balance or the account.
 
-### Backend
+Honest scope: this is a signed statement. Scrim looked at the balance and vouches for it. Device-side proving is the next step. The format is versioned for it.
 
-Owns challenge nonces, short-lived authenticated sessions, public policy projections, encrypted record envelopes, quote lifecycle state, idempotency state, and operational logs stripped of sensitive values. It cannot spend user funds or decrypt user-held data.
+## 6. Team accounts
 
-### Settlement providers and broadcasters
+- **Accounts:** personal (1 of 1) or team (M of N, up to 20 signers). Non-members get "not found", so IDs reveal nothing.
+- **Requests:** a signer creates a payment request (USDC to a Base address). Amounts use integer minor units; idempotency keys are required.
+- **Spending limits for software:** each agent gets a hashed key and versioned limits (per payment, per rolling window, approved recipients, optional expiry, pause). Requests are judged by a pure, tested policy engine inside a transaction holding a per-agent row lock, so parallel requests cannot together exceed the budget. A blocked request is recorded and never reaches an approver. Any signer can pause an agent; only the owner can resume it or change limits. Agents can only ask.
+- **Approvals:** each approval is a wallet signature over a message stating the account, amount, recipient, request ID and reference. The challenge is bound to the requesting session and to that request, so it can't be replayed elsewhere. When the threshold is reached the request becomes `approved`.
+- **History:** an append-only table records every action.
 
-Receive only the exact approved outcome and chain-specific transaction payload required for execution. They never receive a wallet private key, note witness, broad account authority, or unrestricted agent policy.
+## 7. Data
 
-## 6. Authorization and session flow
+Postgres, migrations in `db/migrations`. Sealed with AES-256-GCM (key `SCRIM_SECRET_KEY`, associated data binds each value to its row): transfer details, link notes, proof statements, private session tokens. Stored as hashes: session tokens, agent keys. Never stored: wallet keys, seed phrases.
 
-Scrim uses wallet authorization rather than email/password sign-in.
+## 8. API
 
-1. Client requests a challenge for its intended Scrim origin and network.
-2. Authorization service creates a cryptographically random 32-byte nonce, a state value, issue time, expiry, origin, and requested scope. It stores the nonce as single-use.
-3. Wallet signs an NEP-413 message destined for the Scrim authorization origin. The payload includes the Scrim session request, challenge identifier, scope, origin, and expiry.
-4. Client submits the authorization envelope, never a private key, to the authorization service.
-5. The service resolves it using NEP-641 against one recent block hash. It verifies the final resolved payload exactly equals the issued challenge, checks network, account, timestamp, origin, nonce, scope, and expiry, and consumes the nonce atomically.
-6. The service creates an httpOnly, Secure, SameSite session cookie with a short lifetime and rotates it after privilege changes. Session records bind account ID, authorization block hash, scopes, device identifier, issued-at time, and session revision.
-7. Sensitive actions require a fresh authorization: treasury creation, signer changes, agent autonomous mode, policy relaxation, export generation, proof issuance, and settlement acceptance.
+All JSON under `/api/v1`. Every response is `Cache-Control: no-store`. Mutations require `application/json` and reject cross-origin browser requests; bodies are capped at 32 KB.
 
-The verifier never trusts an account ID supplied outside a valid resolved authorization. It rejects a stale state, a reused nonce, a mismatched recipient/origin, a different payload, an unresolved authorization branch, or a block-pinning mismatch.
+| Area | Endpoints |
+| --- | --- |
+| Health | `GET /api/health` (reports which features are on and any missing setting names) |
+| Sign-in | `POST /auth/challenge`, `POST /auth/verify`, `POST /auth/logout`, `GET /me` |
+| Private balance | `GET /private`, `POST /private/unlock-challenge`, `POST /private/unlock`, `GET /assets` |
+| Transfers | `POST /transfers/preview`, `POST /transfers`, `GET /transfers`, `GET /transfers/:id`, `POST /transfers/:id/sign`, `POST /transfers/:id/cancel` |
+| Links | `POST /links`, `GET /links`, `POST /links/:code/close`; public: `GET /pay/:code`, `POST /pay/:code/start`, `GET /pay/:code/status/:id`, `GET /assets/public` |
+| Proofs | `POST /proofs`, `GET /proofs`, `POST /proofs/:id/revoke`; public: `GET /proofs/key`, `GET /proofs/state/:id` |
+| Teams | `GET/POST /treasuries`, `GET /treasuries/:id`, `POST /treasuries/:id/payments`, `POST /treasuries/:id/agents`, `PATCH/PUT /agents/:id`, `GET /payments/:id`, `POST /payments/:id/approval-challenge`, `/approve`, `/cancel`, `/pay` |
+| Software (agent key) | `GET /agent`, `GET/POST /agent/payments` |
 
-## 7. Treasury and policy model
-
-### Treasury
-
-```ts
-type Treasury = {
-  id: string
-  chain: 'near:mainnet'
-  contractAccountId: string
-  ownerAccountId: string
-  kind: 'individual' | 'team'
-  threshold: { required: number; total: number }
-  signerAccounts: string[]
-  status: 'active' | 'paused' | 'recovery'
-  policyVersion: number
-  createdAt: string
-}
-```
-
-Defaults are 1-of-1 for individuals and 2-of-3 for teams. Teams can increase the threshold after creation. A threshold change requires the existing threshold and a fresh authorization from affected signers.
-
-### Agent mandate
-
-```ts
-type AgentMandate = {
-  id: string
-  treasuryId: string
-  mode: 'request_only' | 'autonomous'
-  assetRules: AssetRule[]
-  perActionCap: AmountLimit
-  rollingCap: { amount: AmountLimit; windowSeconds: number }
-  approvedCounterparties: CounterpartyRule[]
-  approvalRule: ApprovalRule
-  disclosureRule: DisclosureRule
-  recoveryOwner: string
-  version: number
-  enabled: boolean
-}
-```
-
-`request_only` is the default and permits an agent to prepare an intent, attach permitted proof metadata, and submit it to a human or treasury approval path. It cannot accept a quote or execute settlement.
-
-`autonomous` is an explicit opt-in. It is valid only when the policy contract stores the exact policy commitment, the mandate is active, the counterparty and amount are allowed, the rolling cap is not exceeded, the approval rule permits it, and the user has not paused or recovered the mandate.
-
-### Payment request
-
-```ts
-type PaymentRequest = {
-  id: string
-  treasuryId: string
-  createdBy: { type: 'human' | 'agent'; id: string }
-  source: { asset: 'USDC'; network: 'near' }
-  destination: { asset: 'USDC'; network: 'base'; recipient: string }
-  encryptedDetails: EncryptedEnvelopeRef
-  policyVersion: number
-  policyDecision: PolicyDecision
-  idempotencyKey: string
-  status: PaymentStatus
-  quote?: IntentQuote
-  approvals: Approval[]
-  expiresAt: string
-}
-```
-
-Statuses are `draft`, `policy_rejected`, `awaiting_approval`, `quote_requested`, `quote_presented`, `accepted`, `submitting`, `settled`, `failed`, `expired`, and `cancelled`. Every transition is append-only, idempotent, authorized, and emitted as an audit event.
-
-## 8. Contract interfaces
-
-Contract method names are proposed interfaces. Final serialized arguments, gas, deposits, and storage costs are fixed only after contract implementation and integration tests.
-
-### Treasury policy contract
-
-```text
-init_treasury(config, initial_policy_commitment)
-propose_policy_update(new_commitment, policy_version, metadata_hash)
-approve_policy_update(proposal_id)
-finalize_policy_update(proposal_id)
-create_settlement_request(request_commitment, policy_version, expiry)
-approve_settlement_request(request_id)
-cancel_settlement_request(request_id)
-authorize_settlement(request_id, accepted_quote_commitment)
-pause_agent(agent_id)
-recover_agent(agent_id, recovery_action)
-get_treasury(treasury_id)
-get_request(request_id)
-get_policy_commitment(version)
-```
-
-Contract state is public governance state. Payment particulars are represented by commitments or encrypted-envelope references, never plaintext counterparties or amounts.
-
-### Shielded pool contract — Phase C
-
-```text
-register_asset(asset_config)
-shield(asset, public_amount, note_commitment)
-transact(proof, public_inputs, input_nullifiers, output_commitments)
-unshield(proof, public_inputs, input_nullifiers, recipient, asset, public_amount)
-relay(proof, public_inputs, call_commitment, relay_target, relay_args_hash)
-get_root()
-is_nullifier_spent(nullifier)
-get_verification_key(version)
-```
-
-`transact`, `unshield`, and `relay` verify proof public inputs, reject duplicate nullifiers, confirm a recognized Merkle root, append output commitments, and emit only minimal standardized events. `relay` must whitelist targets and bind the exact call hash before execution; arbitrary calls are forbidden.
-
-### Proof verification interface
-
-```text
-verify_solvency(statement, reader_key, nonce, expiry, proof)
-verify_receipt(statement, reader_key, nonce, expiry, proof)
-verify_payroll_total(statement, reader_key, nonce, expiry, proof)
-```
-
-All verifiers reject a proof after expiry, a reader-key mismatch, nonce reuse, statement mismatch, unknown proving-key version, and invalid proof. They return a minimal result, never the private amount, note, or witness.
-
-## 9. Proof statement model
-
-The first reader classes are payroll recipients, auditors/internal finance, and vendors.
-
-```ts
-type ProofStatement = {
-  version: 1
-  type: 'receipt' | 'solvency' | 'payroll_total'
-  treasuryCommitment: string
-  readerPublicKey: string
-  nonce: string
-  expiry: string
-  verificationKeyId: string
-  statementCommitment: string
-}
-```
-
-- Payroll recipient receipt: proves the recipient’s specific payment was made without revealing the batch.
-- Vendor receipt: proves the specified vendor payment was made.
-- Auditor solvency: proves a balance satisfies a stated threshold.
-- Auditor payroll total: proves a batch total and recipient count satisfy the stated values.
-
-The client generates the proof and encrypts any detailed presentation payload to the reader key. The backend can route an encrypted envelope but cannot derive the underlying amount or witness. A reader obtains the proof through a share link or direct channel and verifies expiry and binding independently.
-
-## 10. Settlement lifecycle
-
-1. A wallet-authenticated human or request-only agent creates a payment request.
-2. The policy service evaluates an immutable policy version. It rejects before quote creation if any hard rule fails.
-3. Treasury contract approval state reaches its threshold, where required.
-4. Intent adapter requests quotes for USDC on NEAR to USDC on Base.
-5. The user sees the exact quote, fees, destination asset, receiver, expiry, and expected result, then provides fresh acceptance authorization.
-6. The adapter commits the accepted quote to the treasury request and submits it to the designated settlement path.
-7. If a destination-chain transaction needs Chain Signatures, the adapter uses a chain-specific derivation path and constructs a payload with Base chain ID encoded. No path may be reused across chains.
-8. The broadcaster submits the signed Base transaction and records transaction references without exposing encrypted payment detail.
-9. Independent chain watchers reconcile finality. The request moves to `settled` only after the defined confirmation requirement is reached.
-10. An encrypted receipt envelope is produced for the treasury and, when requested, a reader-bound receipt proof is generated by the client.
-
-Quote acceptance has its own expiry. A stale quote, destination mismatch, chain ID mismatch, request commitment mismatch, or changed policy version invalidates execution.
-
-## 11. API boundary
-
-All JSON APIs are versioned under `/api/v1`. API responses never include a private key, witness, decryptable note, raw payment amount, or full encrypted payload unless the request is authorized for the ciphertext itself.
-
-| Endpoint | Caller | Purpose |
-| --- | --- | --- |
-| `POST /auth/challenge` | unauthenticated client | Create a single-use NEP authorization challenge |
-| `POST /auth/verify` | wallet client | Resolve authorization and create session |
-| `POST /auth/refresh` | authenticated client | Refresh a short-lived session after fresh authorization |
-| `GET /treasuries` | authenticated user | List treasuries for an authorized account |
-| `POST /treasuries` | fresh authorization | Create an individual or team treasury request |
-| `POST /treasuries/:id/policies` | threshold-authorized signer | Propose a versioned policy commitment |
-| `POST /payments` | authorized human or agent | Create an encrypted payment request |
-| `POST /payments/:id/quotes` | authorized request owner | Request settlement quotes |
-| `POST /payments/:id/accept` | fresh authorization + threshold | Bind and accept a quote |
-| `POST /payments/:id/cancel` | authorized actor | Cancel before submission |
-| `POST /agents` | threshold-authorized signer | Create an agent mandate |
-| `POST /agents/:id/pause` | owner or recovery role | Immediately pause an agent |
-| `POST /proofs` | authorized owner | Store encrypted proof delivery metadata only |
-| `POST /exports` | fresh authorization + role | Generate encrypted audit export |
-| `GET /webhooks/settlement` | provider watcher | Receive and verify settlement events |
-
-Every mutating endpoint requires an idempotency key, session scope, CSRF protection for browser requests, request-size limit, schema validation, audit event, and rate limit. Settlement, policy relaxation, export, and agent-autonomy endpoints additionally require a fresh authorization and intent-specific replay protection.
-
-## 12. Encrypted record store
-
-The encrypted record store is not financial truth. It stores records needed for product operation and recovery:
-
-- encrypted payment detail envelopes;
-- encrypted proof delivery envelopes;
-- encrypted audit-export artifacts;
-- quote references and reconciliation data;
-- public request commitments and status projections;
-- revocation, expiry, and delivery events.
-
-Each ciphertext envelope includes `version`, `treasuryId`, `recordType`, `createdAt`, `keyReference`, `nonce`, `ciphertext`, and `aadHash`. Associated data binds the treasury ID, record type, schema version, and immutable record ID. The encryption key is derived or wrapped on the client; the server cannot decrypt it.
-
-The existing private object store is appropriate for encrypted exports and encrypted delivery envelopes. It is not a substitute for the contract state, and it is not a replacement for a relational operational database. The production backend needs a transactional relational store for idempotency keys, sessions, quotes, approval state, and reconciliation jobs.
-
-## 13. Threat model and controls
+## 9. Threat model
 
 | Threat | Control |
 | --- | --- |
-| Session replay | NEP-bound nonce, recipient/origin binding, single-use challenge, short session TTL, session rotation |
-| Wallet-contract authorization bypass | NEP-641 resolution against one block hash; exact root-payload equality; recursion depth and count limits |
-| Quote substitution | Quote commitment, destination, asset, chain, fees, and expiry bound into fresh acceptance authorization |
-| Cross-chain signature replay | Unique derivation path per chain; Base chain ID in signed payload; chain-specific transaction builders |
-| Agent overspend | Contract-backed immutable policy version, cumulative cap accounting, counterparty allowlist, pause/recovery, threshold escalation |
-| Agent policy relaxation | Fresh owner authorization and treasury threshold; immutable policy history |
-| Double spend in native pool | Nullifier uniqueness, Merkle-root membership, proof verification, state-transition tests |
-| Relay abuse | Explicit target allowlist and call commitment; atomic re-shield requirement; no arbitrary external calls |
-| Proof disclosure to wrong reader | Reader-key binding, encrypted presentation envelope, statement nonce, expiry verification |
-| Proof replay | Reader-bound nonce, expiry, verifier-side used-nonce policy where the proof type requires single use |
-| Server compromise | No private keys/witnesses; client-encrypted records; least-privilege service accounts; key rotation; immutable audit logs |
-| Malicious relayer | Client verifies transaction outcome independently; delegated-action expiry and nonce; idempotent submission |
-| RPC inconsistency | Multi-provider read quorum for sensitive operations; block-pinned authorization; finality-aware watchers |
+| Forged sign-in | NEP-413 signature plus on-chain key ownership check; single-use challenge bound to the account |
+| Stolen server data | Sensitive values sealed; sessions and keys stored as hashes; no wallet keys exist to steal |
+| Server asked to move money without the person | Every transfer needs the wallet's signature over the exact payload; submitted once |
+| Substituted transfer | Scrim refuses a generated transfer that names another signer; signature is checked against the issued payload |
+| Replayed approval | Challenge bound to session and to one request reference |
+| Agent overspend | Server-side limits under a row lock; recipients allowlist; pause; agents can't approve |
+| Proof sent to the wrong person | Reader name is part of the signed statement; reader can check their own name |
+| Forged or altered proof | ed25519 signature over the payload; any change fails |
+| Stale proof | Expiry inside the signed statement; owner revocation |
+| Link abuse | Per-link cap on open payments; refund address validation. **Per-IP rate limiting is not built.** |
+| Upstream outage or incident | Clear "try again" states; transfers fail closed; money is never debited by Scrim itself |
 
-## 14. Deployment topology
+## 10. Tests
 
-### Edge and application
+54 automated tests: protocol (amounts, canonical encoding, NEP-413, NEAR Intents nonces, spending-limit engine) and service integration (sign-in replay, forgery and tampering; private balance unlock; sealed storage; every transfer kind, including wrong signer, wrong wallet, double submit, expiry; payment links; proofs including tampering, wrong key, expiry, wrong reader, revocation; team approvals, limits under concurrency, idempotency, privacy between accounts). The network is replaced by a stand-in in tests so failure cases can be exercised safely. Sign-in, the key check and private balance reads were also checked against live NEAR mainnet and NEAR Intents.
 
-- Vercel serves the web application and stateless API handlers.
-- Browser sessions use Secure, httpOnly cookies. No wallet secret enters Vercel.
-- A separate worker service handles quote polling, settlement finality, exports, proof-delivery retries, and reconciliation. It uses durable jobs and idempotent handlers.
+## 11. Configuration
 
-### Persistence
+See `.env.example`. Required: `DATABASE_URL`, `SCRIM_SECRET_KEY`, `SCRIM_PROOF_KEY` (generate with `npm run keys`). To move money: `ONECLICK_API_KEY`. In production the service refuses to run without the secrets, and `/api/health` names whichever are missing.
 
-- Transactional Postgres: sessions, nonces, request status, approvals, idempotency records, quote lifecycle, settlement reconciliation, and audit index.
-- Private object storage: encrypted export and proof-delivery objects.
-- Redis: rate limits, short-lived challenges, distributed locks, and ephemeral quote cache.
+## 12. Known gaps before a public launch
 
-### Chain infrastructure
-
-- Multiple NEAR RPC providers for read failover.
-- Direct contract RPC for policy and shielded-pool state.
-- Intent adapter service with explicit environment and corridor configuration.
-- Base broadcaster and confirmation watcher with an isolated signing-request boundary.
-
-### Observability
-
-Metrics record status transitions, latency, failed authorization classes, quote acceptance rate, policy rejection category, settlement finality, and job retries. Logs use request IDs and commitment IDs only; amounts, counterparties, encrypted payloads, authorization blobs, and wallet signatures are redacted.
-
-## 15. Implementation sequence
-
-### Milestone 0 — foundation
-
-1. Replace reduced product documentation with the approved product specification and this backend specification.
-2. Create account-role runbook; a human creates the three mainnet accounts and records their identifiers outside source control.
-3. Provision Postgres and Redis; bind them to isolated development, staging, and production environments.
-4. Add a typed monorepo: web, API, worker, contract, protocol, proving, settlement adapters, and integration tests.
-
-### Milestone 1 — identity and treasury shell
-
-1. Implement NEP-413 challenge issuance and NEP-641 block-pinned resolver.
-2. Build session, nonce, and authorization audit tables.
-3. Implement wallet-authenticated treasury creation with 1-of-1 and 2-of-3 defaults.
-4. Deploy a testnet treasury-policy contract and write contract state-transition tests.
-
-### Milestone 2 — policy and request-only agents
-
-1. Implement versioned policy commitments and agent mandate schema.
-2. Implement server policy projection plus contract commitment checks.
-3. Implement request-only agent intent creation, human approval, pause, recovery, and audit history.
-4. Build encrypted record envelopes and export authorization flow.
-
-### Milestone 3 — USDC NEAR to Base
-
-1. Implement the USDC NEAR→Base corridor adapter using Intents quotes and acceptance.
-2. Implement Base-specific transaction construction and distinct derivation path registry.
-3. Build quote binding, settlement submission, finality watcher, failure recovery, and reconciliation tests.
-4. Run controlled testnet and limited mainnet release with per-treasury limits.
-
-### Milestone 4 — device-side disclosures
-
-1. Define canonical circuit public inputs and reader-bound statement encoding.
-2. Implement receipt proof first, then solvency and payroll-total proofs.
-3. Implement device key management, encrypted reader delivery, verifier, expiry, and replay tests.
-4. Obtain an external cryptography and application-security review before production claims.
-
-### Milestone 5 — native shielded pool
-
-1. Implement the note, commitment, nullifier, Merkle, verifier, and relay contracts on testnet.
-2. Build the device prover and formal public-input compatibility tests.
-3. Audit all contract/circuit state transitions and recovery paths.
-4. Deploy with limited assets and limits, then migrate eligible settlement paths from the initial confidential path.
-
-## 16. Acceptance gates
-
-No milestone progresses based on interface completion alone.
-
-- Identity: replay, recipient mismatch, stale authorization, contract-wallet, and multisig authorization tests pass.
-- Policy: every cap, counterparty, threshold, pause, and recovery rule is enforced independently of the UI.
-- Settlement: quote substitution, expired quote, Base chain mismatch, derivation path reuse, reorg, and duplicate submission tests pass.
-- Proofs: wrong-reader, expired, replayed, changed-statement, and wrong-key-version verification tests fail closed.
-- Native pool: nullifier replay, invalid root, malformed proof input, unauthorized relay target, and partial re-shield tests fail closed.
-- Operations: recovery drill, incident runbook, key rotation, rollback, reconciliation, and encrypted-export restoration drill pass.
-
-## 17. Implementation status (Phase A control plane)
-
-This section records what the code does today and where it intentionally differs from the plan above.
-
-### Implemented
-
-- **Identity.** `POST /api/v1/auth/challenge` issues a single-use 32-byte nonce with a five-minute expiry. `POST /api/v1/auth/verify` checks the NEP-413 signature (borsh payload, `2^31 + 413` tag, SHA-256, ed25519). It then confirms on-chain, at `final` finality, that the signing key is a current **full-access key** on the claimed account, and consumes the nonce atomically. Sessions are random 256-bit tokens stored only as SHA-256 hashes, delivered as httpOnly, SameSite=Lax cookies (Secure in production), and bound to the network.
-- **Treasuries.** Individual (1-of-1) and team (M-of-N, up to 20 signers) treasuries. Non-members get `404`, so treasury IDs do not reveal membership.
-- **Agent mandates.** `request_only` agents with hashed API keys. Mandates hold a per-action cap, a rolling cap over a window, a counterparty allowlist, and an optional expiry. Every change publishes a new immutable version with a SHA-256 policy commitment (`agent_policies`). Only the owner can create agents, change mandates, or resume an agent. Any signer can pause one.
-- **Policy enforcement.** `src/protocol/policy.ts` is pure and unit-tested. The server evaluates it inside a transaction holding a row lock on the agent, so concurrent requests cannot together exceed the rolling cap (covered by a test). Rejected requests are recorded as `policy_rejected` with the failing checks, and they never reach a signer.
-- **Approvals.** Each approval is a fresh NEP-413 signature over a message stating the treasury, amount, recipient, request ID, and request commitment. The challenge is bound to the requesting session and to `requestId:commitment`, so a signature cannot be replayed on another request or by another session. The request moves to `approved` when the threshold is reached.
-- **Settlement quotes.** The 1Click adapter requests `EXACT_OUTPUT` quotes, so the recipient receives the exact amount. When `ONECLICK_JWT` is set it requests the confidential path, because unauthenticated confidential quotes are rejected. Quotes are dry (indicative). A quote commitment binds the request and the quote response.
-- **Cross-cutting.** Idempotency keys on payment creation, JSON-only mutating requests with same-origin checks, 32 KB body cap, `no-store` on every API response, and an append-only `audit_events` table.
-
-### Deviations and open items
-
-- **NEP-641 resolution.** §6 calls for NEP-641 block-pinned resolution. The implementation instead verifies NEP-413 signatures against a full-access key read at `final` finality. That covers standard accounts. Contract-based wallets and multisig accounts that authorize without an ed25519 full-access key are **not yet supported**.
-- **Server-visible amounts in Phase A.** Enforcing caps on the server requires the server to see the request amount and recipient. They are stored in the operational database, not client-encrypted. Privacy from the public chain comes from the settlement path. Moving enforcement to contract-verified commitments (Milestone 2) and device-side proofs (Milestone 4) removes this exposure.
-- **Contract enforcement.** Mandates and thresholds are enforced by the backend. The treasury-policy contract (§8), which makes them binding without trusting the backend, is not deployed yet.
-- **Execution.** No deposit is submitted. The next step is a signer-initiated `ft_transfer_call` of the quoted `amountIn` to the 1Click deposit address from the treasury wallet, followed by a status watcher and reconciliation.
-- **Infrastructure.** Postgres is in place. Redis-backed rate limiting, the separate worker service, and multi-provider RPC quorum (§14) are not built yet. Add rate limiting before a public launch.
-- **Corridor.** 1Click is mainnet-only. Testnet treasuries receive real but indicative mainnet quotes, and the UI says so.
+1. Rate limiting (per IP and per account) on public and sign-in endpoints.
+2. External security review of the service and, later, any contracts.
+3. Contract-wallet and multisig account sign-in.
+4. A background worker to follow transfers when nobody has the page open (today status is refreshed when viewed).
+5. Device-side proofs, payroll batches and payroll-total proofs, accountant exports.
+6. On-chain team rules.
+7. Monitoring and alerting on upstream errors and stuck transfers.

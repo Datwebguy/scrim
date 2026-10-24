@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
 import { signTransfer } from "@/client/wallet";
-import { NotSwitchedOn } from "./Gates";
 import { AssetPicker, fmt, Heading, StateChip, usd, useAssets, type AssetInfo, type TransferView } from "./money";
 import { useSession } from "./session";
 import { Spinner, useToast } from "./ui";
@@ -93,7 +92,6 @@ export function SendSwap({ initial }: { initial: Mode }) {
   return (
     <div className="narrow">
       <Heading eyebrow={titles[mode][0]} title={titles[mode][1]} text={titles[mode][2]} />
-      <NotSwitchedOn />
       {!transfer && (
         <div className="tabs" role="tablist">
           {([["person", "To a person"], ["address", "To any address"], ["swap", "Swap"]] as const).map(([id, label]) => (

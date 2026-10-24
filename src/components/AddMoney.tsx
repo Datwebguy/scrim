@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "@/client/api";
-import { NotSwitchedOn } from "./Gates";
 import { AssetPicker, CopyField, fmt, Heading, StateChip, useAssets, type TransferView } from "./money";
 import { Spinner } from "./ui";
 
@@ -37,7 +36,6 @@ export function AddMoney() {
   return (
     <div className="narrow">
       <Heading eyebrow="Add money" title="Bring money in from any chain" text="Pick a coin and its network, and Scrim gives you a one-time address. Send to it from any wallet or exchange. It lands in your private balance." />
-      <NotSwitchedOn />
       {!transfer ? (
         <div className="card card-pad form-grid">
           <AssetPicker label="What are you sending?" assets={assets} value={assetId} onChange={setAssetId} />

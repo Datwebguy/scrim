@@ -90,7 +90,7 @@ const light = (a: Asset) => ({ assetId: a.assetId, symbol: a.symbol, chainName: 
 function requireEnabled(network: Network) {
   if (network !== "mainnet") throw new HttpError(503, "mainnet_only", PRIVATE_MONEY_MAINNET_ONLY);
   if (!config.oneClickApiKey) {
-    throw new HttpError(503, "not_enabled", "Private transfers aren't switched on yet. Your balance and activity are still available.");
+    throw new HttpError(503, "not_enabled", "Sending isn't available right now. Please try again later.");
   }
 }
 

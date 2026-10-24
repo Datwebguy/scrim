@@ -1,0 +1,135 @@
+"use client";
+import { useEffect, useRef, useState } from "react";
+
+export type Coin = { symbol: string; icon: string | null };
+export type Net = { name: string; icon: string | null };
+
+const reduced = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Steps through `count` stages on a loop, only while the scene is on screen.
+function useLoop(count: number, ms: number) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [step, setStep] = useState(count - 1);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || reduced()) return;
+    let timer: ReturnType<typeof setInterval> | undefined;
+    const observer = new IntersectionObserver(([entry]) => {
+      clearInterval(timer);
+      if (entry.isIntersecting) {
+        setStep(0);
+        timer = setInterval(() => setStep((s) => (s + 1) % count), ms);
+      }
+    }, { threshold: 0.3 });
+    observer.observe(node);
+    return () => { observer.disconnect(); clearInterval(timer); };
+  }, [count, ms]);
+  return { ref, step };
+}
+
+const Logo = ({ item, size = 28 }: { item: { icon: string | null; symbol?: string; name?: string } | undefined; size?: number }) =>
+  item?.icon
+    ? <img className="sc-logo" src={item.icon} alt="" width={size} height={size} referrerPolicy="no-referrer" />
+    : <span className="sc-logo blank" style={{ width: size, height: size }}>{(item?.symbol ?? item?.name ?? "").slice(0, 1)}</span>;
+
+/* Hero: what you see versus what the public sees, flipping back and forth. */
+export function HeroCard({ coins }: { coins: Coin[] }) {
+  const { ref, step } = useLoop(2, 3200);
+  const publicView = step === 1;
+  return (
+    <div ref={ref} className={`sc-hero ${publicView ? "is-public" : ""}`}>
+      <div className="sc-hero-top">
+        <span className={!publicView ? "on" : ""}>Your view</span>
+        <span className={publicView ? "on" : ""}>Public view</span>
+      </div>
+      <ul>
+        {coins.slice(0, 4).map((c, i) => (
+          <li key={c.symbol} style={{ transitionDelay: `${i * 70}ms` }}>
+            <Logo item={c} />
+            <b>{c.symbol}</b>
+            <span className="sc-bar" style={{ width: `${70 - i * 12}%` }} />
+          </li>
+        ))}
+      </ul>
+      <div className="sc-hero-foot">{publicView ? "Nothing to see" : "Only you can see this"}</div>
+    </div>
+  );
+}
+
+/* Send: pick a network, send, done. */
+export function SendScene({ nets }: { nets: Net[] }) {
+  const { ref, step } = useLoop(4, 1500);
+  const [n, setN] = useState(0);
+  useEffect(() => { if (step === 0) setN((x) => x + 1); }, [step]);
+  const net = nets.length ? nets[n % nets.length] : undefined;
+  return (
+    <div ref={ref} className="sc-card">
+      <label className="sc-label">To</label>
+      <div className={`sc-input ${step >= 1 ? "filled" : ""}`}><span className="sc-type">Any address</span></div>
+      <label className="sc-label">Network</label>
+      <div className="sc-input sc-net"><Logo item={net} size={22} /><b key={n}>{net?.name ?? "Any chain"}</b></div>
+      <div className={`sc-btn ${step === 2 ? "press" : ""} ${step === 3 ? "done" : ""}`}>
+        {step === 3 ? "✓ Sent privately" : "Send"}
+      </div>
+    </div>
+  );
+}
+
+/* Swap: two real coins trade places inside the balance. */
+export function SwapScene({ coins }: { coins: Coin[] }) {
+  const { ref, step } = useLoop(Math.max(coins.length, 2), 2000);
+  const a = coins[step % coins.length];
+  const b = coins[(step + 1) % coins.length];
+  return (
+    <div ref={ref} className="sc-card sc-swap">
+      <div className="sc-swap-row" key={`a${step}`}><Logo item={a} size={36} /><b>{a?.symbol}</b><small>You pay</small></div>
+      <div className="sc-swap-mid"><span key={step}>⇅</span></div>
+      <div className="sc-swap-row in" key={`b${step}`}><Logo item={b} size={36} /><b>{b?.symbol}</b><small>You get</small></div>
+      <div className="sc-hidden">Hidden from the public</div>
+    </div>
+  );
+}
+
+/* Get paid: a link goes out, a payer on some chain pays, it arrives. */
+export function PaidScene({ nets }: { nets: Net[] }) {
+  const { ref, step } = useLoop(4, 1400);
+  const [n, setN] = useState(0);
+  useEffect(() => { if (step === 0) setN((x) => x + 1); }, [step]);
+  const net = nets.length ? nets[n % nets.length] : undefined;
+  return (
+    <div ref={ref} className="sc-card sc-paid">
+      <div className={`sc-link ${step >= 1 ? "copied" : ""}`}><span>🔗</span><b>Your payment link</b><em>{step >= 1 ? "Copied" : "Copy"}</em></div>
+      <div className={`sc-payer ${step >= 2 ? "show" : ""}`}><Logo item={net} size={26} /><span>Payer on <b>{net?.name ?? "any chain"}</b></span></div>
+      <div className={`sc-arrive ${step >= 3 ? "show" : ""}`}>✓ Received in your balance</div>
+    </div>
+  );
+}
+
+/* Teams: a request moves through limits and approvals. */
+export function TeamScene() {
+  const steps = ["Request", "Limits check", "Approvals", "Paid & recorded"];
+  const { ref, step } = useLoop(steps.length + 1, 1200);
+  return (
+    <div ref={ref} className="sc-team">
+      {steps.map((s, i) => (
+        <div key={s} className={`sc-team-step ${i < step ? "done" : ""} ${i === step ? "now" : ""}`}>
+          <i>{i < step ? "✓" : i + 1}</i><b>{s}</b>
+          {i === 2 && <span className="sc-approvers">{[0, 1, 2].map((k) => <em key={k} className={step > 2 || (step === 2 && k < 2) ? "ok" : ""} />)}</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* Proofs: checks tick one by one, then the proof is stamped valid. */
+export function ProofScene() {
+  const rows = ["Made for one named reader", "Holds at least an amount", "Valid for 1, 7 or 30 days"];
+  const { ref, step } = useLoop(rows.length + 3, 900);
+  return (
+    <div ref={ref} className="sc-card sc-proof">
+      {rows.map((r, i) => <div key={r} className={`sc-check ${step > i ? "on" : ""}`}><span>✓</span>{r}</div>)}
+      <div className={`sc-check no ${step > rows.length ? "on" : ""}`}><span>✕</span>Balance and history hidden</div>
+      <div className={`sc-stamp ${step > rows.length + 1 ? "on" : ""}`}>Valid</div>
+    </div>
+  );
+}

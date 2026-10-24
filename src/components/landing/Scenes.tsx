@@ -133,3 +133,28 @@ export function ProofScene() {
     </div>
   );
 }
+
+/* Agents: software asks to pay, its limits check every request, people approve, anything outside the limits is stopped. */
+export function AgentScene() {
+  const requests = [
+    { label: "Within limits", ok: true },
+    { label: "Over the daily limit", ok: false },
+    { label: "Recipient not on the list", ok: false },
+  ];
+  const { ref, step } = useLoop(requests.length * 3, 900);
+  const r = requests[Math.floor(step / 3)];
+  const phase = step % 3; // 0 asks, 1 checked, 2 result
+  return (
+    <div ref={ref} className="sc-card sc-agent">
+      <div className="sc-agent-head"><span className="sc-agent-bot" aria-hidden="true">⌘</span><b>Agent</b><em className={phase === 0 ? "on" : ""}>Asks to pay</em></div>
+      <div className="sc-agent-limits">
+        <span className={phase >= 1 ? (r.ok || r.label !== "Over the daily limit" ? "pass" : "fail") : ""}>Daily limit</span>
+        <span className={phase >= 1 ? "pass" : ""}>Per payment</span>
+        <span className={phase >= 1 ? (r.ok || r.label !== "Recipient not on the list" ? "pass" : "fail") : ""}>Allowed recipients</span>
+      </div>
+      <div className={`sc-agent-out ${phase === 2 ? (r.ok ? "ok" : "stop") : ""}`} key={step}>
+        {phase < 2 ? r.label : r.ok ? "✓ Sent to your team to approve" : "✕ Stopped before anyone sees it"}
+      </div>
+    </div>
+  );
+}

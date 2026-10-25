@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { Wordmark } from "@/components/Wordmark";
 
 export function PublicFrame({ children }: { children: React.ReactNode }) {
   return (
     <>
       <header className="site-nav">
-        <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" />scrim</Link>
+        <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" /><Wordmark /></Link>
         <Link href="/app" className="btn btn-ghost btn-sm">Open my account</Link>
       </header>
       <main className="public-main">{children}</main>

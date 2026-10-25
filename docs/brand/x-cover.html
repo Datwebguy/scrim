@@ -1,0 +1,39 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root { --orange: #ff5b2d; }
+  html, body { margin: 0; }
+  body { width: 1500px; height: 500px; background: #000; color: #fff; font-family: Manrope, sans-serif; overflow: hidden; position: relative; }
+  .wordmark { display: inline-flex; align-items: baseline; text-transform: uppercase; letter-spacing: 0.01em; line-height: 1; }
+  .wm-i { position: relative; display: inline-block; width: 0.2em; height: 0.72em; margin: 0 0.045em; }
+  .wm-i::before { content: ""; position: absolute; left: 0.025em; bottom: 0; width: 0.15em; height: 0.5em; background: currentColor; border-radius: 0.015em; }
+  .wm-i::after { content: ""; position: absolute; left: 0; top: 0; width: 0.2em; height: 0.17em; background: var(--orange); clip-path: polygon(0 62%, 100% 0, 100% 100%, 0 100%); }
+  .giant { position: absolute; left: 50%; bottom: -70px; transform: translateX(-50%); font-weight: 800; font-size: 400px; color: #0d0d0d; }
+  .giant .wm-i::after { background: #1c0d07; }
+  .content { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 0 130px 0 470px; gap: 72px; }
+  .brand { font-weight: 800; font-size: 34px; letter-spacing: 0.02em; margin-bottom: 22px; display: block; }
+  h1 { margin: 0; white-space: nowrap; font-size: 58px; line-height: 1; letter-spacing: -0.045em; font-weight: 700; }
+  h1 .soft { color: #9b9b9b; }
+  p { margin: 22px 0 0; font-size: 20px; color: #9b9b9b; font-weight: 600; letter-spacing: -0.01em; }
+  svg { width: 260px; height: 260px; overflow: visible; filter: drop-shadow(0 30px 60px rgba(255,91,45,.12)); }
+</style></head><body>
+<div class="giant"><span class="wordmark"><span>SCR</span><span class="wm-i"></span><span>M</span></span></div>
+<div class="content">
+  <div>
+    <span class="brand"><span class="wordmark"><span>SCR</span><span class="wm-i"></span><span>M</span></span></span>
+    <h1>Money on NEAR,<br><span class="soft">private when you want it.</span></h1>
+    <p>Send, swap and get paid on any chain. For people, accounts and their agents.</p>
+  </div>
+  <svg viewBox="0 0 100 100">
+    <defs>
+      <clipPath id="s"><path d="M50 4C84 4 96 12 96 50S86 96 50 96 4 88 4 50 17 4 50 4Z"/></clipPath>
+      <linearGradient id="l" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".55" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff"/></linearGradient>
+    </defs>
+    <path d="M50 4C84 4 96 12 96 50S86 96 50 96 4 88 4 50 17 4 50 4Z" fill="#131313" stroke="#2a2a2a" stroke-width=".6"/>
+    <g clip-path="url(#s)">
+      <path d="M0 61Q44 49 84 31Q47 45 0 61Z" fill="url(#l)"/>
+      <path d="M73 33.5Q86 28 100 21L100 30Q86 31.5 73 33.5Z" fill="#ff5b2d" style="filter: drop-shadow(0 0 2.5px #ff5b2d)"/>
+    </g>
+  </svg>
+</div>
+</body></html>

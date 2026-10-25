@@ -42,10 +42,4 @@ The privacy tools that exist are hard to use, work on one chain, or can't answer
 - Not a new blockchain or bridge. Scrim is the product layer on top of NEAR Intents and its private mode (Confidential Intents).
 - Not anonymous toward the people who run the private ledger. They can see it, as a bank can see your account. We say so.
 
-## Where it is going
-
-1. **Now:** private balance, add money, send, swap, payment links, signed proofs, team approvals and spending limits.
-2. **Next:** proofs generated on your own device, so even Scrim isn't involved; payroll batches and payroll-total proofs; accountant exports; on-chain approval rules for teams.
-3. **Later:** our own shielded-note pool (research), and private inference through NEAR AI Cloud for software that pays on your behalf.
-
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how it works and [BACKEND_SPEC.md](BACKEND_SPEC.md) for the detail.

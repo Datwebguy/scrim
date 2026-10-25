@@ -105,7 +105,7 @@ export function PaidScene({ nets }: { nets: Net[] }) {
   );
 }
 
-/* Teams: a request moves through limits and approvals. */
+/* Accounts with rules: a request moves through limits and approvals. */
 export function TeamScene() {
   const steps = ["Request", "Limits check", "Approvals", "Paid & recorded"];
   const { ref, step } = useLoop(steps.length + 1, 1200);
@@ -153,8 +153,52 @@ export function AgentScene() {
         <span className={phase >= 1 ? (r.ok || r.label !== "Recipient not on the list" ? "pass" : "fail") : ""}>Allowed recipients</span>
       </div>
       <div className={`sc-agent-out ${phase === 2 ? (r.ok ? "ok" : "stop") : ""}`} key={step}>
-        {phase < 2 ? r.label : r.ok ? "✓ Sent to your team to approve" : "✕ Stopped before anyone sees it"}
+        {phase < 2 ? r.label : r.ok ? "✓ Sent to you to approve" : "✕ Stopped before anyone sees it"}
       </div>
+    </div>
+  );
+}
+
+/* x402: an agent calls a paid API, gets "402 Payment Required", Scrim checks its limits, pays privately, and the API answers. */
+export function X402Scene() {
+  const steps = [
+    { from: "agent", text: "Finds a paid API and asks for data" },
+    { from: "api", text: "402 · Payment required" },
+    { from: "scrim", text: "Within the agent's limits" },
+    { from: "scrim", text: "Paid on Base, Solana or another chain" },
+    { from: "api", text: "200 · Here is your data" },
+  ];
+  const { ref, step } = useLoop(steps.length + 2, 1000);
+  return (
+    <div ref={ref} className="sc-card sc-x402">
+      <div className="sc-x402-ends"><span>Agent</span><i aria-hidden="true" /><span>Paid API</span></div>
+      <ol>
+        {steps.map((s, i) => (
+          <li key={s.text} className={`by-${s.from} ${step >= i ? "on" : ""} ${step === i ? "now" : ""}`}>
+            <b>{s.from === "agent" ? "Agent" : s.from === "api" ? "API" : "Scrim"}</b>{s.text}
+          </li>
+        ))}
+      </ol>
+      <div className={`sc-x402-foot ${step >= steps.length - 1 ? "on" : ""}`}>The API never sees whose money paid it.</div>
+    </div>
+  );
+}
+
+/* Ask: a question goes into secure hardware with your records, an answer comes out, its signature is checked. */
+export function AskScene() {
+  const steps = ["Your records, sealed", "Answered inside secure hardware", "Signature checked"];
+  const { ref, step } = useLoop(steps.length + 3, 1000);
+  return (
+    <div ref={ref} className="sc-card sc-ask">
+      <div className={`sc-ask-q ${step >= 0 ? "on" : ""}`}>What did we pay suppliers this month?</div>
+      <div className={`sc-ask-box ${step >= 1 && step <= 2 ? "busy" : ""}`} aria-hidden="true">
+        <span className="sc-ask-lock">⬡</span>
+        <b>NEAR AI · secure hardware</b>
+      </div>
+      <ol>
+        {steps.map((s, i) => <li key={s} className={step > i ? "on" : ""}><span>✓</span>{s}</li>)}
+      </ol>
+      <div className={`sc-stamp ${step > steps.length ? "on" : ""}`}>Verified</div>
     </div>
   );
 }

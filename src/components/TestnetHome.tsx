@@ -1,17 +1,15 @@
 "use client";
 import Link from "next/link";
 import { useApi } from "@/client/use-api";
-import { NETWORK_INFO } from "@/protocol/networks";
 import { Heading, TokenLogo, trimDecimals } from "./money";
 import { useSession, useSwitchNetwork } from "./session";
 
 type Holding = { id: string; symbol: string; name: string; display: string; icon: string | null };
 
 export function TestnetHome() {
-  const { accountId, network, otherNetworks } = useSession();
+  const { accountId, otherNetworks } = useSession();
   const switchNetwork = useSwitchNetwork();
   const { data, loading, error } = useApi<{ holdings: Holding[] }>("/wallet", { every: 20_000 });
-  const explorer = `${NETWORK_INFO[network].explorerUrl}/address/${accountId}`;
   const native = data?.holdings.find((h) => h.id === "near");
 
   return (
@@ -25,8 +23,8 @@ export function TestnetHome() {
         </div>
         <div className="quick">
           <Link href="/app/send" className="btn btn-signal">Send</Link>
-          <Link href="/app/team" className="btn btn-light">Team</Link>
-          <a href={explorer} target="_blank" rel="noreferrer" className="btn btn-light">View on explorer ↗</a>
+          <Link href="/app/accounts" className="btn btn-light">Accounts</Link>
+          <Link href="/app/activity" className="btn btn-light">Activity</Link>
         </div>
       </section>
       {error && <div className="notice danger">{error}</div>}

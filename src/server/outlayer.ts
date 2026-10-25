@@ -90,6 +90,15 @@ export const privateDepositAddress = (network: Network, apiKey: string, chain: s
 // Where a finished withdrawal landed on the recipient's chain.
 export const deliveryHash = (r: WalletRequest) => r.result?.destination_tx_hash ?? r.result?.swap_details?.destinationChainTxHashes?.[0] ?? null;
 
+// Signs EIP-712 typed data for the wallet's EVM address (one address on every EVM chain). Off-chain only:
+// an x402 seller's payment service submits the signed authorization and pays the gas.
+export const signTypedData = (network: Network, apiKey: string, chain: string, typedData: unknown) =>
+  call<{ signature: `0x${string}` }>(network, "/wallet/v1/evm/sign-typed-data", { apiKey, body: { chain, typed_data: typedData } }).then((r) => r.signature);
+
+// Signs a Solana transaction message (base64) for the wallet's Solana address; returns a base58 signature.
+export const signSolanaTransaction = (network: Network, apiKey: string, messageBase64: string) =>
+  call<{ signature: string }>(network, "/wallet/v1/solana/sign-transaction", { apiKey, body: { chain: "solana", unsigned_tx: messageBase64 } }).then((r) => r.signature);
+
 export const request = (network: Network, apiKey: string, id: string) => call<WalletRequest>(network, `/wallet/v1/requests/${encodeURIComponent(id)}`, { apiKey });
 
 // The link the owner opens to fund the agent (the policy link comes with the wallet at registration).

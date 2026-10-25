@@ -10,7 +10,7 @@ import type { Payment } from "./payments";
 
 async function unitFor(agent: Agent) {
   const [row] = await sql<{ network: string }[]>`SELECT network FROM treasuries WHERE id = ${agent.treasuryId}`;
-  if (!row || !isNetwork(row.network)) throw notFound("Team not found.");
+  if (!row || !isNetwork(row.network)) throw notFound("Account not found.");
   return { network: row.network, unit: corridorFor(row.network) };
 }
 

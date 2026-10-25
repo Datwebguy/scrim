@@ -124,3 +124,36 @@ describe.skipIf(!hasKey)("choosing how to pay a seller (needs the partner key)",
     expect(await chooseEntry({ accepts: [{ ...result.body.accepts[0], extra: { ...result.body.accepts[0].extra, assetTransferMethod: "eip3009" } }] })).toBeNull();
   }, 60_000);
 });
+
+describe("standard x402 sellers", () => {
+  it("knows which standard routes an agent wallet can sign", async () => {
+    const { payableByWallet } = await import("@/server/x402-wallet");
+    const base = { scheme: "exact", network: "eip155:8453", amount: "1000", asset: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", payTo: "0x0000000000000000000000000000000000000001", maxTimeoutSeconds: 60, extra: { name: "USD Coin", version: "2" } };
+    expect(payableByWallet(base)).toBe(true);
+    expect(payableByWallet({ ...base, network: "eip155:42161" })).toBe(true);
+    expect(payableByWallet({ ...base, scheme: "upto", extra: { ...base.extra, facilitatorAddress: "0x0000000000000000000000000000000000000002" } })).toBe(true);
+    expect(payableByWallet({ ...base, network: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp" })).toBe(true);
+    expect(payableByWallet({ ...base, scheme: "batch-settlement" })).toBe(false);
+    expect(payableByWallet({ ...base, network: "stellar:pubnet" })).toBe(false);
+    expect(payableByWallet({ ...base, amount: "" })).toBe(false);
+  });
+
+  it("finds real paid APIs in the public catalog, priced in dollars, with what this agent can pay", async () => {
+    const { findPaidApis } = await import("@/server/x402-client");
+    const results = await findPaidApis("weather", 10);
+    expect(results.length).toBeGreaterThan(0);
+    const payable = results.filter((r) => r.payable === "wallet");
+    expect(payable.length).toBeGreaterThan(0);
+    expect(payable.every((r) => r.url.startsWith("https://") && r.method === "GET" && r.priceUsd !== null && r.priceUsd > 0)).toBe(true);
+  }, 60_000);
+
+  it("asks a request-only agent to get its own wallet before buying from a standard seller", async () => {
+    const { findPaidApis } = await import("@/server/x402-client");
+    const seller = (await findPaidApis("weather", 10)).find((r) => r.payable === "wallet")!;
+    const origin = new URL(seller.url).origin;
+    const team = await createTreasury(session, { name: "Standard buyers", kind: "individual", signers: [], threshold: 1 });
+    const { apiKey } = await createAgent(session, team.id, { name: "Weather bot", perActionCap: "1", rollingCap: "2", windowHours: 24, counterparties: [{ address: origin, label: "Weather" }] });
+    const agent = await agentFromApiKey(`Bearer ${apiKey}`);
+    await expect(requestPurchase(agent, seller.url, "std-0001-nowallet")).rejects.toThrow(/own wallet/);
+  }, 60_000);
+});

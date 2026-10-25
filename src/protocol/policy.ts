@@ -54,22 +54,22 @@ export function evaluatePolicy(policy: MandatePolicy, input: PolicyInput): Polic
     {
       rule: "active",
       passed: input.enabled,
-      detail: input.enabled ? "Mandate is active." : "Mandate is paused by its owner.",
+      detail: input.enabled ? "The agent is switched on." : "The agent is paused by its owner.",
     },
     {
       rule: "expiry",
       passed: !policy.expiresAt || new Date(policy.expiresAt) > now,
-      detail: policy.expiresAt ? `Mandate valid until ${new Date(policy.expiresAt).toUTCString()}.` : "Mandate has no expiry.",
+      detail: policy.expiresAt ? `Its limits apply until ${new Date(policy.expiresAt).toUTCString()}.` : "Its limits have no end date.",
     },
     {
       rule: "counterparty",
       passed: Boolean(match),
-      detail: match ? `${match.label} is on the approved list.` : "Recipient is not on the approved list.",
+      detail: match ? `${match.label} is an allowed recipient.` : "This recipient isn't on the allowed list.",
     },
     {
       rule: "per_action_cap",
       passed: input.amount > 0n && input.amount <= perAction,
-      detail: `${show(input.amount)} against a ${show(perAction)} per-action cap.`,
+      detail: `${show(input.amount)}, within the ${show(perAction)} limit per payment.`,
     },
     {
       rule: "rolling_cap",

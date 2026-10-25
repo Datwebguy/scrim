@@ -163,7 +163,19 @@ async function autoPay(requestId: string) {
 
   try {
     const x402 = await import("./x402-client");
-    if (await x402.purchaseFor(requestId)) {
+    const purchase = await x402.purchaseFor(requestId);
+    if (purchase?.route === "wallet") {
+      // A standard x402 seller: top up the wallet's address on its chain if needed, then sign and pay.
+      // Keep going for a few minutes while the top-up crosses chains; the agent's get_payment also moves it on.
+      for (let i = 0; i < 24; i++) {
+        await stepWalletPurchase(requestId, wallet);
+        const [p] = await sql<{ status: string }[]>`SELECT status FROM agent_payouts WHERE request_id = ${requestId}`;
+        if (p?.status !== "sending") return;
+        await new Promise((r) => setTimeout(r, 10_000));
+      }
+      return;
+    }
+    if (purchase) {
       // An x402 purchase: quote with the seller, then pay its deposit address from the agent's wallet.
       const sent = await x402.payPurchaseFromWallet(requestId, wallet.network, wallet.secret.apiKey, isPrivate(wallet));
       await recordSent(requestId, sent);
@@ -197,6 +209,23 @@ async function finish(requestId: string, status: "success" | "failed" | "needs_r
   if (moved) emitPaymentEvent(requestId, `payment.${outcome}`);
 }
 
+async function stepWalletPurchase(requestId: string, wallet: NonNullable<Awaited<ReturnType<typeof walletRow>>>) {
+  const x402 = await import("./x402-client");
+  try {
+    const step = await x402.advanceWalletPurchase(requestId, wallet.network, wallet.secret.apiKey, isPrivate(wallet));
+    if (step.state === "paid") {
+      if (step.txHash) await sql`UPDATE agent_payouts SET tx_hash = ${step.txHash} WHERE request_id = ${requestId}`;
+      await finish(requestId, "success");
+    }
+  } catch (error) {
+    // A refused step ends the purchase; an unanswered payment needs a person to check; anything else
+    // (a slow chain or service) is tried again on the next check.
+    const status = (await x402.purchaseFor(requestId))?.status;
+    if (status === "failed") await finish(requestId, "failed", (error as Error).message);
+    else if (status === "delivering") await finish(requestId, "needs_review", (error as Error).message);
+  }
+}
+
 // Checks a payment the agent's wallet is still sending. Safe to call repeatedly.
 export async function syncAgentPayout(requestId: string) {
   const [payout] = await sql<{ status: string; wallet_request_id: string | null; tx_hash: string | null; agent_id: string }[]>`
@@ -204,6 +233,11 @@ export async function syncAgentPayout(requestId: string) {
   if (!payout || payout.status !== "sending") return;
   const wallet = await walletRow(payout.agent_id);
   if (!wallet) return;
+  const x402 = await import("./x402-client");
+  if ((await x402.purchaseFor(requestId))?.route === "wallet") {
+    await stepWalletPurchase(requestId, wallet);
+    return;
+  }
 
   if (wallet.network === "testnet" && payout.tx_hash) {
     // Read the transfer back from the chain before calling it paid.

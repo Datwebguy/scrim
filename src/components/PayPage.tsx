@@ -3,10 +3,11 @@ import { useEffect, useState } from "react";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
 import { AssetPicker, CopyField, fmt, StateChip, type AssetInfo } from "./money";
+import { PayFromWallet } from "./PayFromWallet";
 import { Spinner } from "./ui";
 
 type LinkView = { code: string; to: string; symbol: string; chainName: string; display: string; note: string; status: string };
-type Payment = { id: string; status: string; amountIn: string; fromAsset: { symbol: string; chainName: string; decimals: number }; deposit: { address: string; memo: string | null; network: string; minimum: string | null } | null };
+type Payment = { id: string; status: string; amountIn: string; fromAsset: { symbol: string; chainName: string; decimals: number }; deposit: { address: string; memo: string | null; network: string; minimum: string | null; evm?: { chainId: number; token: `0x${string}` | null } | null } | null };
 
 export function PayPage({ code }: { code: string }) {
   const { data, error: loadError } = useApi<{ link: LinkView }>(`/pay/${code}`);
@@ -75,6 +76,10 @@ export function PayPage({ code }: { code: string }) {
                   <li>Use this address once. It's made for this payment.</li>
                   <li>This page updates by itself when your payment arrives.</li>
                 </ul>
+                {payment.deposit.evm && (
+                  <PayFromWallet to={payment.deposit.address} chainId={payment.deposit.evm.chainId} token={payment.deposit.evm.token}
+                    symbol={payment.fromAsset.symbol} decimals={payment.fromAsset.decimals} minimum={null} exact={payment.amountIn} />
+                )}
               </>
             )}
             {payment.status === "processing" && <div className="notice info"><Spinner /> We see your payment. It's being delivered.</div>}

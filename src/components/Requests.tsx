@@ -47,6 +47,7 @@ export function Requests() {
           <p className="muted">Asking for <b>{fresh.display} {fresh.symbol}</b> on {fresh.chainName}{fresh.note ? ` · ${fresh.note}` : ""}</p>
           <CopyField label="Share this link" value={url(fresh.code)} />
           <CopyField label="For AI agents (x402)" value={agentUrl(fresh.code)} />
+          <small className="muted">AI agents and apps that pay over x402 can pay this address directly, in USDC or USDT from Base, Ethereum, Solana and other chains. It lands in your private balance like any other payment.</small>
           <div className="between">
             <button className="btn btn-ghost" onClick={() => setFresh(null)}>Make another</button>
             {typeof navigator !== "undefined" && "share" in navigator && <button className="btn btn-primary" onClick={() => navigator.share({ title: "Payment request", url: url(fresh.code) }).catch(() => {})}>Share</button>}

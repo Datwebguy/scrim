@@ -22,8 +22,8 @@ import { createAgentPayment, type Payment } from "./payments";
 import { safeRequest } from "./safe-fetch";
 import { open, seal } from "./secrets";
 import { createTransfer, type Transfer } from "./transfers";
+import { onChainBalance, ownAddress, payableByWallet, signPayment, SOLANA_MAINNET, walletAddresses, walletChain } from "./x402-wallet";
 
-const SOLANA_MAINNET = "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp";
 const FEE_BUFFER = 1.03; // routes cost a little more than the seller's price; the limit covers it
 
 type Entry = {
@@ -38,10 +38,11 @@ type PaymentRequired = { x402Version?: number; resource?: { url?: string }; acce
 
 export type Purchase = {
   url: string;
-  status: "requested" | "stopped" | "paying" | "delivering" | "delivered" | "failed";
+  status: "requested" | "stopped" | "funding" | "paying" | "delivering" | "delivered" | "failed";
   network: string;
   error: string | null;
-  response: { status: number; contentType: string | null; body: string; truncated: boolean } | null;
+  response: { status: number; contentType: string | null; body: string; truncated: boolean; charged?: string } | null; // charged: what an `upto` seller took
+  route: "near-intents" | "wallet";
 };
 
 const decode = (value: string | undefined) => {
@@ -109,6 +110,48 @@ export async function chooseEntry(required: PaymentRequired): Promise<{ entry: E
   return candidates.sort((a, b) => score(b) - score(a))[0] ?? null;
 }
 
+// Standard routes an agent wallet can sign, USDC only (agent limits are kept in USDC). For `upto`,
+// the amount is the most the seller may charge. Prefers exact over upto, then Base.
+async function chooseStandardEntry(required: PaymentRequired): Promise<{ entry: Entry; asset: Asset } | null> {
+  const candidates: { entry: Entry; asset: Asset }[] = [];
+  for (const entry of required.accepts ?? []) {
+    if (!payableByWallet(entry)) continue;
+    const asset = await originAsset(entry);
+    if (asset?.symbol === "USDC") candidates.push({ entry, asset });
+  }
+  const score = (c: { entry: Entry }) => (c.entry.scheme === "exact" ? 2 : 0) + (c.entry.network === "eip155:8453" ? 1 : 0);
+  return candidates.sort((a, b) => score(b) - score(a))[0] ?? null;
+}
+
+// Finding paid services: searches the public x402 catalog (Coinbase's Bazaar) and says, for each result,
+// what it costs and whether this agent can pay it, so the agent can pick one and call pay_x402.
+export type PaidApi = { url: string; name: string | null; description: string; method: string; priceUsd: number | null; scheme: string | null; networks: string[]; payable: "private" | "wallet" | null; example: unknown };
+
+export async function findPaidApis(query: string, limit = 10): Promise<PaidApi[]> {
+  const q = query.trim().slice(0, 100);
+  if (!q) throw badRequest("Say what you're looking for, like \"weather\" or \"company data\".");
+  const res = await safeRequest(`https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?${new URLSearchParams({ query: q, limit: String(Math.min(Math.max(limit, 1), 20)) })}`, { timeoutMs: 15_000, maxBytes: 2 * 1024 * 1024 });
+  if (!res || res.status !== 200) throw new HttpError(502, "upstream", "The x402 catalog isn't answering right now.");
+  const items = (JSON.parse(res.body) as { resources?: { resource: string; serviceName?: string; description?: string; accepts?: Entry[]; extensions?: { bazaar?: { info?: { input?: { method?: string; queryParams?: unknown; body?: unknown } } } } }[] }).resources ?? [];
+  return Promise.all(items.map(async (item) => {
+    const input = item.extensions?.bazaar?.info?.input;
+    const method = (input?.method ?? "GET").toUpperCase();
+    const required = { accepts: item.accepts ?? [] };
+    const privateRoute = await chooseEntry(required);
+    const standard = privateRoute ? null : await chooseStandardEntry(required);
+    const priced = standard ?? (privateRoute ? { entry: privateRoute.entry, asset: privateRoute.asset } : null);
+    const priceUsd = standard?.asset.priceUsd ? (Number(standard.entry.amount) / 10 ** standard.asset.decimals) * standard.asset.priceUsd : privateRoute ? await destinationUsd(privateRoute.entry) : null;
+    return {
+      url: item.resource, name: item.serviceName ?? null, description: (item.description ?? "").slice(0, 300), method,
+      priceUsd: priceUsd === null ? null : Math.round(priceUsd * 1e6) / 1e6, scheme: priced?.entry.scheme ?? null,
+      networks: [...new Set((item.accepts ?? []).map((a) => a.network))],
+      // Scrim buys with a GET to the address; services that need a POST body aren't payable yet.
+      payable: method !== "GET" ? null : privateRoute ? "private" : standard ? "wallet" : null,
+      example: input?.queryParams ?? null,
+    };
+  }));
+}
+
 // ── 1. The agent asks ──
 export async function requestPurchase(agent: Agent, url: string, idempotencyKey: string): Promise<{ payment: Payment; purchase: Purchase }> {
   const seller = normalizeOrigin(url);
@@ -120,27 +163,41 @@ export async function requestPurchase(agent: Agent, url: string, idempotencyKey:
   if (res.status !== 402) throw badRequest(`That address didn't ask for payment (it answered ${res.status}).`);
   const required = readRequired(res);
   if (!required) throw badRequest("That address asked for payment, but not in the x402 format.");
+  // Prefer the private NEAR Intents route; otherwise a standard route the agent's own wallet can sign.
+  let route: "near-intents" | "wallet" = "near-intents";
+  let chosen: Entry | null = null;
+  let usd: number | null = null;
   const choice = await chooseEntry(required);
-  if (!choice) throw badRequest("That seller doesn't offer a payment route Scrim can use (NEAR Intents on an EVM chain or Solana).");
-  const usd = await destinationUsd(choice.entry);
+  if (choice) {
+    chosen = choice.entry;
+    usd = await destinationUsd(choice.entry);
+  } else {
+    const standard = await chooseStandardEntry(required);
+    if (!standard) throw badRequest("That seller doesn't offer a payment route Scrim can use: NEAR Intents, or USDC on an EVM chain or Solana.");
+    const [wallet] = await sql`SELECT 1 FROM agent_wallets WHERE agent_id = ${agent.id}`;
+    if (!wallet || agent.mode !== "autonomous") throw badRequest("This seller takes standard x402 payments, which the agent pays from its own wallet. Give the agent a wallet and let it pay by itself.");
+    route = "wallet";
+    chosen = standard.entry;
+    usd = standard.asset.priceUsd ? (Number(standard.entry.amount) / 10 ** standard.asset.decimals) * standard.asset.priceUsd : null;
+  }
   if (usd === null) throw badRequest("Couldn't price what that seller asks for.");
   const amount = (Math.ceil(usd * FEE_BUFFER * 1e6) / 1e6).toFixed(6);
 
   const payment = await createAgentPayment(agent, { recipient: seller, amount, memo: `x402 ${url}`.slice(0, 140), idempotencyKey, x402: true });
   const status = payment.status === "policy_rejected" ? "stopped" : "requested";
-  await sql`INSERT INTO x402_purchases (request_id, url, entry, status) VALUES (${payment.id}, ${url}, ${sql.json(choice.entry as never)}, ${status})
+  await sql`INSERT INTO x402_purchases (request_id, url, entry, status, route) VALUES (${payment.id}, ${url}, ${sql.json(chosen as never)}, ${status}, ${route})
     ON CONFLICT (request_id) DO NOTHING`;
   return { payment, purchase: (await purchaseFor(payment.id))! };
 }
 
-type Row = { request_id: string; url: string; entry: Entry; status: Purchase["status"]; quote_sealed: string | null; result_sealed: string | null; error: string | null };
+type Row = { request_id: string; url: string; entry: Entry; route: "near-intents" | "wallet"; funding_request_id: string | null; status: Purchase["status"]; quote_sealed: string | null; result_sealed: string | null; error: string | null };
 const aad = (requestId: string) => `x402:${requestId}`;
 
 export async function purchaseFor(requestId: string): Promise<Purchase | null> {
   const [row] = await sql<Row[]>`SELECT * FROM x402_purchases WHERE request_id = ${requestId}`;
   if (!row) return null;
   return {
-    url: row.url, status: row.status, network: row.entry.network, error: row.error,
+    url: row.url, status: row.status, network: row.entry.network, error: row.error, route: row.route,
     response: row.result_sealed ? open<Purchase["response"]>(row.result_sealed, aad(row.request_id)) : null,
   };
 }
@@ -183,6 +240,7 @@ const unpay = (requestId: string) => sql`UPDATE x402_purchases SET status = 'req
 // Refunds go to the owner's own deposit address on that chain, which forwards into the private balance.
 export async function payPurchase(session: Session, request: Payment): Promise<Transfer> {
   const row = await purchaseRow(request.id);
+  if (row.route === "wallet") throw badRequest("This seller is paid from the agent's own wallet, not the account balance.");
   const { quoted, asset } = await freshQuote(row, request.amount, async (entry) => (await oneclick.bridgeDepositAddress(session.accountId, originChainOf(entry.network)!)).address);
   try {
     return await createTransfer(session, {
@@ -221,6 +279,93 @@ export async function payPurchaseFromWallet(requestId: string, network: Network,
     await unpay(requestId);
     throw error;
   }
+}
+
+// An agent wallet paying a standard x402 seller. Resumable: each call moves the purchase one step on
+// (top up the wallet's address on the seller's chain if short, then sign, pay and collect) and says
+// whether it is done. A signed payment is sent once; if its outcome is unknown it is not signed again.
+export type WalletStep = { state: "pending" } | { state: "paid"; txHash: string | null };
+
+const minor = (amount: bigint, from: number, to: number) => (to >= from ? amount * 10n ** BigInt(to - from) : (amount + 10n ** BigInt(from - to) - 1n) / 10n ** BigInt(from - to));
+
+export async function advanceWalletPurchase(requestId: string, network: Network, apiKey: string, fromPrivate: boolean): Promise<WalletStep> {
+  const row = await purchaseRow(requestId);
+  if (row.route !== "wallet") throw badRequest("This purchase isn't paid from the agent's wallet.");
+  if (row.status === "delivered") return { state: "paid", txHash: null };
+  if (row.status === "paying" || row.status === "delivering" || row.status === "stopped") return { state: "pending" };
+  const entry = row.entry;
+  const chain = walletChain(entry.network);
+  const asset = await originAsset(entry);
+  const addrs = await walletAddresses(network, apiKey);
+  const target = ownAddress(entry as never, addrs);
+  if (!chain || !asset || !target) throw new HttpError(502, "upstream", "The agent's wallet can't pay on this seller's chain.");
+  const fail = async (reason: string) => {
+    await sql`UPDATE x402_purchases SET status = 'failed', error = ${reason.slice(0, 200)}, updated_at = now() WHERE request_id = ${requestId}`;
+    throw new HttpError(502, "upstream", reason);
+  };
+
+  if (row.status === "funding" && row.funding_request_id) {
+    const topUp = await outlayer.request(network, apiKey, row.funding_request_id).catch(() => null);
+    if (!topUp || ["processing", "pending_approval", "pending_deposit"].includes(topUp.status)) return { state: "pending" };
+    if (topUp.status !== "success") return fail(topUp.result?.reason ?? "Topping up the agent's wallet didn't go through.");
+  }
+  const need = BigInt(entry.amount);
+  const have = await onChainBalance(entry as never, addrs);
+  if (have < need) {
+    if (row.status === "funding") return { state: "pending" }; // landed, waiting for the chain to show it
+    // Top up with USDC from the wallet's NEAR Intents balance (private by default), plus room for the
+    // bridge fee. Anything left over stays on the wallet's own address for the next purchase.
+    const short = minor(need - have, asset.decimals, 6);
+    const amount = (short + short / 20n + 100_000n > 1_000_000n ? short + short / 20n + 100_000n : 1_000_000n).toString();
+    const send = fromPrivate ? outlayer.privateWithdraw : outlayer.withdraw;
+    const sent = await send(network, apiKey, { to: target, amount, token: `nep141:${outlayer.USDC[network]}`, chain }, `scrim-fund-${requestId}`);
+    if (sent.status === "failed") return fail(sent.result?.reason ?? sent.error ?? "Topping up the agent's wallet didn't go through.");
+    await sql`UPDATE x402_purchases SET status = 'funding', funding_request_id = ${sent.request_id ?? null}, error = NULL, updated_at = now() WHERE request_id = ${requestId}`;
+    return { state: "pending" };
+  }
+
+  // Claim the payment step: one signature per purchase.
+  const claimed = await sql`UPDATE x402_purchases SET status = 'paying', error = NULL, updated_at = now()
+    WHERE request_id = ${requestId} AND status IN ('requested', 'funding', 'failed') RETURNING request_id`;
+  if (claimed.length !== 1) return { state: "pending" };
+  const first = await safeRequest(row.url, { timeoutMs: 10_000 });
+  const required = first && first.status === 402 ? readRequired(first) : null;
+  const fresh = required?.accepts?.find((e) => e.scheme === entry.scheme && e.network === entry.network && e.asset.toLowerCase() === entry.asset.toLowerCase() && e.payTo === entry.payTo);
+  if (!required || !fresh) return fail("The seller no longer offers this payment route.");
+  if (BigInt(fresh.amount) > need) return fail("The seller's price is now higher than what was approved.");
+  const payload = await signPayment(network, apiKey, required as never, fresh as never, addrs).catch((e: Error) => fail(`Couldn't sign the payment: ${e.message}`));
+  const res = await safeRequest(row.url, { timeoutMs: 45_000, maxBytes: 256 * 1024, headers: { "payment-signature": encode(payload) } });
+  if (!res) {
+    await sql`UPDATE x402_purchases SET status = 'delivering', error = 'Sent, but the seller did not answer. Not paying again.', updated_at = now() WHERE request_id = ${requestId}`;
+    throw new HttpError(502, "upstream", "The seller didn't answer after the payment was sent. Check before trying again.");
+  }
+  const receipt = decode(res.headers["payment-response"]) as { transaction?: string; amount?: string; errorReason?: string } | null;
+  if (res.status >= 200 && res.status < 300) {
+    const response = { status: res.status, contentType: res.headers["content-type"] ?? null, body: res.body, truncated: res.truncated, charged: receipt?.amount ?? fresh.amount };
+    await sql`UPDATE x402_purchases SET status = 'delivered', result_sealed = ${seal(response, aad(requestId))}, error = NULL, updated_at = now() WHERE request_id = ${requestId}`;
+    return { state: "paid", txHash: receipt?.transaction || null };
+  }
+  return fail(String(receipt?.errorReason ?? `seller answered ${res.status}`));
+}
+
+// For people on the team: what an agent's x402 request is buying and what came back.
+export type PurchaseDetails = Purchase & { price: string | null; charged: string | null; chain: string | null; scheme: string };
+
+export async function purchaseDetails(session: Session, paymentId: string): Promise<PurchaseDetails | null> {
+  const { getPayment } = await import("./payments");
+  const payment = await getPayment(session, paymentId); // members only
+  const [row] = await sql<Row[]>`SELECT * FROM x402_purchases WHERE request_id = ${payment.id}`;
+  if (!row) return null;
+  const purchase = (await purchaseFor(payment.id))!;
+  const asset = await originAsset(row.entry).catch(() => null);
+  const amount = row.route === "wallet" ? row.entry.amount : row.entry.extra?.destination?.amount;
+  const priceAsset = row.route === "wallet" ? asset : await assetById(row.entry.extra?.destination?.asset ?? "").catch(() => null);
+  const response = purchase.response ? { ...purchase.response, body: purchase.response.body.slice(0, 4000), truncated: purchase.response.truncated || purchase.response.body.length > 4000 } : null;
+  return {
+    ...purchase, response, scheme: row.entry.scheme, chain: asset?.chainName ?? null,
+    price: amount && priceAsset ? `${formatAmount(BigInt(amount), priceAsset.decimals, 2)} ${priceAsset.symbol}` : null,
+    charged: purchase.response?.charged && asset && /^\d+$/.test(purchase.response.charged) ? `${formatAmount(BigInt(purchase.response.charged), asset.decimals, 2)} ${asset.symbol}` : null,
+  };
 }
 
 // ── 3. Delivery ──

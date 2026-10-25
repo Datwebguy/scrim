@@ -15,7 +15,8 @@ const NAV: { href: string; label: string; privateMoney?: boolean; match?: (p: st
   { href: "/app/requests", label: "Get paid", privateMoney: true },
   { href: "/app/proofs", label: "Proofs", privateMoney: true },
   { href: "/app/activity", label: "Activity" },
-  { href: "/app/team", label: "Team" },
+  { href: "/app/ask", label: "Ask" },
+  { href: "/app/accounts", label: "Accounts" },
 ];
 
 export function Shell({ accountId, network, otherNetworks, teamPending, children }: { accountId: string; network: Network; otherNetworks: Network[]; teamPending: number; children: React.ReactNode }) {
@@ -43,7 +44,7 @@ function Frame({ accountId, network, otherNetworks, teamPending, children }: { a
                 return (
                   <Link key={item.href} href={item.href} className={`ws-link ${active ? "active" : ""}`} onClick={() => setOpen(false)} aria-current={active ? "page" : undefined}>
                     <span>{item.label}</span>
-                    {item.href === "/app/team" && teamPending > 0 && <span className="count" title="Waiting for you">{teamPending}</span>}
+                    {item.href === "/app/accounts" && teamPending > 0 && <span className="count" title="Waiting for you">{teamPending}</span>}
                   </Link>
                 );
               })}

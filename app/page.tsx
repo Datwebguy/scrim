@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { catalog } from "@/server/assets";
 import { FlowDemo } from "@/components/landing/FlowDemo";
-import { HeroCard, PaidScene, ProofScene, SendScene, SwapScene, TeamScene, AgentScene } from "@/components/landing/Scenes";
+import { AskScene, HeroCard, PaidScene, ProofScene, SendScene, SwapScene, TeamScene, AgentScene, X402Scene } from "@/components/landing/Scenes";
 import { Reveal } from "@/components/landing/Reveal";
 
 export const revalidate = 300;
@@ -19,8 +19,9 @@ export default async function Home() {
         <nav aria-label="Primary">
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
-          <a href="#teams">Teams</a>
+          <a href="#accounts">Accounts</a>
           <a href="#agents">Agents</a>
+          <a href="#ask">Ask</a>
           <a href="#proofs">Proofs</a>
           <a href="#questions">FAQ</a>
         </nav>
@@ -72,16 +73,23 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="section dark-section" id="teams">
+        <section className="section dark-section" id="accounts">
           <div className="wrap">
-            <Reveal className="l-head"><span className="eyebrow">For teams</span><h2>Private to the market. Clear to your accountant.</h2></Reveal>
+            <Reveal className="l-head"><span className="eyebrow">Rules for your money</span><h2>Private to everyone. Clear to you.</h2></Reveal>
             <Reveal><TeamScene /></Reveal>
           </div>
         </section>
 
         <section className="section l-story" id="agents">
           <div className="wrap">
-            <Row eyebrow="Agents" title="Let software pay. Within your rules." text="Give an agent its own key and spending limits. Anything outside them is stopped. People still approve." flip><AgentScene /></Row>
+            <Row eyebrow="Agents" title="Let software pay. Within your rules." text="Give an agent its own key and spending limits. It asks and people approve, or it pays by itself from a wallet of its own. Anything outside the limits is stopped." flip><AgentScene /></Row>
+            <Row eyebrow="x402" title="Pay for APIs. Get paid by agents." text="Agents find paid APIs and data, and pay them on Base, Solana and six more chains, within your limits. Their wallet is topped up privately, so sellers never see whose money it is. Other agents pay your links the same way."><X402Scene /></Row>
+          </div>
+        </section>
+
+        <section className="section l-story" id="ask">
+          <div className="wrap">
+            <Row eyebrow="Ask" title="Ask your money. Nobody else hears it." text="Ask about your payments in plain words. AI answers inside NEAR AI's secure hardware, and every answer is signed and checked. Scrim keeps no copy." flip><AskScene /></Row>
           </div>
         </section>
 
@@ -104,7 +112,8 @@ export default async function Home() {
               <details open><summary>Is it really private?</summary><p>Your money sits on NEAR Intents&apos; private ledger, not the public chain.</p></details>
               <details><summary>Does Scrim hold my money?</summary><p>No. Only your wallet can move it.</p></details>
               <details><summary>Can I try it free?</summary><p>Yes, on testnet. Private money runs on mainnet only.</p></details>
-              <details><summary>Can AI agents use it?</summary><p>Yes. Each agent gets its own key and limits, and your team approves what it asks to pay.</p></details>
+              <details><summary>Can AI agents use it?</summary><p>Yes. Each agent gets its own key and limits. You approve what it asks to pay, or let it pay by itself from its own wallet. Agents can also pay for APIs and pay your links over x402.</p></details>
+              <details><summary>Is the AI private?</summary><p>Yes. Ask runs on NEAR AI Cloud&apos;s confidential hardware. Scrim checks each answer&apos;s signature against that hardware&apos;s attestation, and stores neither your question nor the answer.</p></details>
               <details><summary>What does it cost?</summary><p>Free to open. Network fees are shown before you confirm.</p></details>
             </div>
           </div>

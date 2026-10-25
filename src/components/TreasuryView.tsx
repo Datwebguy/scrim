@@ -9,6 +9,7 @@ import { describeWindow } from "@/protocol/policy";
 import type { Agent } from "@/server/agents";
 import type { Payment } from "@/server/payments";
 import type { Treasury, TreasuryRole } from "@/server/treasuries";
+import type { PurchaseDetails } from "@/server/x402-client";
 import { useSession } from "./session";
 import { TelegramAlerts } from "./TelegramAlerts";
 import { Initials, Modal, newIdempotencyKey, Spinner, StatusPill, useToast } from "./ui";
@@ -38,7 +39,7 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
       setData(await api<Data>(`/treasuries/${treasuryId}`));
       setError("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load this team account.");
+      setError(e instanceof Error ? e.message : "Could not load this account.");
     }
   }, [treasuryId]);
 
@@ -66,14 +67,14 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">{treasury.kind === "team" ? "Team account" : "Personal account"}</span>
+          <span className="eyebrow">{treasury.kind === "team" ? "Shared account" : "Personal account"}</span>
           <h1>{treasury.name}</h1>
           <div className="meta">
             <span className="pill pill-dark plain">
               {treasury.thresholdRequired} of {treasury.signers.length} approvals
             </span>
             <span className="pill plain">{treasury.unit.routeLabel}</span>
-            <span className="pill plain">Pays out privately</span>
+            {treasury.network === "mainnet" && <span className="pill plain">Pays out privately</span>}
             <span className="pill plain">{role === "owner" ? "You own this account" : "You are an approver"}</span>
           </div>
         </div>
@@ -204,6 +205,48 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
   );
 }
 
+const RULE_LABEL: Record<string, string> = { active: "switched on", expiry: "end date", counterparty: "allowed recipient", per_action_cap: "limit per payment", rolling_cap: "limit per time window" };
+
+const PURCHASE_STATUS: Record<string, string> = {
+  requested: "Waiting to be paid", stopped: "Stopped by limits", funding: "Topping up the agent's wallet",
+  paying: "Paying the seller", delivering: "Paid, waiting for the seller", delivered: "Delivered", failed: "Didn't go through",
+};
+
+// What an agent's x402 request buys, how it is paid, and what the seller sent back.
+function PurchaseBlock({ paymentId, status }: { paymentId: string; status: string }) {
+  const [p, setP] = useState<PurchaseDetails | null | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    const load = () => api<{ purchase: PurchaseDetails | null }>(`/payments/${paymentId}/purchase`).then((r) => live && setP(r.purchase)).catch(() => live && setP(null));
+    void load();
+    const timer = setInterval(load, 10_000);
+    return () => { live = false; clearInterval(timer); };
+  }, [paymentId, status]);
+  if (p === undefined) return <Spinner />;
+  if (!p) return null;
+  const body = p.response?.body ?? "";
+  let pretty = body;
+  try { pretty = JSON.stringify(JSON.parse(body), null, 2); } catch { /* not JSON: show as sent */ }
+  return (
+    <div>
+      <span className="section-label">x402 purchase</span>
+      <dl className="detail-list">
+        <div><dt>Buying</dt><dd className="mono" style={{ wordBreak: "break-all" }}>{p.url}</dd></div>
+        <div><dt>Price</dt><dd>{p.price ?? "—"}{p.scheme === "upto" ? " at most (charged for what was used)" : ""}</dd></div>
+        <div><dt>Paid with</dt><dd>{p.route === "wallet" ? `The agent's own wallet${p.chain ? `, on ${p.chain}` : ""}` : `Private balance, through NEAR Intents${p.chain ? ` (${p.chain})` : ""}`}</dd></div>
+        <div><dt>Status</dt><dd>{PURCHASE_STATUS[p.status] ?? p.status}{p.error ? ` · ${p.error}` : ""}</dd></div>
+        {p.charged && p.scheme === "upto" && <div><dt>Charged</dt><dd>{p.charged}</dd></div>}
+      </dl>
+      {p.response && (
+        <details>
+          <summary className="muted">What the seller returned · {p.response.status}{p.response.contentType ? ` · ${p.response.contentType.split(";")[0]}` : ""}</summary>
+          <div className="code"><pre>{pretty}{p.response.truncated ? "\n…" : ""}</pre></div>
+        </details>
+      )}
+    </div>
+  );
+}
+
 function Origin({ payment }: { payment: Payment }) {
   if (payment.createdBy.type === "agent") {
     const name = payment.createdBy.name ?? "Agent";
@@ -300,6 +343,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
   const [busy, setBusy] = useState<"" | "approve" | "cancel" | "pay">("");
   const [error, setError] = useState("");
   const approvedByMe = payment.approvals.some((a) => a.accountId === accountId);
+  const isPurchase = payment.memo.startsWith("x402 ");
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -364,7 +408,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
         </div>
         <div className="drawer-body">
           <div>
-            <span className="section-label">Pay · {treasury.unit.routeLabel}</span>
+            <span className="section-label">Pay · {isPurchase ? "x402 purchase" : treasury.unit.routeLabel}</span>
             <div className="big-amount">
               {amountIn(payment.amount, treasury.unit)}
               <small>{treasury.unit.symbol}</small>
@@ -381,7 +425,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
             </div>
             <div>
               <dt>Route</dt>
-              <dd>{treasury.network === "mainnet" ? "Private balance → USDC on Base" : "Your wallet → the recipient, on testnet"}</dd>
+              <dd>{isPurchase ? "x402 purchase: see below" : treasury.network === "mainnet" ? "Private balance → USDC on Base" : "Your wallet → the recipient, on testnet"}</dd>
             </div>
             <div>
               <dt>Requested by</dt>
@@ -397,6 +441,8 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
             </div>
           </dl>
 
+          {isPurchase && <PurchaseBlock paymentId={payment.id} status={payment.status} />}
+
           {payment.policyDecision && (
             <div>
               <span className="section-label">
@@ -407,7 +453,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
                   <div key={c.rule} className={`check ${c.passed ? "" : "fail"}`}>
                     <span className="mark">{c.passed ? "✓" : "×"}</span>
                     <b style={{ fontWeight: 600 }}>{c.detail}</b>
-                    <small>{c.rule.replace(/_/g, " ")}</small>
+                    <small>{RULE_LABEL[c.rule] ?? c.rule.replace(/_/g, " ")}</small>
                   </div>
                 ))}
               </div>
@@ -562,7 +608,7 @@ function Agents({ agents, payments, role, unit, onCreate, onEdit, onToggle, onCo
       <div className="card empty">
         <span className="icon">⌁</span>
         <h3>No agents yet</h3>
-        <p>An agent is software that pays on your behalf. It gets its own key and spending limits: who it may pay, how much each time, and how much per day. It can ask to pay. It can never approve.</p>
+        <p>An agent is software that pays on your behalf. It gets its own key and spending limits: who it may pay, how much each time, and how much per day. It can ask to pay, and buy from paid APIs over x402. With a wallet of its own, it can pay by itself within those limits. It can never approve.</p>
         {role === "owner" && (
           <button className="btn btn-primary" onClick={onCreate}>
             Add your first agent
@@ -619,11 +665,11 @@ function Agents({ agents, payments, role, unit, onCreate, onEdit, onToggle, onCo
               </div>
             </div>
             <div>
-              <span className="section-label">Approved counterparties</span>
+              <span className="section-label">Allowed recipients</span>
               <div className="chips">
                 {agent.policy.counterparties.map((c) => (
                   <span key={c.address} className="chip" title={c.address}>
-                    {c.label} <code>{short(c.address, 4, 4)}</code>
+                    {c.label} <code>{c.address.startsWith("https://") ? new URL(c.address).host : short(c.address, 4, 4)}</code>
                   </span>
                 ))}
               </div>
@@ -742,8 +788,8 @@ function AgentDialog({ state, treasuryId, unit, onClose, onSaved }: { state: { m
           </select>
         </label>
         <div className="field">
-          Approved counterparties
-          <small>{unit.recipientLabel.replace(/^a /, "")}es this agent may pay{unit.symbol === "NEAR" ? "" : ", or https:// sellers it may buy from (x402)"}. Anything else is blocked automatically.</small>
+          Allowed recipients
+          <small>{plural(unit.recipientLabel.replace(/^an? /, ""))} this agent may pay{unit.symbol === "NEAR" ? "" : ", or https:// sellers it may buy from (x402)"}. Anything else is blocked automatically.</small>
           {counterparties.map((c, i) => (
             <div key={i} className="counterparty-row">
               <input className="input" value={c.label} onChange={(e) => setCounterparties((list) => list.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="Label" maxLength={60} />
@@ -818,8 +864,10 @@ function Secret({ value }: { value: string }) {
 }
 
 // How to plug an agent in: as a tool for an AI assistant (MCP), or from any code over HTTPS.
+const plural = (noun: string) => (/(s|x|ch|sh)$/.test(noun) ? `${noun}es` : `${noun}s`);
+
 function ConnectGuide({ apiKey }: { apiKey: string }) {
-  const [how, setHow] = useState<"ai" | "code">("ai");
+  const [how, setHow] = useState<"ai" | "code" | "x402">("ai");
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const mcp = JSON.stringify({ mcpServers: { scrim: { type: "http", url: `${origin}/api/mcp`, headers: { Authorization: `Bearer ${apiKey}` } } } }, null, 2);
   const curl = `curl -X POST ${origin}/api/v1/agent/payments \\
@@ -827,21 +875,32 @@ function ConnectGuide({ apiKey }: { apiKey: string }) {
   -H "Idempotency-Key: <unique-id>" \\
   -H "Content-Type: application/json" \\
   -d '{"recipient":"<recipient>","amount":"<amount>","memo":"<what it is for>"}'`;
+  const buy = `curl -X POST ${origin}/api/v1/agent/x402 \\
+  -H "Authorization: Bearer ${apiKey}" \\
+  -H "Idempotency-Key: <unique-id>" \\
+  -H "Content-Type: application/json" \\
+  -d '{"url":"https://<paid-api>/<path>"}'`;
   return (
     <div className="connect-guide">
       <div className="seg" role="tablist">
         <button role="tab" aria-selected={how === "ai"} onClick={() => setHow("ai")}>AI assistant</button>
         <button role="tab" aria-selected={how === "code"} onClick={() => setHow("code")}>Your code</button>
+        <button role="tab" aria-selected={how === "x402"} onClick={() => setHow("x402")}>Paid APIs</button>
       </div>
       {how === "ai" ? (
         <>
-          <p className="muted">Add Scrim as a tool (MCP server) in Claude or any assistant that supports MCP. It can check its limits and ask to pay. People still approve.</p>
+          <p className="muted">Add Scrim as a tool (MCP server) in Claude or any assistant that supports MCP. It can check its limits, ask to pay, find paid APIs with find_paid_apis and buy them with pay_x402.</p>
           <div className="code"><pre>{mcp}</pre></div>
         </>
-      ) : (
+      ) : how === "code" ? (
         <>
           <p className="muted">Ask to pay from any program. Check its limits with GET /api/v1/agent and a request with GET /api/v1/agent/payments/&lt;id&gt;.</p>
           <div className="code"><pre>{curl}</pre></div>
+        </>
+      ) : (
+        <>
+          <p className="muted">Buy from any address that asks for payment over x402 (HTTP 402), such as a paid API. Add the seller&apos;s https:// address to the agent&apos;s allowed recipients first. Scrim checks the price against the limits, pays, and keeps what the seller returns: read it with GET /api/v1/agent/payments/&lt;id&gt;. Find sellers with GET /api/v1/agent/x402/search?q=weather. Most sellers take standard payments, which an agent pays from its own wallet.</p>
+          <div className="code"><pre>{buy}</pre></div>
         </>
       )}
     </div>
@@ -1072,7 +1131,7 @@ function AgentWalletBlock({ agent, owner, onChanged }: { agent: Agent; owner: bo
           <p className="muted">
             {wallet.autonomous
               ? `${agent.name} pays by itself from this wallet, within its limits here and its spending rules on OutLayer.`
-              : `${agent.name} asks and people approve. Payments come from the team.`}
+              : `${agent.name} asks and you approve. Payments come from your account.`}
           </p>
         </>
       )}
@@ -1121,7 +1180,7 @@ function Audit({ events, agents }: { events: AuditEvent[]; agents: Agent[] }) {
   const detail = (e: AuditEvent) => {
     const d = e.data;
     if (e.action === "payment.approved") return `${d.approvals}/${d.threshold}${d.thresholdReached ? " · threshold reached" : ""}`;
-    if (e.action === "payment.policy_rejected") return `failed: ${(d.failedRules as string[] | undefined)?.join(", ").replace(/_/g, " ")}`;
+    if (e.action === "payment.policy_rejected") return `outside: ${(d.failedRules as string[] | undefined)?.map((r) => RULE_LABEL[r] ?? r.replace(/_/g, " ")).join(", ")}`;
     if (e.action.startsWith("agent.") && d.policyVersion) return `v${d.policyVersion}`;
     return "";
   };

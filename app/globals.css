@@ -1115,3 +1115,10 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 .ws-side-head .bell-pop { left: 0; right: auto; }
 
 @media (max-width: 900px) { .ws-top .bell-pop { position: fixed; top: 62px; left: 16px; right: 16px; width: auto; } }
+
+/* Once connected, the wallet is just a small round avatar (like most apps). Tap it for the details. */
+.acct-chip, .ws-top .acct-chip { position: relative; justify-content: center; width: 34px; height: 34px; padding: 0; border-radius: 50%; }
+.acct-chip .avatar { display: grid; place-items: center; width: 100%; height: 100%; border: 0; border-radius: 50%; background: var(--orange); color: #1a0c06; font: 700 12px var(--mono); }
+.acct-chip .dot { position: absolute; right: -2px; bottom: -2px; width: 11px; height: 11px; border: 2px solid #151512; }
+.ws-account { padding: 0 4px; background: none; border: 0; }
+.ws-account .acct-chip { width: 40px; height: 40px; }

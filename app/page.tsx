@@ -2,7 +2,7 @@ import Link from "next/link";
 import { catalog } from "@/server/assets";
 import { FlowDemo } from "@/components/landing/FlowDemo";
 import { AskScene, HeroCard, PaidScene, ProofScene, SendScene, SwapScene, TeamScene, AgentScene, X402Scene } from "@/components/landing/Scenes";
-import { MarkArt } from "@/components/landing/MarkArt";
+import { Orbit } from "@/components/landing/Orbit";
 import { Reveal } from "@/components/landing/Reveal";
 import { TaglineReveal } from "@/components/landing/TaglineReveal";
 import { Wordmark } from "@/components/Wordmark";
@@ -131,9 +131,14 @@ export default async function Home() {
       </main>
 
       <footer className="l-footer">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="l-foot-engraving" src="/brand/flammarion.webp" alt="" loading="lazy" />
         <div className="wrap l-foot-top">
-          <TaglineReveal lines={["Money on NEAR,", "private when you want it."]} />
-          <MarkArt className="l-foot-mark" />
+          <div>
+            <TaglineReveal lines={["Money on NEAR,", "private when you want it."]} />
+            <p className="l-foot-sub">Send, swap and get paid on {live ? `${live.chains.length} chains` : "any chain"}. Approvals and limits for accounts. Agents that pay within your rules.</p>
+          </div>
+          <Orbit chains={live?.chains ?? []} />
         </div>
         <div className="wrap l-foot-row">
           <Link href="/" className="brand" aria-label="Scrim home"><Wordmark /></Link>

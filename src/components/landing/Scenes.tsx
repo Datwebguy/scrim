@@ -51,7 +51,7 @@ export function HeroCard({ coins }: { coins: Coin[] }) {
           </li>
         ))}
       </ul>
-      <div className="sc-hero-foot">{publicView ? "Nothing to see" : "Only you can see this"}</div>
+      <div className="sc-hero-foot">{publicView ? "Private: nothing to see" : "Private: only you can see this"}</div>
     </div>
   );
 }
@@ -69,7 +69,7 @@ export function SendScene({ nets }: { nets: Net[] }) {
       <label className="sc-label">Network</label>
       <div className="sc-input sc-net"><Logo item={net} size={22} /><b key={n}>{net?.name ?? "Any chain"}</b></div>
       <div className={`sc-btn ${step === 2 ? "press" : ""} ${step === 3 ? "done" : ""}`}>
-        {step === 3 ? "✓ Sent privately" : "Send"}
+        {step === 3 ? "✓ Sent" : "Send"}
       </div>
     </div>
   );
@@ -85,7 +85,7 @@ export function SwapScene({ coins }: { coins: Coin[] }) {
       <div className="sc-swap-row" key={`a${step}`}><Logo item={a} size={36} /><b>{a?.symbol}</b><small>You pay</small></div>
       <div className="sc-swap-mid"><span key={step}>⇅</span></div>
       <div className="sc-swap-row in" key={`b${step}`}><Logo item={b} size={36} /><b>{b?.symbol}</b><small>You get</small></div>
-      <div className="sc-hidden">Hidden from the public</div>
+      <div className="sc-hidden">Private when you choose</div>
     </div>
   );
 }
@@ -100,7 +100,7 @@ export function PaidScene({ nets }: { nets: Net[] }) {
     <div ref={ref} className="sc-card sc-paid">
       <div className={`sc-link ${step >= 1 ? "copied" : ""}`}><span>🔗</span><b>Your payment link</b><em>{step >= 1 ? "Copied" : "Copy"}</em></div>
       <div className={`sc-payer ${step >= 2 ? "show" : ""}`}><Logo item={net} size={26} /><span>Payer on <b>{net?.name ?? "any chain"}</b></span></div>
-      <div className={`sc-arrive ${step >= 3 ? "show" : ""}`}>✓ Received in your balance</div>
+      <div className={`sc-arrive ${step >= 3 ? "show" : ""}`}>✓ Received where you chose</div>
     </div>
   );
 }
@@ -128,7 +128,7 @@ export function ProofScene() {
   return (
     <div ref={ref} className="sc-card sc-proof">
       {rows.map((r, i) => <div key={r} className={`sc-check ${step > i ? "on" : ""}`}><span>✓</span>{r}</div>)}
-      <div className={`sc-check no ${step > rows.length ? "on" : ""}`}><span>✕</span>Balance and history hidden</div>
+      <div className={`sc-check no ${step > rows.length ? "on" : ""}`}><span>✕</span>Balance and history stay yours</div>
       <div className={`sc-stamp ${step > rows.length + 1 ? "on" : ""}`}>Valid</div>
     </div>
   );

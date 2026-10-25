@@ -14,10 +14,17 @@ export const linkAad = (code: string, account: string) => `paylink:${code}:${acc
 
 export type PayLink = {
   code: string; assetId: string; symbol: string; chainName: string; amount: string; display: string;
-  note: string; status: "open" | "paid" | "closed" | "expired"; expiresAt: Date; createdAt: Date;
+  note: string; status: "open" | "paid" | "closed" | "expired"; receive: "private" | "wallet"; expiresAt: Date; createdAt: Date;
 };
 
-type Row = { id: string; account_id: string; network: Network; asset_id: string; amount: string; details_sealed: string; status: "open" | "paid" | "closed"; expires_at: Date; created_at: Date };
+type Row = { id: string; account_id: string; network: Network; asset_id: string; amount: string; details_sealed: string; status: "open" | "paid" | "closed"; receive: "private" | "wallet"; expires_at: Date; created_at: Date };
+
+// Receiving straight into a NEAR wallet works for coins on NEAR; anything else lands privately.
+export function receiveChoice(value: unknown, asset: { chain: string }): "private" | "wallet" {
+  if (value !== "wallet") return "private";
+  if (asset.chain !== "near") throw badRequest("To receive in your wallet, pick a coin on NEAR (like USDC on NEAR).");
+  return "wallet";
+}
 
 async function toLink(row: Row): Promise<PayLink> {
   const asset = await assetById(row.asset_id);
@@ -25,11 +32,11 @@ async function toLink(row: Row): Promise<PayLink> {
   return {
     code: row.id, assetId: asset.assetId, symbol: asset.symbol, chainName: asset.chainName, amount: row.amount,
     display: formatAmount(BigInt(row.amount), asset.decimals, 2), note,
-    status: row.status === "open" && row.expires_at < new Date() ? "expired" : row.status, expiresAt: row.expires_at, createdAt: row.created_at,
+    status: row.status === "open" && row.expires_at < new Date() ? "expired" : row.status, receive: row.receive, expiresAt: row.expires_at, createdAt: row.created_at,
   };
 }
 
-export async function createPayLink(session: Session, input: { assetId: string; amount: string; note?: string; days?: number }): Promise<PayLink> {
+export async function createPayLink(session: Session, input: { assetId: string; amount: string; note?: string; days?: number; receive?: unknown }): Promise<PayLink> {
   if (session.network !== "mainnet") throw new HttpError(503, "mainnet_only", PRIVATE_MONEY_MAINNET_ONLY);
   const asset = await assetById(input.assetId);
   let amount: bigint;
@@ -42,10 +49,11 @@ export async function createPayLink(session: Session, input: { assetId: string; 
   const note = (input.note ?? "").trim();
   if (note.length > 140) throw badRequest("Keep the note under 140 characters.");
   const days = [1, 7, 30].includes(Number(input.days)) ? Number(input.days) : 7;
+  const receive = receiveChoice(input.receive, asset);
   const code = newCode();
   await sql.begin(async (tx) => {
-    await tx`INSERT INTO pay_links (id, account_id, network, asset_id, amount, details_sealed, expires_at)
-      VALUES (${code}, ${session.accountId}, ${session.network}, ${asset.assetId}, ${amount.toString()}, ${seal({ note }, linkAad(code, session.accountId))}, now() + make_interval(days => ${days}))`;
+    await tx`INSERT INTO pay_links (id, account_id, network, asset_id, amount, details_sealed, receive, expires_at)
+      VALUES (${code}, ${session.accountId}, ${session.network}, ${asset.assetId}, ${amount.toString()}, ${seal({ note }, linkAad(code, session.accountId))}, ${receive}, now() + make_interval(days => ${days}))`;
     await audit(tx, null, { type: "human", id: session.accountId }, "link.created", code);
   });
   return toLink((await sql<Row[]>`SELECT * FROM pay_links WHERE id = ${code}`)[0]);
@@ -76,5 +84,5 @@ export async function linkRow(code: string) {
   if (!row) throw notFound("This payment link doesn't exist.");
   const link = await toLink(row);
   if (link.status !== "open") throw badRequest(link.status === "paid" ? "This link was already paid." : "This link is no longer open.");
-  return { id: row.id, accountId: row.account_id, network: row.network, assetId: row.asset_id, amount: row.amount, note: link.note, expiresAt: row.expires_at };
+  return { id: row.id, accountId: row.account_id, network: row.network, assetId: row.asset_id, amount: row.amount, note: link.note, expiresAt: row.expires_at, receive: row.receive };
 }

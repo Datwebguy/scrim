@@ -3,9 +3,10 @@ import { useState } from "react";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
 import { AssetPicker, CopyField, Heading, useAssets } from "./money";
+import { ReceiveChoice, type Receive } from "./ReceiveChoice";
 import { Spinner, useToast } from "./ui";
 
-type Link = { code: string; symbol: string; chainName: string; display: string; note: string; status: string; expiresAt: string };
+type Link = { code: string; symbol: string; chainName: string; display: string; note: string; status: string; receive: Receive; expiresAt: string };
 
 export function Requests() {
   const toast = useToast();
@@ -15,6 +16,8 @@ export function Requests() {
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [days, setDays] = useState(7);
+  const [receive, setReceive] = useState<Receive>("private");
+  const onNear = assets.find((a) => a.assetId === assetId)?.chain === "near";
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [fresh, setFresh] = useState<Link | null>(null);
@@ -26,7 +29,7 @@ export function Requests() {
     setBusy(true);
     setError("");
     try {
-      const { link } = await api<{ link: Link }>("/links", { body: { assetId, amount, note, days } });
+      const { link } = await api<{ link: Link }>("/links", { body: { assetId, amount, note, days, receive: onNear ? receive : "private" } });
       setFresh(link);
       setAmount("");
       setNote("");
@@ -40,14 +43,14 @@ export function Requests() {
 
   return (
     <div className="narrow">
-      <Heading eyebrow="Get paid" title="Ask for money with a link" text="Share a link. Whoever opens it can pay from any chain, with no account. The money goes straight into your private balance." />
+      <Heading eyebrow="Get paid" title="Ask for money with a link" text="Share a link. Whoever opens it can pay from any chain, with no account. You choose where the money lands: your private balance or your wallet." />
       {fresh ? (
         <div className="card card-pad form-grid">
           <h2>Your link is ready</h2>
           <p className="muted">Asking for <b>{fresh.display} {fresh.symbol}</b> on {fresh.chainName}{fresh.note ? ` · ${fresh.note}` : ""}</p>
           <CopyField label="Share this link" value={url(fresh.code)} />
           <CopyField label="For AI agents (x402)" value={agentUrl(fresh.code)} />
-          <small className="muted">AI agents and apps that pay over x402 can pay this address directly, in USDC or USDT from Base, Ethereum, Solana and other chains. It lands in your private balance like any other payment.</small>
+          <small className="muted">AI agents and apps that pay over x402 can pay this address directly, in USDC or USDT from Base, Ethereum, Solana and other chains. It lands where you chose, like any other payment to this link.</small>
           <div className="between">
             <button className="btn btn-ghost" onClick={() => setFresh(null)}>Make another</button>
             {typeof navigator !== "undefined" && "share" in navigator && <button className="btn btn-primary" onClick={() => navigator.share({ title: "Payment request", url: url(fresh.code) }).catch(() => {})}>Share</button>}
@@ -56,6 +59,7 @@ export function Requests() {
       ) : (
         <form className="card card-pad form-grid" onSubmit={create}>
           <AssetPicker label="You want to receive" assets={assets} value={assetId} onChange={setAssetId} />
+          <ReceiveChoice value={onNear ? receive : "private"} onChange={setReceive} onNear={onNear} />
           <div className="form-row">
             <label className="field">Amount<input className="input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" required /></label>
             <label className="field">Link stays open for

@@ -126,7 +126,7 @@ export function StateChip({ status }: { status: string }) {
   return <span className={`pill ${tone}`}>{text}</span>;
 }
 
-export const KIND_LABEL: Record<string, string> = { add: "Added money", swap: "Swapped", send: "Sent privately", withdraw: "Sent out", link_payment: "Received by link" };
+export const KIND_LABEL: Record<string, string> = { add: "Added money", swap: "Swapped", send: "Sent", withdraw: "Sent out", link_payment: "Received by link" };
 
 type Leg = { assetId: string; symbol: string; chainName: string; decimals: number; icon: string | null; chainIcon: string | null };
 export type TransferView = {

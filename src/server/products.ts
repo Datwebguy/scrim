@@ -9,7 +9,7 @@ import { assetById } from "./assets";
 import type { Session } from "./auth";
 import { sql } from "./db";
 import { badRequest, HttpError, notFound } from "./errors";
-import { linkAad, newCode } from "./paylinks";
+import { linkAad, newCode, receiveChoice } from "./paylinks";
 import { safePublicUrl, safeRequest } from "./safe-fetch";
 import { open, seal } from "./secrets";
 
@@ -19,17 +19,17 @@ const aad = (code: string, account: string) => `product:${code}:${account}`;
 
 export type Product = {
   code: string; name: string; description: string; assetId: string; symbol: string; chainName: string; amount: string; display: string;
-  delivers: "text" | "api"; open: boolean; sales: number; earned: string; createdAt: Date;
+  delivers: "text" | "api"; receive: "private" | "wallet"; open: boolean; sales: number; earned: string; createdAt: Date;
 };
 
-type Row = { id: string; account_id: string; asset_id: string; amount: string; status: string; product_sealed: string; created_at: Date; sales: number; earned: string | null };
+type Row = { id: string; account_id: string; asset_id: string; amount: string; status: string; receive: "private" | "wallet"; product_sealed: string; created_at: Date; sales: number; earned: string | null };
 
 async function toProduct(row: Row): Promise<Product> {
   const asset = await assetById(row.asset_id);
   const p = open<Sealed>(row.product_sealed, aad(row.id, row.account_id));
   return {
     code: row.id, name: p.name, description: p.description, assetId: asset.assetId, symbol: asset.symbol, chainName: asset.chainName,
-    amount: row.amount, display: formatAmount(BigInt(row.amount), asset.decimals, 2), delivers: p.deliver.kind, open: row.status === "open",
+    amount: row.amount, display: formatAmount(BigInt(row.amount), asset.decimals, 2), delivers: p.deliver.kind, receive: row.receive, open: row.status === "open",
     sales: row.sales, earned: formatAmount(BigInt(row.earned ?? "0"), asset.decimals, 2), createdAt: row.created_at,
   };
 }
@@ -55,14 +55,14 @@ function checkDelivery(input: unknown): Delivery {
 }
 
 const SELECT = (account: string, network: string) => sql<Row[]>`
-  SELECT l.id, l.account_id, l.asset_id, l.amount, l.status, l.product_sealed, l.created_at,
+  SELECT l.id, l.account_id, l.asset_id, l.amount, l.status, l.receive, l.product_sealed, l.created_at,
     count(t.id) FILTER (WHERE t.status = 'success')::int AS sales,
     (count(t.id) FILTER (WHERE t.status = 'success') * l.amount::numeric)::text AS earned
   FROM pay_links l LEFT JOIN transfers t ON t.pay_link_id = l.id AND t.kind = 'link_payment'
   WHERE l.account_id = ${account} AND l.network = ${network} AND l.product_sealed IS NOT NULL
   GROUP BY l.id ORDER BY l.created_at DESC LIMIT 100`;
 
-export async function createProduct(session: Session, input: { name?: unknown; description?: unknown; assetId?: unknown; amount?: unknown; deliver?: unknown }): Promise<Product> {
+export async function createProduct(session: Session, input: { name?: unknown; description?: unknown; assetId?: unknown; amount?: unknown; deliver?: unknown; receive?: unknown }): Promise<Product> {
   if (session.network !== "mainnet") throw new HttpError(503, "mainnet_only", PRIVATE_MONEY_MAINNET_ONLY);
   const name = String(input.name ?? "").trim();
   if (!name || name.length > 80) throw badRequest("Name what you're selling (up to 80 characters).");
@@ -77,11 +77,12 @@ export async function createProduct(session: Session, input: { name?: unknown; d
   }
   if (amount <= 0n) throw badRequest("Set a price greater than zero.");
   const deliver = checkDelivery(input.deliver);
+  const receive = receiveChoice(input.receive, asset);
   const code = newCode();
   await sql.begin(async (tx) => {
-    await tx`INSERT INTO pay_links (id, account_id, network, asset_id, amount, details_sealed, product_sealed, expires_at)
+    await tx`INSERT INTO pay_links (id, account_id, network, asset_id, amount, details_sealed, product_sealed, receive, expires_at)
       VALUES (${code}, ${session.accountId}, ${session.network}, ${asset.assetId}, ${amount.toString()}, ${seal({ note: name }, linkAad(code, session.accountId))},
-        ${seal({ name, description, deliver } satisfies Sealed, aad(code, session.accountId))}, now() + interval '10 years')`;
+        ${seal({ name, description, deliver } satisfies Sealed, aad(code, session.accountId))}, ${receive}, now() + interval '10 years')`;
     await audit(tx, null, { type: "human", id: session.accountId }, "product.created", code);
   });
   return (await listProducts(session)).find((p) => p.code === code)!;

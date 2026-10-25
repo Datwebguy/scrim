@@ -6,7 +6,7 @@ import { AssetPicker, CopyField, fmt, StateChip, type AssetInfo } from "./money"
 import { PayFromWallet } from "./PayFromWallet";
 import { Spinner } from "./ui";
 
-type LinkView = { code: string; to: string; symbol: string; chainName: string; display: string; note: string; status: string };
+type LinkView = { code: string; to: string; symbol: string; chainName: string; display: string; note: string; status: string; receive?: "private" | "wallet" };
 type Payment = { id: string; status: string; amountIn: string; fromAsset: { symbol: string; chainName: string; decimals: number }; deposit: { address: string; memo: string | null; network: string; minimum: string | null; evm?: { chainId: number; token: `0x${string}` | null } | null } | null };
 
 // What a buyer receives once their payment is confirmed: the seller's text or link, or their API's answer.
@@ -112,7 +112,7 @@ export function PayPage({ code }: { code: string }) {
           </div>
         )}
       </div>
-      <p className="muted small-print" style={{ textAlign: "center", marginTop: 16 }}>Payments to Scrim accounts are private. Only {link.to} can see what they receive.</p>
+      <p className="muted small-print" style={{ textAlign: "center", marginTop: 16 }}>{link.receive === "wallet" ? `This payment goes to ${link.to}'s wallet, like any transfer on the blockchain.` : `This payment is private: only ${link.to} sees what they receive.`}</p>
     </div>
   );
 }

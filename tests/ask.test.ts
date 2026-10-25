@@ -1,7 +1,7 @@
 // Ask your money against the real NEAR AI Cloud. Runs only when NEARAI_API_KEY is set (it spends credits).
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ask } from "@/server/ask";
-import { askAccount, chargeQuestion } from "@/server/ask-credits";
+import { askAccount, chargeQuestion, creditWalletTopUp } from "@/server/ask-credits";
 import type { Session } from "@/server/auth";
 import { sql } from "@/server/db";
 import { createTestnetWallet, resetDatabase, signInAs } from "./live";
@@ -29,7 +29,7 @@ describe("ask your money: input", () => {
   });
 
   it("gives each account one free question; after that people pay from their own balance", async () => {
-    expect(await askAccount(session)).toMatchObject({ freeLeft: 1, creditUsd: 0, priceUsd: 0.02, questionsLeft: 1, canTopUp: false });
+    expect(await askAccount(session)).toMatchObject({ freeLeft: 1, creditUsd: 0, priceUsd: 0.02, questionsLeft: 1, canTopUp: false, walletPay: null });
   });
 
   it("takes the free question once, then asks for payment; a failed answer gives it back", async () => {
@@ -40,4 +40,18 @@ describe("ask your money: input", () => {
     await refund();
     expect((await askAccount(other)).freeLeft).toBe(1);
   }, 120_000);
+});
+
+describe("ask credits from the wallet", () => {
+  it("are bought on mainnet only, and only with a real transaction", async () => {
+    await expect(creditWalletTopUp(session, "not-a-hash")).rejects.toThrow(/switched on/);
+    const mainnet = { ...session, network: "mainnet" as const };
+    const before = process.env.ASK_FEE_ACCOUNT;
+    process.env.ASK_FEE_ACCOUNT = "scrimapp.near";
+    try {
+      await expect(creditWalletTopUp(mainnet, "not-a-hash")).rejects.toThrow(/doesn't look right/);
+    } finally {
+      if (before === undefined) delete process.env.ASK_FEE_ACCOUNT; else process.env.ASK_FEE_ACCOUNT = before;
+    }
+  }, 60_000);
 });

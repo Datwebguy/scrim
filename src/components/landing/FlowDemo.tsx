@@ -6,9 +6,9 @@ export type DemoIcon = { name: string; icon: string | null };
 type Scene = { id: string; tab: string; from: string; via: string; to: string; line: string; fromCycle?: boolean; toCycle?: boolean };
 
 const SCENES: Scene[] = [
-  { id: "add", tab: "Add", from: "Any chain", via: "One-time address", to: "Your balance", line: "Money lands in your private balance.", fromCycle: true },
-  { id: "send", tab: "Send", from: "Your balance", via: "Private layer", to: "Any address", line: "The payment can't be traced back to you.", toCycle: true },
-  { id: "swap", tab: "Swap", from: "Coin", via: "Private layer", to: "Another coin", line: "Swapped inside your balance. Nobody sees it.", fromCycle: true, toCycle: true },
+  { id: "add", tab: "Add", from: "Any chain", via: "One-time address", to: "Your balance", line: "Money lands where you choose.", fromCycle: true },
+  { id: "send", tab: "Send", from: "Your balance", via: "Your choice", to: "Any address", line: "Choose private and it can't be traced back to you.", toCycle: true },
+  { id: "swap", tab: "Swap", from: "Coin", via: "Your choice", to: "Another coin", line: "Swap in public, or privately inside your balance.", fromCycle: true, toCycle: true },
   { id: "paid", tab: "Get paid", from: "Payer, any coin", via: "Your link", to: "Your balance", line: "They pay from any chain. No account needed.", fromCycle: true },
   { id: "prove", tab: "Prove", from: "Your balance", via: "Proof for one reader", to: "Bank, landlord, client", line: "One fact. One person. It expires." },
 ];
@@ -76,7 +76,7 @@ export function FlowDemo({ icons }: { icons: DemoIcon[] }) {
 
       <div className="fd-views">
         <div className="fd-view you"><span>You see</span><b>Everything</b></div>
-        <div className="fd-view them"><span>The public sees</span><b>Nothing</b></div>
+        <div className="fd-view them"><span>The public sees</span><b>Only what you choose</b></div>
       </div>
     </div>
   );

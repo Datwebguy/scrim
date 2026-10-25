@@ -62,9 +62,9 @@ export function SignIn({ networks }: { networks: Network[] }) {
         <div className="slit" aria-hidden="true" />
         <h2>Your money.<br /><em>Your business.</em></h2>
         <ul>
-          <li>Hold money that only you can see</li>
-          <li>Pay anyone, on any chain, without a trail</li>
-          <li>Prove one fact to one person, and nothing more</li>
+          <li>Hold money you can keep private</li>
+          <li>Pay anyone, on any chain, in public or in private</li>
+          <li>Prove one fact to one person</li>
         </ul>
       </div>
       <div className="gate-form">

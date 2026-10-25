@@ -126,7 +126,7 @@ export function StateChip({ status }: { status: string }) {
   return <span className={`pill ${tone}`}>{text}</span>;
 }
 
-export const KIND_LABEL: Record<string, string> = { add: "Added money", swap: "Swapped", send: "Sent privately", withdraw: "Sent out", link_payment: "Received by link" };
+export const KIND_LABEL: Record<string, string> = { add: "Added money", swap: "Swapped", send: "Sent", withdraw: "Sent out", link_payment: "Received by link" };
 
 type Leg = { assetId: string; symbol: string; chainName: string; decimals: number; icon: string | null; chainIcon: string | null };
 export type TransferView = {
@@ -135,7 +135,7 @@ export type TransferView = {
   amountIn: string; amountOut: string; recipient: string | null; note: string;
   deposit: { address: string; memo: string | null; chainName: string; minimum: string | null; evm: { chainId: number; token: `0x${string}` | null } | null } | null; // evm: lets a browser wallet pay it in one tap
   intentToSign: { message: string; nonce: string; recipient: string } | null;
-  resultHashes: string[]; etaSeconds: number | null; teamRequestId: string | null;
+  resultHashes: string[]; etaSeconds: number | null; teamRequestId: string | null; fromWallet?: boolean;
 };
 
 export function Heading({ eyebrow, title, text }: { eyebrow: string; title: string; text?: string }) {

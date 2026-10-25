@@ -10,7 +10,7 @@ export function Activity() {
   const rows = (data?.transfers ?? []).filter((t) => !["cancelled"].includes(t.status) && !(t.status === "expired" && t.kind !== "add"));
   return (
     <div className="narrow wide">
-      <Heading eyebrow="Activity" title="Everything you've done" text={tab === "private" ? "This list is private. It lives in your account and nowhere on the public blockchain." : "Your connected wallet's own transactions. These are public on the blockchain."} />
+      <Heading eyebrow="Activity" title="Everything you've done" text={tab === "private" ? "Private payments are listed here, only for you. Public ones are on the Wallet tab." : "Your connected wallet's own transactions. These are on the public blockchain."} />
       <div className="panel-tabs" role="tablist" style={{ margin: "0 0 16px" }}>
         <button role="tab" aria-selected={tab === "private"} onClick={() => setTab("private")}>Private</button>
         <button role="tab" aria-selected={tab === "wallet"} onClick={() => setTab("wallet")}>Wallet</button>

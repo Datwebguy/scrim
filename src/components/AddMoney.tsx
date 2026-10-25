@@ -3,10 +3,16 @@ import { useEffect, useState } from "react";
 import { api } from "@/client/api";
 import { AssetPicker, CopyField, fmt, Heading, StateChip, useAssets, type TransferView } from "./money";
 import { PayFromWallet } from "./PayFromWallet";
+import { useSession } from "./session";
 import { Spinner } from "./ui";
 
 export function AddMoney() {
-  const assets = useAssets().filter((a) => a.canAdd);
+  const { accountId } = useSession();
+  const all = useAssets();
+  // Where it lands is the person's choice: the private balance, or their own NEAR wallet in public.
+  const [into, setInto] = useState<"private" | "wallet">("private");
+  const toWallet = into === "wallet";
+  const assets = all.filter((a) => (toWallet ? a.canAdd || a.chain === "near" : a.canAdd));
   const [assetId, setAssetId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -24,7 +30,7 @@ export function AddMoney() {
     setBusy(true);
     setError("");
     try {
-      setTransfer((await api<{ transfer: TransferView }>("/transfers", { body: { kind: "add", fromAssetId: assetId, amount: "0" } })).transfer);
+      setTransfer((await api<{ transfer: TransferView }>("/transfers", { body: { kind: "add", fromAssetId: assetId, amount: "0", privacy: toWallet ? "public" : "private" } })).transfer);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not get a deposit address.");
     } finally {
@@ -33,15 +39,34 @@ export function AddMoney() {
   }
 
   const picked = assets.find((a) => a.assetId === assetId);
+  const direct = toWallet && picked?.chain === "near"; // a coin on NEAR goes straight to the wallet's own address
+  const landsIn = transfer?.fromWallet ? "your wallet" : "your private balance";
 
   return (
     <div className="narrow">
-      <Heading eyebrow="Add money" title="Bring money in from any chain" text="Pick a coin and its network, and Scrim gives you a one-time address. Send to it from any wallet or exchange. It lands in your private balance." />
+      <Heading eyebrow="Add money" title="Bring money in from any chain" text="Pick a coin and its network, and Scrim gives you a one-time address. Send to it from any wallet or exchange. It lands in your private balance or your NEAR wallet, as you choose." />
       {!transfer ? (
         <div className="card card-pad form-grid">
+          <div className="field">
+            <span className="picker-label">Where it lands</span>
+            <div className="segmented" role="radiogroup" aria-label="Where it lands">
+              <button type="button" role="radio" aria-checked={!toWallet} onClick={() => { setInto("private"); setAssetId(""); }}>Private balance</button>
+              <button type="button" role="radio" aria-checked={toWallet} onClick={() => { setInto("wallet"); setAssetId(""); }}>My wallet</button>
+            </div>
+            <small className="muted">{toWallet ? "Lands in your NEAR wallet, like any transfer: it shows on the blockchain. If it can't be delivered, it comes back to you in Scrim." : "Lands in your private balance: nobody can link what you add to what you send later."}</small>
+          </div>
           <AssetPicker label="What are you sending?" assets={assets} value={assetId} onChange={setAssetId} />
-          {error && <p className="form-error" role="alert">{error}</p>}
-          <button className="btn btn-primary btn-lg" onClick={start} disabled={busy || !assetId}>{busy && <Spinner />} Get my deposit address</button>
+          {direct ? (
+            <>
+              <CopyField label="Your NEAR wallet address" value={accountId} />
+              <small className="muted">Send {picked.symbol} on NEAR straight to this address from any wallet or exchange.</small>
+            </>
+          ) : (
+            <>
+              {error && <p className="form-error" role="alert">{error}</p>}
+              <button className="btn btn-primary btn-lg" onClick={start} disabled={busy || !assetId}>{busy && <Spinner />} Get my deposit address</button>
+            </>
+          )}
         </div>
       ) : (
         <div className="card card-pad form-grid">
@@ -62,8 +87,8 @@ export function AddMoney() {
               )}
             </>
           )}
-          {transfer.status === "success" && <div className="notice good">Your money arrived in your private balance.</div>}
-          {transfer.status === "processing" && <div className="notice info">We see your deposit. It will be in your private balance in a moment.</div>}
+          {transfer.status === "success" && <div className="notice good">Your money arrived in {landsIn}.</div>}
+          {transfer.status === "processing" && <div className="notice info">We see your deposit. It will be in {landsIn} in a moment.</div>}
           {["refunded", "failed", "expired"].includes(transfer.status) && <div className="notice danger">This deposit address is closed. If you sent money to it, it is returned to the address it came from.</div>}
           <div className="between">
             <button className="btn btn-ghost" onClick={() => setTransfer(null)}>{transfer.status === "awaiting_deposit" ? "Back" : "Add more"}</button>
@@ -71,7 +96,6 @@ export function AddMoney() {
           </div>
         </div>
       )}
-      {picked && !transfer && <p className="muted small-print">Deposits arrive privately: nobody can link what you add here to what you send later.</p>}
     </div>
   );
 }

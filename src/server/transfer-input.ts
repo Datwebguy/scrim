@@ -14,5 +14,6 @@ export function transferFromBody(body: Record<string, unknown>): TransferInput {
     amount: String(body.amount ?? ""),
     recipient: text(body.recipient),
     note: text(body.note),
+    privacy: body.privacy === "public" ? "public" : "private",
   };
 }

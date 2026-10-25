@@ -71,7 +71,8 @@ async function origins(link: Awaited<ReturnType<typeof linkRow>>): Promise<Origi
   const assets = await catalog();
   const tokens = new Map((await oneclick.tokens()).map((t) => [t.assetId, t]));
   const target = assets.find((a) => a.assetId === link.assetId);
-  const destination = { network: DESTINATION_NETWORK, asset: link.assetId, amount: link.amount, recipient: `scrim:${link.id}` };
+  // Into the owner's private balance, or straight into their NEAR wallet: the owner's choice.
+  const destination = { network: link.receive === "wallet" ? "near:mainnet" : DESTINATION_NETWORK, asset: link.assetId, amount: link.amount, recipient: `scrim:${link.id}` };
   const out: Origin[] = [];
   for (const asset of assets) {
     if (!OFFERED.includes(asset.symbol)) continue;
@@ -275,10 +276,10 @@ async function depositStep(link: Awaited<ReturnType<typeof linkRow>>, resource: 
 }
 
 async function anyLink(code: string): Promise<Awaited<ReturnType<typeof linkRow>>> {
-  const [row] = await sql<{ id: string; account_id: string; network: "mainnet" | "testnet"; asset_id: string; amount: string; expires_at: Date }[]>`
-    SELECT id, account_id, network, asset_id, amount, expires_at FROM pay_links WHERE id = ${code}`;
+  const [row] = await sql<{ id: string; account_id: string; network: "mainnet" | "testnet"; asset_id: string; amount: string; receive: "private" | "wallet"; expires_at: Date }[]>`
+    SELECT id, account_id, network, asset_id, amount, receive, expires_at FROM pay_links WHERE id = ${code}`;
   if (!row) throw new HttpError(404, "not_found", "This payment link doesn't exist.");
-  return { id: row.id, accountId: row.account_id, network: row.network, assetId: row.asset_id, amount: row.amount, note: "", expiresAt: row.expires_at };
+  return { id: row.id, accountId: row.account_id, network: row.network, assetId: row.asset_id, amount: row.amount, note: "", expiresAt: row.expires_at, receive: row.receive };
 }
 
 async function ownerOf(linkId: string) {

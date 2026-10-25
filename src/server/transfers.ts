@@ -65,6 +65,14 @@ type Details = {
   resultHashes: string[];
 };
 
+// FLEX_INPUT deposits still need a quote amount the route accepts. Without a published minimum, ask for
+// about one dollar's worth (or one whole coin when there's no price): what is actually sent is what lands.
+function oneDollarOf(asset: Asset): string {
+  if (!asset.priceUsd) return (10n ** BigInt(asset.decimals)).toString();
+  const minor = Math.ceil((10 ** asset.decimals) / asset.priceUsd);
+  return BigInt(Math.max(1, minor)).toString();
+}
+
 export type Transfer = {
   id: string;
   kind: TransferKind;
@@ -125,7 +133,7 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
     return {
       from: asset, to: asset, amountAsset: asset, recipient: null, needsUserToken: false, deadlineMinutes: 24 * 60,
       request: { ...base, swapType: "FLEX_INPUT", originAsset: asset.assetId, depositType: "INTENTS", destinationAsset: asset.assetId,
-        amount: (asset.minDeposit ?? "1").toString(), refundTo: account, refundType: "CONFIDENTIAL_INTENTS", recipient: account,
+        amount: (asset.minDeposit ?? oneDollarOf(asset)).toString(), refundTo: account, refundType: "CONFIDENTIAL_INTENTS", recipient: account,
         recipientType: "CONFIDENTIAL_INTENTS", quoteWaitingTimeMs: 5000 },
     };
   }

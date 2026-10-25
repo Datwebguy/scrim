@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { connectedAccount, signInWithWallet } from "@/client/wallet";
 import { isNetwork, NETWORK_INFO, type Network } from "@/protocol/networks";
 import { Spinner } from "./ui";
+import { Wordmark } from "@/components/Wordmark";
 
 const KEY = "scrim:network";
 
@@ -58,7 +59,7 @@ export function SignIn({ networks }: { networks: Network[] }) {
   return (
     <div className="gate">
       <div className="gate-art">
-        <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" />scrim</Link>
+        <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" /><Wordmark /></Link>
         <div className="slit" aria-hidden="true" />
         <h2>Your money.<br /><em>Your business.</em></h2>
         <ul>

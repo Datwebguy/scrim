@@ -652,14 +652,44 @@ button.chip.on { background: var(--ink); color: #fff; border-color: var(--ink); 
 .l-proof-card .ok span { background: var(--green-wash); color: var(--green); }
 .l-proof-card .no span { background: var(--red-wash); color: var(--red); }
 
-.l-footer { border-top: 1px solid var(--line); padding: 28px 0; }
-.l-footer .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-.l-footer .brand { font-size: 18px; }
+/* The wordmark: capitals, with a lowercase i whose dot is the mark's orange slash. */
+.wordmark { display: inline-flex; align-items: baseline; text-transform: uppercase; letter-spacing: 0.01em; line-height: 1; }
+.wm-i { position: relative; display: inline-block; width: 0.2em; height: 0.72em; margin: 0 0.045em; }
+.wm-i::before { content: ""; position: absolute; left: 0.025em; bottom: 0; width: 0.15em; height: 0.5em; background: currentColor; border-radius: 0.015em; }
+.wm-i::after { content: ""; position: absolute; left: 0; top: 0; width: 0.2em; height: 0.17em; background: var(--orange); clip-path: polygon(0 62%, 100% 0, 100% 100%, 0 100%); }
+.brand .wordmark { font-size: 0.86em; letter-spacing: 0.02em; }
+
+/* The mark, drawn: the streak draws in, then the tip glows. */
+.mark-art { display: block; overflow: visible; }
+.mark-art .mk-body { fill: #000; }
+.mark-art .mk-tip { fill: var(--orange); }
+@media (prefers-reduced-motion: no-preference) {
+  .mark-art .mk-streak { animation: mk-draw 4.8s cubic-bezier(0.32, 0.72, 0, 1) infinite; }
+  .mark-art .mk-tip { animation: mk-glow 4.8s cubic-bezier(0.32, 0.72, 0, 1) infinite; }
+}
+@keyframes mk-draw { 0% { clip-path: inset(0 100% 0 0); } 35%, 88% { clip-path: inset(0 0 0 0); opacity: 1; } 100% { clip-path: inset(0 0 0 0); opacity: 0; } }
+@keyframes mk-glow { 0%, 28% { opacity: 0.25; filter: none; } 42% { opacity: 1; filter: drop-shadow(0 0 3px #ff5b2d); } 88% { opacity: 1; filter: drop-shadow(0 0 1.5px #ff5b2d); } 100% { opacity: 0.25; } }
+
+/* A large tagline whose words light up one at a time. */
+.tagline-reveal { margin: 0; font-size: clamp(36px, 6vw, 72px); line-height: 1; letter-spacing: -0.045em; font-weight: 700; text-wrap: balance; }
+.tl-line { display: block; }
+.tl-word { color: rgba(255, 255, 255, 0.28); transition: color 700ms cubic-bezier(0.32, 0.72, 0, 1); }
+.tl-word.on { color: #fff; }
+
+.l-footer { position: relative; overflow: hidden; background: #000; color: #fff; padding: 96px 0 0; }
+.l-foot-top { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 48px; padding-bottom: 64px; }
+.l-foot-mark { width: clamp(120px, 18vw, 220px); height: auto; }
+.l-foot-mark .mk-body { fill: #131313; stroke: #272727; stroke-width: 0.6; }
+.l-foot-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 24px 0; border-top: 1px solid #272727; }
+.l-footer .brand { font-size: 18px; color: #fff; }
 .l-footer .brand img { width: 24px; height: 24px; }
 .l-footer nav { display: flex; gap: 24px; font-size: 14px; }
-.l-footer nav a { text-decoration: none; color: var(--ink-3); }
+.l-footer nav a { text-decoration: none; color: #9b9b9b; transition: color 300ms cubic-bezier(0.32, 0.72, 0, 1); }
 .l-footer nav a:hover { color: var(--orange); }
-.l-built { font: 500 12px var(--mono); color: var(--muted); }
+.l-foot-giant { display: flex; justify-content: center; font-weight: 800; font-size: clamp(96px, 24vw, 340px); color: #181818; line-height: 0.8; margin-bottom: -0.06em; user-select: none; }
+.l-foot-giant .wm-i::after { background: #3a1a10; }
+@media (max-width: 640px) { .l-foot-top { grid-template-columns: 1fr; } .l-foot-mark { width: 120px; } }
+.l-built { font: 500 12px var(--mono); color: #6c6b63; }
 
 @media (max-width: 860px) {
   .l-hero-grid, .l-proof { grid-template-columns: 1fr; }

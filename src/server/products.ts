@@ -48,6 +48,7 @@ function checkDelivery(input: unknown): Delivery {
     const name = String(h?.name ?? "").trim();
     const value = String(h?.value ?? "").trim();
     if (name && !/^[A-Za-z0-9-]{1,64}$/.test(name)) throw badRequest("The header name can use letters, numbers and dashes.");
+    if (value && !/^[\x20-\x7E]+$/.test(value)) throw badRequest("The header value can use plain letters, numbers and symbols only.");
     return { kind: "api", url, ...(name && value ? { header: { name, value: value.slice(0, 500) } } : {}) };
   }
   throw badRequest("Choose what the buyer gets: a text or link, or your API.");
@@ -115,13 +116,26 @@ export async function productInfo(code: string): Promise<{ name: string; descrip
 
 export type Delivered = { status: number; contentType: string; body: string };
 
-// What the buyer receives, once a payment is confirmed. Only called after settlement.
-export async function deliver(code: string): Promise<Delivered | null> {
+const TEXT_TYPES = /^(text\/|application\/(json|xml|csv|ld\+json|x-ndjson))/i;
+const unavailable = (name: string, why: string): Delivered => ({ status: 502, contentType: "application/json", body: JSON.stringify({ product: name, error: why }) });
+
+// What the buyer receives, once a payment is confirmed. Only called after settlement. `purchase` names
+// that one payment: its first good delivery is kept and returned again, so one payment means one call
+// to the seller's API, however often the buyer asks.
+export async function deliver(code: string, purchase: string): Promise<Delivered | null> {
   const [row] = await sql<{ id: string; account_id: string; product_sealed: string | null }[]>`SELECT id, account_id, product_sealed FROM pay_links WHERE id = ${code}`;
   if (!row?.product_sealed) return null;
   const p = open<Sealed>(row.product_sealed, aad(row.id, row.account_id));
   if (p.deliver.kind === "text") return { status: 200, contentType: "application/json", body: JSON.stringify({ product: p.name, content: p.deliver.text }) };
-  const res = await safeRequest(p.deliver.url, { timeoutMs: 20_000, maxBytes: 512 * 1024, headers: p.deliver.header ? { [p.deliver.header.name]: p.deliver.header.value } : {} });
-  if (!res) return { status: 502, contentType: "application/json", body: JSON.stringify({ product: p.name, error: "The seller's service didn't answer. Your payment is recorded; ask the seller for help." }) };
-  return { status: res.status >= 200 && res.status < 300 ? 200 : 502, contentType: res.headers["content-type"] ?? "application/octet-stream", body: res.body };
+  const keyAad = `delivery:${code}:${purchase}`;
+  const [kept] = await sql<{ response_sealed: string }[]>`SELECT response_sealed FROM product_deliveries WHERE purchase_key = ${purchase} AND link_id = ${code}`;
+  if (kept) return open<Delivered>(kept.response_sealed, keyAad);
+  const res = await safeRequest(p.deliver.url, { timeoutMs: 20_000, maxBytes: 512 * 1024, headers: p.deliver.header ? { [p.deliver.header.name]: p.deliver.header.value } : {} }).catch(() => null);
+  if (!res) return unavailable(p.name, "The seller's service didn't answer. Your payment is recorded; try again in a moment.");
+  if (res.status < 200 || res.status >= 300) return unavailable(p.name, `The seller's service answered ${res.status}. Your payment is recorded; try again in a moment.`);
+  const type = res.headers["content-type"] ?? "";
+  if (!TEXT_TYPES.test(type) || res.truncated) return unavailable(p.name, "The seller's service sent something Scrim can't pass on (only text or JSON up to 512 KB). Your payment is recorded; ask the seller.");
+  const delivered: Delivered = { status: 200, contentType: type, body: res.body };
+  await sql`INSERT INTO product_deliveries (purchase_key, link_id, response_sealed) VALUES (${purchase}, ${code}, ${seal(delivered, keyAad)}) ON CONFLICT (purchase_key) DO NOTHING`;
+  return delivered;
 }

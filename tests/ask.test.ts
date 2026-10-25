@@ -1,6 +1,7 @@
 // Ask your money against the real NEAR AI Cloud. Runs only when NEARAI_API_KEY is set (it spends credits).
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ask, askAllowance } from "@/server/ask";
+import { ask } from "@/server/ask";
+import { askAccount, chargeQuestion } from "@/server/ask-credits";
 import type { Session } from "@/server/auth";
 import { sql } from "@/server/db";
 import { createTestnetWallet, resetDatabase, signInAs } from "./live";
@@ -27,7 +28,16 @@ describe("ask your money: input", () => {
     await expect(ask(session, "x".repeat(501))).rejects.toThrow(/3 to 500/);
   });
 
-  it("gives each account a daily allowance, since answers run on the site's credits", async () => {
-    expect(await askAllowance(session)).toEqual({ perDay: 10, left: 10 });
+  it("gives each account one free question; after that people pay from their own balance", async () => {
+    expect(await askAccount(session)).toMatchObject({ freeLeft: 1, creditUsd: 0, priceUsd: 0.02, questionsLeft: 1, canTopUp: false });
   });
+
+  it("takes the free question once, then asks for payment; a failed answer gives it back", async () => {
+    const other = (await signInAs(await createTestnetWallet("scrim-ask-pay"))).session;
+    const refund = await chargeQuestion(other);
+    expect((await askAccount(other)).freeLeft).toBe(0);
+    await expect(chargeQuestion(other)).rejects.toThrow(/free question/);
+    await refund();
+    expect((await askAccount(other)).freeLeft).toBe(1);
+  }, 120_000);
 });

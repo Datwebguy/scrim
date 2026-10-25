@@ -139,15 +139,13 @@ export type X402Result =
   | { kind: "failed"; status: number; body: PaymentRequired | { error: string }; receipt?: Settlement };
 
 const LINK_DESCRIPTION = "Pay this Scrim payment link. The money arrives privately.";
-// The resource description is carried with the resource URL, so concurrent requests never mix them.
-const descriptions = new Map<string, string>();
-function required(resource: string, accepts: Entry[], error?: string): PaymentRequired {
-  return { x402Version: X402_VERSION, resource: { url: resource, description: descriptions.get(resource) ?? LINK_DESCRIPTION, mimeType: "application/json" }, accepts, ...(error ? { error } : {}) };
+function required(resource: string, accepts: Entry[], error?: string, description = LINK_DESCRIPTION): PaymentRequired {
+  return { x402Version: X402_VERSION, resource: { url: resource, description, mimeType: "application/json" }, accepts, ...(error ? { error } : {}) };
 }
 
 // A paid result: a product hands over what it sells; a plain link just confirms the payment.
-async function paidResult(linkId: string, receipt: Settlement, fallback: unknown): Promise<X402Result> {
-  const delivered = await deliver(linkId);
+async function paidResult(linkId: string, purchase: string, receipt: Settlement, fallback: unknown): Promise<X402Result> {
+  const delivered = await deliver(linkId, purchase);
   return delivered ? { kind: "paid", receipt, body: null, raw: delivered } : { kind: "paid", receipt, body: fallback };
 }
 
@@ -158,35 +156,34 @@ export async function handleX402(code: string, resource: string, header: string 
   const link = payment?.payload?.type === "deposit" ? await anyLink(code) : await linkRow(code);
   if (link.network !== "mainnet") throw new HttpError(404, "not_found", "This payment link doesn't exist.");
   const product = await productInfo(link.id);
-  if (product) descriptions.set(resource, `${product.name}${product.description ? `: ${product.description}` : ""}. Paid privately through Scrim.`.slice(0, 400));
-  else descriptions.delete(resource);
+  const description = product ? `${product.name}${product.description ? `: ${product.description}` : ""}. Paid privately through Scrim.`.slice(0, 400) : LINK_DESCRIPTION;
   const offers = await origins(link);
   if (offers.length === 0) throw new HttpError(503, "upstream", "No payment routes are available right now.");
-  if (!payment) return { kind: "required", body: required(resource, offers.map((o) => o.entry)) };
+  if (!payment) return { kind: "required", body: required(resource, offers.map((o) => o.entry), undefined, description) };
 
-  if (payment.resource?.url !== resource) return { kind: "failed", status: 400, body: required(resource, offers.map((o) => o.entry), "invalid_payload_resource") };
+  if (payment.resource?.url !== resource) return { kind: "failed", status: 400, body: required(resource, offers.map((o) => o.entry), "invalid_payload_resource", description) };
   const offer = offers.find((o) => o.entry.network === payment.accepted?.network && o.entry.asset.toLowerCase() === String(payment.accepted?.asset ?? "").toLowerCase());
   if (!offer || payment.accepted?.extra?.assetTransferMethod !== "near-intents") {
-    return { kind: "failed", status: 400, body: required(resource, offers.map((o) => o.entry), "invalid_exact_near_intents_payload") };
+    return { kind: "failed", status: 400, body: required(resource, offers.map((o) => o.entry), "invalid_exact_near_intents_payload", description) };
   }
   const body = payment.payload ?? {};
-  if (body.type === "quote") return quoteStep(link, resource, offers, offer, body);
+  if (body.type === "quote") return quoteStep(link, resource, offers, offer, body, description);
   if (body.type === "deposit") return depositStep(link, resource, offer, body);
-  return { kind: "failed", status: 400, body: required(resource, offers.map((o) => o.entry), "invalid_exact_near_intents_payload") };
+  return { kind: "failed", status: 400, body: required(resource, offers.map((o) => o.entry), "invalid_exact_near_intents_payload", description) };
 }
 
-async function quoteStep(link: Awaited<ReturnType<typeof linkRow>>, resource: string, offers: Origin[], offer: Origin, body: NonNullable<Payload["payload"]>): Promise<X402Result> {
+async function quoteStep(link: Awaited<ReturnType<typeof linkRow>>, resource: string, offers: Origin[], offer: Origin, body: NonNullable<Payload["payload"]>, description: string): Promise<X402Result> {
   let refundTo: string;
   try {
     refundTo = checkAddress(offer.asset, String(body.refundTo ?? ""));
   } catch {
-    return { kind: "failed", status: 400, body: required(resource, offers.map((o) => o.entry), "invalid_exact_near_intents_refund_address") };
+    return { kind: "failed", status: 400, body: required(resource, offers.map((o) => o.entry), "invalid_exact_near_intents_refund_address", description) };
   }
   let transfer;
   try {
     transfer = await createLinkPayment(link, { fromAssetId: offer.asset.assetId, refundAddress: refundTo });
   } catch {
-    return { kind: "failed", status: 402, body: required(resource, offers.map((o) => o.entry), "invalid_exact_near_intents_quote_unavailable") };
+    return { kind: "failed", status: 402, body: required(resource, offers.map((o) => o.entry), "invalid_exact_near_intents_quote_unavailable", description) };
   }
   const depositAddress = transfer.deposit!.address;
   const memo = transfer.deposit!.memo ?? undefined;
@@ -201,7 +198,7 @@ async function quoteStep(link: Awaited<ReturnType<typeof linkRow>>, resource: st
     payTo: depositAddress,
     extra: { ...offer.entry.extra, refundDeadline: refundDeadline.toISOString(), operationToken, ...(memo ? { depositMemo: memo } : {}) },
   };
-  return { kind: "required", body: required(resource, [quoted, ...offers.filter((o) => o !== offer).map((o) => o.entry)]) };
+  return { kind: "required", body: required(resource, [quoted, ...offers.filter((o) => o !== offer).map((o) => o.entry)], undefined, description) };
 }
 
 const instrument = (network: string, address: string, memo?: string) => [network, address, ...(memo ? [memo] : [])].join(":");
@@ -226,7 +223,7 @@ async function depositStep(link: Awaited<ReturnType<typeof linkRow>>, resource: 
   if (!op) return fail(400, "invalid_exact_near_intents_token_invalid");
   if (op.result) {
     // A product's buyer who lost the answer gets it again for the same paid deposit.
-    if (op.result.success && op.executed_at && (await productInfo(op.link_id))) return paidResult(op.link_id, op.result, null);
+    if (op.result.success && op.executed_at && (await productInfo(op.link_id))) return paidResult(op.link_id, op.transfer_id, op.result, null);
     if (op.result.success && op.executed_at) return { kind: "failed", status: 409, body: { error: "exact_near_intents_operation_executed" }, receipt: op.result };
     if (!op.result.success) return { kind: "failed", status: 402, body: { error: op.result.errorReason ?? "exact_near_intents_payment_failed" }, receipt: op.result };
   }
@@ -261,7 +258,7 @@ async function depositStep(link: Awaited<ReturnType<typeof linkRow>>, resource: 
         WHERE instrument = ${key} AND result IS NULL RETURNING instrument`;
       if (recorded.length === 0) return fail(409, "exact_near_intents_operation_executed");
       await linkPaymentStatus(op.link_id, op.transfer_id).catch(() => null); // marks the link paid
-      return paidResult(link.id, receipt, { paid: true, link: link.id, amount: offer.entry.extra.destination.amount, asset: offer.entry.extra.destination.asset });
+      return paidResult(link.id, op.transfer_id, receipt, { paid: true, link: link.id, amount: offer.entry.extra.destination.amount, asset: offer.entry.extra.destination.asset });
     }
     if (status.status === "REFUNDED" || status.status === "FAILED") {
       const partial = /partial|incomplete|insufficient/i.test(status.swapDetails?.refundReason ?? "");

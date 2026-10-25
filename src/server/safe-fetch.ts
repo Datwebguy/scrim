@@ -9,7 +9,10 @@ import { isIP } from "node:net";
 // True for addresses that are not on the public internet.
 export function isPrivateAddress(address: string): boolean {
   const host = address.replace(/^\[|\]$/g, "").toLowerCase();
-  if (isIP(host) === 6) return /^(::1?$|::$|fc|fd|fe[89ab]|ff|::ffff:|64:ff9b:|2001:db8:|2002:)/.test(host);
+  // IPv6: only global unicast (2000::/3) is public; everything else (loopback, IPv4-compatible and
+  // -mapped, unique local, link and site local, multicast, discard) is refused, plus the internal
+  // ranges carved out of 2000::/3 (NAT64, documentation, 6to4).
+  if (isIP(host) === 6) return !/^[23][0-9a-f]{0,3}:/.test(host) || /^(64:ff9b:|2001:db8:|2002:|2001:0?:)/.test(host);
   if (isIP(host) === 4) {
     const [a, b] = host.split(".").map(Number);
     return a === 10 || a === 127 || a === 0 || a >= 224 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168)

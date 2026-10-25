@@ -11,7 +11,7 @@ import { consumeSignedChallenge, issueChallenge, type Session, type SignedEnvelo
 import { config } from "./config";
 import { sql, type Tx } from "./db";
 import { badRequest, conflict, forbidden, notFound } from "./errors";
-import { finalTransaction } from "./near-rpc";
+import { blockTime, finalTransaction } from "./near-rpc";
 import { emitPaymentEvent } from "./notify";
 import { treasuryForMember, type Treasury } from "./treasuries";
 
@@ -59,7 +59,9 @@ async function hydrate(tx: Tx, rows: PaymentRow[]): Promise<Payment[]> {
       policyVersion: r.policy_version,
       policyDecision: r.policy_decision,
       commitment: r.commitment,
-      status: r.status !== "settled" && r.status !== "policy_rejected" && r.status !== "cancelled" && r.expires_at < new Date() ? "expired" : r.status,
+      // Only a request still waiting can expire. One being paid, paid or failed keeps its real status,
+      // so nobody reads money in flight as "expired" and asks to pay again.
+      status: (r.status === "awaiting_approval" || r.status === "approved") && r.expires_at < new Date() ? "expired" : r.status,
       expiresAt: r.expires_at,
       createdAt: r.created_at,
       approvals: approvals.filter((a) => a.request_id === r.id).map((a) => ({ accountId: a.account_id, createdAt: a.created_at })),
@@ -214,13 +216,14 @@ export async function createApprovalChallenge(session: Session, paymentId: strin
       subject: approvalSubject(payment),
       sessionId: session.id,
       lines: [
+        // What is being paid comes first; anything a person named comes last and quoted, on one line.
         "Approve a Scrim payment",
         "",
-        `Account: ${treasury.name}`,
         `Pay: ${formatAmount(BigInt(payment.amount), corridorFor(treasury.network).decimals)} ${corridorFor(treasury.network).symbol} (${corridorFor(treasury.network).routeLabel})`,
         `To: ${payment.recipient}`,
         `Request: ${payment.id}`,
         `Commitment: ${payment.commitment}`,
+        `Account: ${JSON.stringify(treasury.name)}`,
       ],
     });
   });
@@ -265,9 +268,21 @@ export async function cancelPayment(session: Session, paymentId: string): Promis
 
 // Moves a team request along as its payout progresses, only from the states it is allowed to leave,
 // so a cancelled or already-paid request can never be changed by a late transfer update.
-export async function markTeamRequest(tx: Tx, requestId: string, status: "submitting" | "settled" | "failed" | "approved", actor: Actor, from: string[]): Promise<boolean> {
-  const [row] = await tx<{ treasury_id: string }[]>`
-    UPDATE payment_requests SET status = ${status}, updated_at = now() WHERE id = ${requestId} AND status IN ${tx(from)} RETURNING treasury_id`;
+// `payout`: the transfer making this move. Moving to submitting records it as the request's payout;
+// any later move is made only by that same transfer, so an earlier or stray attempt can't settle,
+// fail or reopen a request another transfer is paying.
+export async function markTeamRequest(tx: Tx, requestId: string, status: "submitting" | "settled" | "failed" | "approved", actor: Actor, from: string[], payout?: string): Promise<boolean> {
+  const [row] = payout === undefined
+    ? await tx<{ treasury_id: string }[]>`
+        UPDATE payment_requests SET status = ${status}, updated_at = now() WHERE id = ${requestId} AND status IN ${tx(from)} RETURNING treasury_id`
+    : status === "submitting"
+      ? await tx<{ treasury_id: string }[]>`
+          UPDATE payment_requests SET status = 'submitting', payout_transfer_id = ${payout}, updated_at = now()
+          WHERE id = ${requestId} AND status IN ${tx(from)} RETURNING treasury_id`
+      : await tx<{ treasury_id: string }[]>`
+          UPDATE payment_requests SET status = ${status}, updated_at = now(),
+            payout_transfer_id = CASE WHEN ${status} = 'approved' THEN NULL ELSE payout_transfer_id END
+          WHERE id = ${requestId} AND status IN ${tx(from)} AND (payout_transfer_id IS NULL OR payout_transfer_id = ${payout}) RETURNING treasury_id`;
   if (row) await audit(tx, row.treasury_id, actor, `payment.${status}`, requestId);
   return Boolean(row);
 }
@@ -303,6 +318,10 @@ export async function recordTestnetPayout(session: Session, requestId: string, t
   if (transaction.receiver_id !== payment.recipient) throw badRequest("That transaction paid a different account than this request.");
   const sent = transaction.actions.reduce((total, action) => total + BigInt(action.Transfer?.deposit ?? "0"), 0n);
   if (sent !== BigInt(payment.amount)) throw badRequest("That transaction sent a different amount than this request.");
+  // It must be a payment made for this request: sent after the request existed, not an older transfer reused.
+  const sentAt = outcome.transaction_outcome?.block_hash ? await blockTime("testnet", outcome.transaction_outcome.block_hash) : null;
+  if (!sentAt) throw conflict("We couldn't read when that transaction was sent. Try again in a few seconds.");
+  if (sentAt < new Date(payment.createdAt)) throw badRequest("That transaction was sent before this request was made.");
   try {
     await sql.begin(async (tx) => {
       // The unique index on settled_tx_hash means one transaction can pay only one request, even if two arrive at once.

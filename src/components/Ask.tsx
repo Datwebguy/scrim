@@ -148,7 +148,7 @@ export function Ask() {
           <span className="section-label">{result.question}</span>
           <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{result.answer.answer}</p>
           <div className={`notice ${v.attested ? "good" : "info"}`}>
-            <b>{v.attested ? "Verified private answer" : v.signed ? "Signed answer" : "Answer not verified"}</b>
+            <b>{v.attested ? "Signed by the attested key" : v.signed ? "Signed answer" : "Answer not verified"}</b>
             <span style={{ display: "block" }}>{v.detail}</span>
           </div>
           <details>

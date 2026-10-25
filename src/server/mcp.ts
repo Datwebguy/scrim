@@ -4,6 +4,7 @@ import { agentFromApiKey, type Agent } from "./agents";
 import { HttpError } from "./errors";
 import { createAgentPayment, getAgentPayment, listAgentPayments } from "./payments";
 import { deliverPurchase, requestPurchase } from "./x402-client";
+import { syncAgentPayout } from "./agent-wallets";
 
 // A Model Context Protocol server (Streamable HTTP, stateless, JSON responses).
 // AI agents connect with their Scrim agent key as a Bearer token and get four tools.
@@ -102,6 +103,7 @@ async function callTool(agent: Agent, name: string, args: Record<string, unknown
         return toolResult({ payments: (await listAgentPayments(agent)).map(agentView) });
       case "get_payment":
       {
+        await syncAgentPayout((await getAgentPayment(agent, String(args.id ?? ""))).id); // a payment the agent's own wallet is still sending
         const payment = await getAgentPayment(agent, String(args.id ?? ""));
         return toolResult({ payment: agentView(payment), purchase: await deliverPurchase(payment.id) });
       }

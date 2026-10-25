@@ -49,6 +49,30 @@ Scrim never holds your keys or your money. You sign in with your own NEAR wallet
 | **Activity** | Everything you did, in plain words. Private payments are listed only for you; your connected wallet's own transactions (public) are read from the chain. |
 | **Agents** | Give software its own key and limits. It asks to pay and people approve, or, with a wallet of its own, it pays by itself within those limits. Agents can pay your links and buy from paid APIs over x402. See [Agents](#agents). |
 
+## How to use Scrim
+
+Open the live site, choose **Testnet** to practise with free coins or **Mainnet** for real money, then connect your NEAR wallet and approve the sign in message. It cannot move funds. Each feature below says where to tap and what you will see.
+
+**Turn on your private balance.** On **Home**, tap to unlock your private balance and approve one more message in your wallet. It is optional, and you only need it for private money. Home then shows what is private, with a switch to see what the public sees.
+
+**Add money.** Open **Add money**, pick a coin and a network, and you get a single use address. Send from any wallet or exchange and the money lands in your private balance or your wallet, as you chose. On EVM chains you can tap **Pay from my wallet**, and on Solana you can pay from Phantom, Solflare or Backpack.
+
+**Send.** Open **Send**, enter a NEAR account or an address on any supported chain, choose the coin and the amount, then pick private or public. Approve in your wallet and follow the transfer to the end on **Activity**.
+
+**Swap.** Open **Swap**, choose the coin you have and the one you want, check the quote and approve. You can swap in public or inside your private balance.
+
+**Get paid.** Open **Get paid**, choose a coin and an amount, and share the link. The payer needs no account and can pay from any coin on any chain. You see the payment arrive on **Activity**.
+
+**Sell.** Open **Sell**, name your product, set a price and choose what the buyer gets: a text, a link or a call to your own API. Share the product address. Buyers, people or agents, get it once the payment is confirmed, and each sale appears in the product's sales list.
+
+**Prove a fact.** Open **Proofs**, choose "I hold at least" or "I paid", pick the reader and an expiry of 1, 7 or 30 days, and share the link. The reader checks it in their browser without an account, and you can take it back at any time.
+
+**Share an account with rules.** Open **Accounts**, choose *Shared*, invite people and set how many approvals each payment needs. Invited people join when they accept. Add spending limits, then use the **Receipts** tab for a history and a spreadsheet download. The bell shows what is waiting for you, and **Connect Telegram** sends an alert when a payment needs you.
+
+**Let an agent pay for you.** Inside an account open **Agents → Add agent**, set how much per payment and per day, and list who it may pay. Scrim shows the agent's key once. Give it to your AI assistant or your code, following the [agents guide](docs/AGENTS_GUIDE.md). Requests inside the limits wait for approval, or, if you gave the agent its own wallet under **Connect**, they are paid by the agent itself.
+
+**Ask about your money.** Open **Ask** and type a question such as "what did we pay suppliers last week?". The answer comes from your own records, computed in secure hardware, and shows that its signature was checked.
+
 ## A look inside
 
 <table>
@@ -114,7 +138,7 @@ An agent is a helper that spends for you, only inside the rules you set. It can 
 
 | | |
 | --- | --- |
-| [Try it](docs/TRY_IT.md) | A twelve step walkthrough on testnet and mainnet |
+| [Try it](docs/TRY_IT.md) | A twelve step walkthrough with what you should see at each step |
 | [How it works](docs/HOW_IT_WORKS.md) | Sign in, moving money, proofs, rules and Ask |
 | [Agents and x402](docs/AGENTS_GUIDE.md) | Connect software that pays within limits |
 | [Run it yourself](docs/SELF_HOSTING.md) | Setup, configuration and deploying to Vercel |

@@ -125,7 +125,7 @@ async function telegramAlerts(row: EventRow, network: Network, event: PaymentEve
   if (!text) return;
 
   const accounts = everyone
-    ? (await sql<{ account_id: string }[]>`SELECT account_id FROM treasury_signers WHERE treasury_id = ${row.treasury_id}`).map((r) => r.account_id)
+    ? (await sql<{ account_id: string }[]>`SELECT account_id FROM treasury_signers WHERE treasury_id = ${row.treasury_id} AND accepted_at IS NOT NULL`).map((r) => r.account_id)
     : [row.owner_account_id];
   if (accounts.length === 0) return;
   const chats = await sql<{ chat_id: string }[]>`SELECT chat_id FROM telegram_links WHERE network = ${network} AND account_id IN ${sql(accounts)}`;

@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { short } from "@/client/format";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
 import { turnOnPrivateMode, unlockPrivateBalance } from "@/client/wallet";
@@ -105,7 +106,7 @@ export function Home() {
           ) : (
             <>
               <h2>Unlock your private balance</h2>
-              <p className="muted">Approve one message in your wallet. It proves it's you and can't move any money.</p>
+              <p className="muted">Optional. Approve one message in your wallet. It can't move money.</p>
               <button className="btn btn-signal btn-lg" onClick={() => unlock()} disabled={busy}>{busy && <Spinner />} Unlock</button>
             </>
           )}
@@ -183,7 +184,7 @@ export function Home() {
 
       {wallet && (
         <section className="card" style={{ marginTop: 16 }}>
-          <div className="card-title"><h3>Your wallet</h3><span className="muted">{accountId} · public on the blockchain</span></div>
+          <div className="card-title"><h3>Your wallet</h3><span className="muted" title="Public on the blockchain">{short(accountId, 8, 6)} · public</span></div>
           {wallet.holdings.length === 0 ? (
             <div className="empty small"><p>Your NEAR wallet is empty. <Link href="/app/add">Add money</Link> and choose your wallet.</p></div>
           ) : (

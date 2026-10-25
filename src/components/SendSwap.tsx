@@ -192,6 +192,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
             <>
               <AssetPicker label="They receive" assets={assets} value={toId} onChange={setToId} hint="Any coin on any network. Scrim converts for you." />
               <label className="field">Their address on {to?.chainName ?? "that network"}
+                {to?.chain === "zec" && <small>A shielded address (starting u1 or zs1) works too. It keeps the receiving side private on Zcash.</small>}
                 <input className="input mono" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="Paste the address" autoComplete="off" spellCheck={false} required /></label>
             </>
           )}

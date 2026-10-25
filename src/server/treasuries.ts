@@ -17,8 +17,11 @@ export type Treasury = {
   network: Network;
   unit: Pick<Corridor, "symbol" | "decimals" | "recipientLabel" | "routeLabel">;
   createdAt: Date;
-  signers: { accountId: string; role: "owner" | "signer" }[];
+  signers: { accountId: string; role: "owner" | "signer"; state: SignerState }[];
 };
+
+// "invited": asked to approve, has not answered yet. Only accepted people can see the account or approve.
+type SignerState = "accepted" | "invited" | "declined";
 
 export type TreasuryRole = "owner" | "signer";
 
@@ -26,8 +29,8 @@ type TreasuryRow = { id: string; name: string; kind: "individual" | "team"; owne
 
 async function hydrate(tx: Tx, rows: TreasuryRow[]): Promise<Treasury[]> {
   if (rows.length === 0) return [];
-  const signers = await tx<{ treasury_id: string; account_id: string; role: TreasuryRole }[]>`
-    SELECT treasury_id, account_id, role FROM treasury_signers WHERE treasury_id IN ${tx(rows.map((r) => r.id))} ORDER BY role, added_at`;
+  const signers = await tx<{ treasury_id: string; account_id: string; role: TreasuryRole; accepted_at: Date | null; declined_at: Date | null }[]>`
+    SELECT treasury_id, account_id, role, accepted_at, declined_at FROM treasury_signers WHERE treasury_id IN ${tx(rows.map((r) => r.id))} ORDER BY role, added_at`;
   return rows.map((r) => ({
     id: r.id,
     name: r.name,
@@ -38,7 +41,7 @@ async function hydrate(tx: Tx, rows: TreasuryRow[]): Promise<Treasury[]> {
     network: r.network as Network,
     unit: (({ symbol, decimals, recipientLabel, routeLabel }) => ({ symbol, decimals, recipientLabel, routeLabel }))(corridorFor(r.network as Network)),
     createdAt: r.created_at,
-    signers: signers.filter((s) => s.treasury_id === r.id).map((s) => ({ accountId: s.account_id, role: s.role })),
+    signers: signers.filter((s) => s.treasury_id === r.id).map((s) => ({ accountId: s.account_id, role: s.role, state: (s.accepted_at ? "accepted" : s.declined_at ? "declined" : "invited") as SignerState })),
   }));
 }
 
@@ -66,7 +69,7 @@ export async function createTreasury(session: Session, input: CreateTreasuryInpu
     const [row] = await tx<TreasuryRow[]>`
       INSERT INTO treasuries (id, name, kind, owner_account_id, threshold_required, network)
       VALUES (${id}, ${name}, ${input.kind}, ${session.accountId}, ${threshold}, ${session.network}) RETURNING *`;
-    await tx`INSERT INTO treasury_signers (treasury_id, account_id, role) VALUES (${id}, ${session.accountId}, 'owner')`;
+    await tx`INSERT INTO treasury_signers (treasury_id, account_id, role, accepted_at) VALUES (${id}, ${session.accountId}, 'owner', now())`;
     for (const signer of others) await tx`INSERT INTO treasury_signers (treasury_id, account_id, role) VALUES (${id}, ${signer}, 'signer')`;
     await audit(tx, id, { type: "human", id: session.accountId }, "treasury.created", id, { kind: input.kind, threshold, signers: total });
     return (await hydrate(tx, [row]))[0];
@@ -76,7 +79,7 @@ export async function createTreasury(session: Session, input: CreateTreasuryInpu
 export async function listTreasuries(session: Session): Promise<Treasury[]> {
   const rows = await sql<TreasuryRow[]>`
     SELECT t.* FROM treasuries t JOIN treasury_signers s ON s.treasury_id = t.id
-    WHERE s.account_id = ${session.accountId} AND t.network = ${session.network} ORDER BY t.created_at`;
+    WHERE s.account_id = ${session.accountId} AND s.accepted_at IS NOT NULL AND t.network = ${session.network} ORDER BY t.created_at`;
   return hydrate(sql, rows);
 }
 
@@ -86,7 +89,7 @@ export async function treasuryForMember(tx: Tx, accountId: string, treasuryId: s
   if (!/^[0-9a-f-]{36}$/i.test(treasuryId)) throw notFound("Account not found.");
   const rows = await tx<TreasuryRow[]>`
     SELECT t.* FROM treasuries t JOIN treasury_signers s ON s.treasury_id = t.id
-    WHERE t.id = ${treasuryId} AND s.account_id = ${accountId} AND (${network ?? null}::text IS NULL OR t.network = ${network ?? null})`;
+    WHERE t.id = ${treasuryId} AND s.account_id = ${accountId} AND s.accepted_at IS NOT NULL AND (${network ?? null}::text IS NULL OR t.network = ${network ?? null})`;
   if (!rows[0]) throw notFound("Account not found.");
   const [treasury] = await hydrate(tx, rows);
   return { treasury, role: treasury.signers.find((s) => s.accountId === accountId)!.role };
@@ -94,4 +97,32 @@ export async function treasuryForMember(tx: Tx, accountId: string, treasuryId: s
 
 export function requireOwner(role: TreasuryRole) {
   if (role !== "owner") throw forbidden("Only the account owner can change an agent's limits.");
+}
+
+export type Invitation = { treasuryId: string; name: string; invitedBy: string; thresholdRequired: number; people: number; createdAt: Date };
+
+// Accounts that have asked this person to approve payments, and are waiting for an answer.
+export async function listInvitations(session: Session): Promise<Invitation[]> {
+  const rows = await sql<{ id: string; name: string; owner_account_id: string; threshold_required: number; people: number; added_at: Date }[]>`
+    SELECT t.id, t.name, t.owner_account_id, t.threshold_required, s.added_at,
+           (SELECT count(*)::int FROM treasury_signers x WHERE x.treasury_id = t.id) AS people
+    FROM treasuries t JOIN treasury_signers s ON s.treasury_id = t.id
+    WHERE s.account_id = ${session.accountId} AND s.accepted_at IS NULL AND s.declined_at IS NULL AND t.network = ${session.network}
+    ORDER BY s.added_at DESC`;
+  return rows.map((r) => ({ treasuryId: r.id, name: r.name, invitedBy: r.owner_account_id, thresholdRequired: r.threshold_required, people: r.people, createdAt: r.added_at }));
+}
+
+export async function answerInvitation(session: Session, treasuryId: string, accept: boolean): Promise<void> {
+  if (!/^[0-9a-f-]{36}$/i.test(treasuryId)) throw notFound("Invitation not found.");
+  await sql.begin(async (tx) => {
+    const done = accept
+      ? await tx`UPDATE treasury_signers s SET accepted_at = now() FROM treasuries t
+          WHERE s.treasury_id = ${treasuryId} AND s.account_id = ${session.accountId} AND s.accepted_at IS NULL AND s.declined_at IS NULL
+            AND t.id = s.treasury_id AND t.network = ${session.network} RETURNING s.treasury_id`
+      : await tx`UPDATE treasury_signers s SET declined_at = now() FROM treasuries t
+          WHERE s.treasury_id = ${treasuryId} AND s.account_id = ${session.accountId} AND s.accepted_at IS NULL AND s.declined_at IS NULL
+            AND t.id = s.treasury_id AND t.network = ${session.network} RETURNING s.treasury_id`;
+    if (done.length !== 1) throw notFound("Invitation not found.");
+    await audit(tx, treasuryId, { type: "human", id: session.accountId }, accept ? "treasury.invitation_accepted" : "treasury.invitation_declined", treasuryId);
+  });
 }

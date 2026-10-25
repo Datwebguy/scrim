@@ -7,7 +7,7 @@
 import { randomUUID } from "node:crypto";
 import { formatAmount, parseAmount } from "@/protocol/amount";
 import { corridorFor, USDC_NEAR_TO_BASE } from "@/protocol/corridor";
-import { parseIntentMessage } from "@/protocol/intents-auth";
+import { intentMatchesQuote, parseIntentMessage } from "@/protocol/intents-auth";
 import { normalizeNearAccount } from "@/protocol/identifiers";
 import { verifyNep413 } from "@/protocol/nep413";
 import { audit } from "./audit";
@@ -302,8 +302,15 @@ export async function createTransfer(session: Session, input: TransferInput): Pr
     status = "awaiting_deposit";
   } else {
     const { intent } = await oneclick.generateIntent(depositAddress, session.accountId);
-    const parsed = parseIntentMessage(intent.payload.message);
-    if (!parsed || parsed.signer_id !== session.accountId) throw new HttpError(502, "upstream", "The payment network returned an unexpected transfer. Nothing was sent.");
+    // The intent must do exactly what the quote said: right signer, right coin, no more than the quoted
+    // amount, only to the quote's deposit address, expiring in time. Otherwise nobody is asked to sign it.
+    const matches = intentMatchesQuote(intent.payload, { signerId: session.accountId, depositAddress, assetId: p.from.assetId, maxAmount: BigInt(q.quote.amountIn), notAfter: deadline });
+    if (!matches) {
+      // The shape only (field names), never amounts or addresses, so a format change can be diagnosed.
+      const shape = (v: unknown): unknown => (Array.isArray(v) ? v.map(shape) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).map((k) => [k, shape((v as Record<string, unknown>)[k])])) : typeof v);
+      console.error("[transfers] intent refused", JSON.stringify(shape(parseIntentMessage(intent.payload.message))));
+      throw new HttpError(502, "upstream", "The payment network returned an unexpected transfer. Nothing was sent.");
+    }
     details.intent = intent.payload;
     status = "awaiting_signature";
   }
@@ -349,7 +356,7 @@ export async function submitSigned(session: Session, id: string, signed: { publi
 
   // A team payout goes out only while its request is still approved (not cancelled, not already paid).
   if (row.team_request_id) {
-    const moved = await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "submitting", { type: "human", id: session.accountId }, ["approved"]));
+    const moved = await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "submitting", { type: "human", id: session.accountId }, ["approved"], row.id));
     if (!moved) {
       await sql`UPDATE transfers SET status = 'cancelled', updated_at = now() WHERE id = ${id} AND status = 'awaiting_signature'`;
       throw conflict("This request was cancelled or already paid, so nothing was sent.");
@@ -357,7 +364,7 @@ export async function submitSigned(session: Session, id: string, signed: { publi
   }
   const claimed = await sql`UPDATE transfers SET status = 'processing', updated_at = now() WHERE id = ${id} AND status = 'awaiting_signature' RETURNING id`;
   if (claimed.length !== 1) {
-    if (row.team_request_id) await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "approved", { type: "system", id: "scrim" }, ["submitting"]));
+    if (row.team_request_id) await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "approved", { type: "system", id: "scrim" }, ["submitting"], row.id));
     throw conflict("This transfer was already sent.");
   }
   try {
@@ -372,7 +379,7 @@ export async function submitSigned(session: Session, id: string, signed: { publi
     await sql.begin((tx) => audit(tx, null, { type: "human", id: session.accountId }, `transfer.${row.kind}.submitted`, id));
   } catch (error) {
     await save(row.id, row.account_id, "failed", details);
-    if (row.team_request_id) await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "approved", { type: "system", id: "scrim" }, ["submitting"]));
+    if (row.team_request_id) await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "approved", { type: "system", id: "scrim" }, ["submitting"], row.id));
     throw error;
   }
   return refreshOne(session, id);
@@ -386,6 +393,8 @@ async function mine(session: Session, id: string): Promise<Row> {
 }
 
 const END_STATE: Record<string, TransferStatus> = { SUCCESS: "success", REFUNDED: "refunded", FAILED: "failed" };
+// The deposit has reached NEAR Intents (even if not fully, or not yet processed): money has left the payer.
+const DEPOSIT_SEEN = new Set(["KNOWN_DEPOSIT_TX", "INCOMPLETE_DEPOSIT", "PROCESSING"]);
 
 async function refreshOne(session: Session, id: string): Promise<Transfer> {
   return refreshRow(await mine(session, id));
@@ -410,7 +419,7 @@ async function refreshRow(row: Row): Promise<Transfer> {
         await save(row.id, row.account_id, ended, details);
         if (row.team_request_id) {
           const outcome = ended === "success" ? "settled" : ended === "refunded" ? "approved" : "failed";
-          const moved = await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, outcome, { type: "system", id: "intents" }, ["submitting"]));
+          const moved = await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, outcome, { type: "system", id: "intents" }, ["submitting"], row.id));
           if (moved) emitPaymentEvent(row.team_request_id, `payment.${outcome}`);
           // An agent's x402 purchase: now that the seller's deposit is paid, collect what it sells.
           if (moved && outcome === "settled") {
@@ -420,7 +429,7 @@ async function refreshRow(row: Row): Promise<Transfer> {
         }
         // A product stays open for the next buyer; a one-off link is done once paid.
         if (row.pay_link_id && ended === "success") await sql`UPDATE pay_links SET status = 'paid' WHERE id = ${row.pay_link_id} AND status = 'open' AND product_sealed IS NULL`;
-      } else if (s.status === "PROCESSING" && row.status !== "processing") {
+      } else if (DEPOSIT_SEEN.has(s.status) && row.status !== "processing") {
         await save(row.id, row.account_id, "processing", details);
         await walletPayoutSent(row);
       }
@@ -442,7 +451,7 @@ export const getTransfer = refreshOne;
 // A payout paid from the owner's wallet: once the money is on its way, the request is being paid.
 async function walletPayoutSent(row: Row) {
   if (!row.team_request_id || !open<Details>(row.details_sealed, aad(row.id, row.account_id)).public) return;
-  const moved = await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "submitting", { type: "human", id: row.account_id }, ["approved"]));
+  const moved = await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "submitting", { type: "human", id: row.account_id }, ["approved"], row.id));
   if (moved) emitPaymentEvent(row.team_request_id, "payment.submitting");
 }
 
@@ -495,10 +504,12 @@ export async function createLinkPayment(link: { id: string; accountId: string; n
   const from = await assetById(String(input.fromAssetId ?? ""));
   const to = await assetById(link.assetId);
   const refundTo = checkAddress(from, String(input.refundAddress ?? ""));
-  const [{ open: openAttempts }] = await sql<{ open: number }[]>`SELECT count(*)::int AS open FROM transfers WHERE pay_link_id = ${link.id} AND status = 'awaiting_deposit' AND expires_at > now()`;
+  const [{ open: openAttempts }] = await sql<{ open: number }[]>`SELECT count(*)::int AS open FROM transfers WHERE pay_link_id = ${link.id} AND ((status = 'awaiting_deposit' AND expires_at > now()) OR status = 'processing')`;
   // A product is bought by many people at once; a one-off link has one payer.
   const [{ product }] = await sql<{ product: boolean }[]>`SELECT product_sealed IS NOT NULL AS product FROM pay_links WHERE id = ${link.id}`;
-  if (openAttempts >= (product ? 200 : 10)) throw conflict("This link has too many unfinished payments. Try again in a few minutes.");
+  // A one-off link is paid once: while someone is paying it, nobody else can start (a second payment would
+  // reach the owner with no way back). A product can be bought by many at once.
+  if (openAttempts >= (product ? 200 : 1)) throw conflict(product ? "This link has too many unfinished payments. Try again in a few minutes." : "Someone is already paying this link. Try again in a few minutes.");
 
   const deadline = new Date(Math.min(link.expiresAt.getTime(), Date.now() + 60 * 60_000));
   const q = await oneclick.quote({

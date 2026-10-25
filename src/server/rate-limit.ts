@@ -22,7 +22,9 @@ export function limitFor(pathname: string): { group: string; perMinute: number }
 
 function clientId(headers: Headers): string {
   // Vercel sets x-vercel-forwarded-for and x-real-ip itself, so a client can't fake them there.
-  return headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() || headers.get("x-real-ip")?.trim() || headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  // Elsewhere, the right-most X-Forwarded-For entry is the one the nearest proxy added; earlier ones are
+  // whatever the client sent, so they are never trusted.
+  return headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() || headers.get("x-real-ip")?.trim() || headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() || "unknown";
 }
 
 // Counts this request. Throws 429 when the client is over budget. If the database is unreachable,

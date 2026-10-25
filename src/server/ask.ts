@@ -2,7 +2,9 @@
 // secure hardware (Intel TDX + NVIDIA confidential GPUs). Scrim gathers only the signed-in person's own
 // records, sends them with the question, and stores neither. Before asking, Scrim fetches the model's
 // attestation report with a fresh nonce; after, it checks the answer's signature against the exact bytes
-// sent and received, and that the signing key is the one the attestation report names.
+// sent and received, and that the signing key is the one the attestation report names. Scrim does not
+// yet check the hardware evidence inside that report itself (the Intel TDX quote and NVIDIA GPU
+// evidence), so it says only what it checked; anyone can verify the full report with NEAR AI's tools.
 import { createHash, randomBytes } from "node:crypto";
 import { recoverMessageAddress } from "viem";
 import { formatAmount } from "@/protocol/amount";
@@ -139,7 +141,7 @@ async function answer(session: Session, q: string, model: string): Promise<AskAn
       verification = {
         signed, attested, signingAddress: recovered, chatId: completion.id,
         detail: attested
-          ? "Signed inside NEAR AI's secure hardware, by the key its attestation report names, over exactly this question and answer."
+          ? "Signed over exactly this question and answer, by the key NEAR AI's attestation report names for this model. The report's hardware evidence can be checked with NEAR AI's verification tools."
           : signed ? "Signed over exactly this question and answer, but the key wasn't in the attestation report Scrim fetched." : bytesMatch ? "The signature didn't match its key." : "The signature covers different bytes than this answer.",
       };
     } catch {

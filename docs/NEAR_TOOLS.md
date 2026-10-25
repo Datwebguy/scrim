@@ -24,7 +24,7 @@ Users state an outcome; solvers fill it across chains. Confidential Intents adds
 Wallet connection for HOT, Meteor, Intear, MyNearWallet, Nightly, OKX and more. Scrim uses message signing and, for named accounts, one `add_public_key` call to `intents.near`.
 
 ## Chain Signatures
-Lets a NEAR account sign on other chains through an MPC network. Trezu uses it for DAO treasuries that hold no keys. Scrim does not need it for personal and team accounts today; it is the path for contract-owned treasuries.
+Lets a NEAR account sign on other chains through an MPC network, so an account that holds no keys of its own, such as a DAO, can still pay on those chains. Scrim does not need it for personal and team accounts today; it is the path for contract-owned accounts.
 
 ## NEAR AI Cloud and OutLayer (planned)
 Private inference in TEEs (`https://cloud-api.near.ai/v1`) and TEE-held, policy-guarded wallets for software. Candidate homes for private decision logic and for device-independent proving.

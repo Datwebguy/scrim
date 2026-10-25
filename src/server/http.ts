@@ -30,6 +30,10 @@ export function route<P = Record<string, never>>(handler: Handler<P>, options: {
       if (error instanceof HttpError) {
         return withNoStore(NextResponse.json({ error: { code: error.code, message: error.message } }, { status: error.status }));
       }
+      // An ID that isn't an ID (Postgres can't read it as a UUID) names nothing: answer 404, not 500.
+      if ((error as { code?: string }).code === "22P02") {
+        return withNoStore(NextResponse.json({ error: { code: "not_found", message: "Not found." } }, { status: 404 }));
+      }
       console.error(`[api] ${request.method} ${request.nextUrl.pathname}`, error);
       return withNoStore(NextResponse.json({ error: { code: "internal", message: "Something went wrong. Try again." } }, { status: 500 }));
     }

@@ -25,7 +25,7 @@ Open `/app`, choose **Testnet** and connect a NEAR testnet wallet. Full setup is
 
 ## Try it
 
-The live site is **https://scrim-alpha.vercel.app**. Each step says what to do and what you should see. Steps 1–8 and 11 use testnet and free test coins; steps 9, 10 and 12 use mainnet.
+The live site is **https://scrimfinance.vercel.app**. Each step says what to do and what you should see. Steps 1–8 and 11 use testnet and free test coins; steps 9, 10 and 12 use mainnet.
 
 You need a NEAR testnet account. Any NEAR wallet can create one for free, for example [Meteor](https://wallet.meteorwallet.app) or [HOT](https://hot-labs.org).
 
@@ -36,7 +36,7 @@ You need a NEAR testnet account. Any NEAR wallet can create one for free, for ex
 5. **Add an agent.** In the account, open **Agents → Add agent**. Set *1* per payment, *1.5* per day, and allow one recipient. → Scrim shows the agent's key once (`scrim_sk_…`).
 6. **The agent asks to pay.** From any terminal:
    ```sh
-   curl -X POST https://scrim-alpha.vercel.app/api/v1/agent/payments \
+   curl -X POST https://scrimfinance.vercel.app/api/v1/agent/payments \
      -H "Authorization: Bearer scrim_sk_…" -H "Idempotency-Key: try-0001" -H "content-type: application/json" \
      -d '{"recipient":"<the allowed account>","amount":"0.5","memo":"first try"}'
    ```
@@ -46,7 +46,7 @@ You need a NEAR testnet account. Any NEAR wallet can create one for free, for ex
 9. **Private balance (mainnet).** Sign in on **Mainnet** and open **Add money**. Pick a coin and a network. → A one-time deposit address. What you send there lands in your private balance, where the public chain shows nothing about what you hold.
 10. **Get paid by an agent (mainnet).** Make a payment link, then request its agent address:
     ```sh
-    curl -i https://scrim-alpha.vercel.app/api/x402/pay/<link code>
+    curl -i https://scrimfinance.vercel.app/api/x402/pay/<link code>
     ```
     → `402 Payment Required` with a `PAYMENT-REQUIRED` header listing USDC and USDT routes on eight chains, all delivered where the link owner chose: their private balance or their wallet.
 11. **Ask about your money.** Open **Ask** and tap "What do I hold right now?". → A plain answer from your own records, with **Signed by the attested key**: the answer was signed over exactly this question and answer, by the key NEAR AI's attestation report names for the model.

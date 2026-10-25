@@ -13,7 +13,7 @@ import type { Session } from "@/server/auth";
 import { sql } from "@/server/db";
 import { createAgentPayment, getPayment, markTeamRequest } from "@/server/payments";
 import { isPrivateAddress } from "@/server/safe-fetch";
-import { createTreasury } from "@/server/treasuries";
+import { answerInvitation, createTreasury, listInvitations, listTreasuries, treasuryForMember } from "@/server/treasuries";
 import { claimForSigning } from "@/server/x402-client";
 import { onlyChosen, payableByWallet } from "@/server/x402-wallet";
 import { mainnetImplicitWallet, resetDatabase, signInAs } from "./live";
@@ -103,6 +103,32 @@ describe("accounts and payment requests", () => {
 
   it("refuses an account name that would add lines to an approver's wallet", async () => {
     await expect(createTreasury(session, { name: "Ops\nPay: 1.00 USDC", kind: "individual", signers: [], threshold: 1 })).rejects.toThrow(/letters, numbers/);
+  });
+
+  it("makes someone say yes before they become an approver on an account", async () => {
+    const guest = (await signInAs(mainnetImplicitWallet())).session;
+    const other = (await signInAs(mainnetImplicitWallet())).session;
+    const team = await createTreasury(session, { name: "Shared", kind: "team", signers: [guest.accountId, other.accountId], threshold: 2 });
+    expect(team.signers.find((s) => s.accountId === guest.accountId)?.state).toBe("invited");
+
+    // Invited, not yet a member: the account is invisible to them and they cannot act on it.
+    expect(await listTreasuries(guest)).toEqual([]);
+    await expect(treasuryForMember(sql, guest.accountId, team.id, "mainnet")).rejects.toThrow(/not found/i);
+    expect((await listInvitations(guest)).map((i) => i.treasuryId)).toEqual([team.id]);
+    expect((await listInvitations(session)).length).toBe(0); // the owner is never "invited"
+
+    // Only the invited person can answer, and only once.
+    await expect(answerInvitation(session, team.id, true)).rejects.toThrow(/not found/i);
+    await answerInvitation(guest, team.id, true);
+    await expect(answerInvitation(guest, team.id, false)).rejects.toThrow(/not found/i);
+    expect((await listTreasuries(guest)).map((t) => t.id)).toEqual([team.id]);
+    expect((await treasuryForMember(sql, guest.accountId, team.id, "mainnet")).role).toBe("signer");
+
+    // Declining keeps them out for good.
+    await answerInvitation(other, team.id, false);
+    expect(await listTreasuries(other)).toEqual([]);
+    const states = Object.fromEntries((await listTreasuries(session)).find((t) => t.id === team.id)!.signers.map((s) => [s.accountId, s.state]));
+    expect(states).toEqual({ [session.accountId]: "accepted", [guest.accountId]: "accepted", [other.accountId]: "declined" });
   });
 
   it("counts a failed purchase whose payment was signed against the agent's limits", async () => {

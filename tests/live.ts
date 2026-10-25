@@ -8,7 +8,7 @@ import bs58 from "bs58";
 import { Account, JsonRpcProvider, KeyPairSigner } from "near-api-js";
 import { encodePublicKey, nep413Digest } from "@/protocol/nep413";
 import type { Network } from "@/protocol/networks";
-import { createSignInChallenge, sessionFromToken, signIn, type IssuedChallenge, type Session, type SignedEnvelope } from "@/server/auth";
+import { createOwnershipChallenge, createSignInChallenge, reconnectPrivateBalance, sessionFromToken, signIn, type IssuedChallenge, type Session, type SignedEnvelope } from "@/server/auth";
 import { sql } from "@/server/db";
 import { endpoints } from "@/server/config";
 import { migrate } from "../scripts/migrate";
@@ -122,9 +122,12 @@ export function mainnetImplicitWallet(): Wallet {
   return walletFor(Buffer.from(ed25519.getPublicKey(secret)).toString("hex"), "mainnet", secret);
 }
 
+// Signs in, then on mainnet unlocks the private balance the way a person does when they choose to.
 export async function signInAs(wallet: Wallet): Promise<{ session: Session; token: string; privateStatus: string }> {
   const { token, privateStatus } = await signIn(wallet.sign(await createSignInChallenge(wallet.accountId, wallet.network)));
-  return { session: (await sessionFromToken(token))!, token, privateStatus };
+  const session = (await sessionFromToken(token))!;
+  if (wallet.network !== "mainnet") return { session, token, privateStatus };
+  return { session, token, privateStatus: await reconnectPrivateBalance(session, wallet.sign(await createOwnershipChallenge(sql, wallet.accountId, wallet.network, session.id))) };
 }
 
 export const NEAR = (n: number) => BigInt(Math.round(n * 1e6)) * 10n ** 18n;

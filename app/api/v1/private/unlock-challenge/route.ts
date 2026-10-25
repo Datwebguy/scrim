@@ -4,5 +4,5 @@ import { requireSession, route } from "@/server/http";
 
 export const POST = route(async () => {
   const session = await requireSession();
-  return createOwnershipChallenge(sql, session.accountId, session.network, "private_access", session.id);
+  return createOwnershipChallenge(sql, session.accountId, session.network, session.id);
 });

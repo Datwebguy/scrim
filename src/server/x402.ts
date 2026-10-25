@@ -10,7 +10,7 @@ import * as oneclick from "./oneclick";
 import { linkRow } from "./paylinks";
 import { deliver, productInfo } from "./products";
 import { createLinkPayment, linkPaymentStatus } from "./transfers";
-import { derivedKey } from "./secrets";
+import { derivedKeys } from "./secrets";
 
 const X402_VERSION = 2;
 const MAX_TIMEOUT_SECONDS = 3600; // matches the link payment deposit window
@@ -98,14 +98,14 @@ async function origins(link: Awaited<ReturnType<typeof linkRow>>): Promise<Origi
 }
 
 // ── Operation token: <keyId>.<expiry>.<mac>, no storage needed ──
-function tokenKey() {
-  return derivedKey("x402-operation-token");
+function tokenKeys() {
+  return derivedKeys("x402-operation-token");
 }
 
-function mac(network: string, depositAddress: string, memo: string | undefined, resource: string, destination: Entry["extra"]["destination"], expiry: number) {
+function mac(network: string, depositAddress: string, memo: string | undefined, resource: string, destination: Entry["extra"]["destination"], expiry: number, key = tokenKeys()[0]) {
   const destinationHash = createHash("sha256").update(`${destination.network}:${destination.asset}:${destination.amount}:${destination.recipient}`).digest("hex");
   const message = [network, depositAddress, ...(memo ? [memo] : []), resource, destinationHash, String(expiry)].join(":");
-  return createHmac("sha256", tokenKey()).update(message).digest("base64url");
+  return createHmac("sha256", key).update(message).digest("base64url");
 }
 
 export function issueToken(network: string, depositAddress: string, memo: string | undefined, resource: string, destination: Entry["extra"]["destination"], refundDeadline: Date) {
@@ -118,9 +118,13 @@ export function checkToken(token: string, network: string, depositAddress: strin
   const expiry = Number(expiryText);
   if (keyId !== KEY_ID || !Number.isInteger(expiry) || !given) return "invalid";
   if (expiry < Date.now() / 1000) return "expired";
-  const expected = Buffer.from(mac(network, depositAddress, memo, resource, destination, expiry));
   const got = Buffer.from(given);
-  return expected.length === got.length && timingSafeEqual(expected, got) ? "ok" : "invalid";
+  // Tokens issued before a key change stay good until they expire.
+  const valid = tokenKeys().some((key) => {
+    const expected = Buffer.from(mac(network, depositAddress, memo, resource, destination, expiry, key));
+    return expected.length === got.length && timingSafeEqual(expected, got);
+  });
+  return valid ? "ok" : "invalid";
 }
 
 // ── Headers ──

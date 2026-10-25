@@ -16,10 +16,10 @@ Scrim is a thin, careful layer between a person's wallet and NEAR's private ledg
 Money lives here, not with Scrim. Confidential Intents runs a private ledger beside NEAR. Deposits become private balances; swaps and transfers settle on the private side; withdrawals pay out to any chain. A deposit can't be matched to a later payment. Operated by NEAR Intents' validator set, so those operators can see it. Scrim reads a person's balance only with a session token that person unlocks by signing.
 
 ### 2. Wallet: your keys
-Any NEAR wallet, through NEAR Connect. The wallet signs (a) a one-time ownership message for sign-in, and (b) each transfer or team approval, which names the exact amounts. Scrim receives signatures, never keys.
+Any NEAR wallet, through NEAR Connect. The wallet signs (a) a plain sign-in message that names Scrim and the site, and, only if the person chooses a private balance, an ownership message for NEAR Intents, and (b) each transfer or team approval, which names the exact amounts. Scrim receives signatures, never keys.
 
 ### 3. Scrim service
-- **Sign-in.** One signature: a NEAR Intents "empty intent" naming your account. It can't move money. Scrim checks the signature, checks on-chain that the key belongs to the account, then uses the same signature to unlock the private balance.
+- **Sign-in.** One plain message naming Scrim, the site and your account. It can't move money. Scrim checks the signature and checks on-chain that the key belongs to the account. Unlocking the private balance is a separate, optional step: a NEAR Intents "empty intent" that Scrim sends to NEAR Intents to open a private session.
 - **Transfers.** Add, swap, send and withdraw share one flow: quote → wallet signs the exact transfer → Scrim submits → Scrim follows it to the end.
 - **Payment links.** Anyone can pay a link from any chain with no account. The money lands in the requester's private balance.
 - **Proofs.** A statement about a private balance or a completed payment, made for one named reader, signed by Scrim, expiring, revocable. A reader checks the signature in their browser.

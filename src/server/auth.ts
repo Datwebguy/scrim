@@ -34,37 +34,39 @@ export async function issueChallenge(
   return { challengeId: id, message, nonce: nonce.toString("base64"), recipient: config.authRecipient, expiresAt: expiresAt.toISOString() };
 }
 
-// On mainnet, sign-in uses the NEAR Intents ownership message: a signed "empty intent" that cannot
-// move funds. One signature both signs the person in and unlocks their private balance.
-// On testnet there is no NEAR Intents, so a plain sign-in message is used.
-export async function createOwnershipChallenge(
-  tx: Tx,
-  rawAccountId: string,
-  network: Network,
-  purpose: "sign_in" | "private_access" = "sign_in",
-  sessionId?: string,
-): Promise<IssuedChallenge> {
+// Signing in is one plain message that names Scrim and the site it was asked for, on both networks.
+// The wallet shows it in words, so a look-alike site asking for a signature stands out.
+export async function createSignInChallenge(rawAccountId: string, network: Network): Promise<IssuedChallenge> {
   const accountId = normalizeNearAccount(rawAccountId);
   if (!accountId) throw badRequest("Invalid NEAR account ID.");
   if (!config.enabledNetworks.includes(network)) throw badRequest(`${network} is not available here.`);
-  if (network === "testnet") {
-    return issueChallenge(tx, {
-      purpose: "sign_in", network, subject: accountId, sessionId,
-      lines: ["Sign in to Scrim", "", `Account: ${accountId}`, "", "This signature proves you control this account. It does not move any money."],
-    });
-  }
+  return issueChallenge(sql, {
+    purpose: "sign_in", network, subject: accountId,
+    lines: [
+      "Sign in to Scrim",
+      "",
+      `Site: ${config.authRecipient}`,
+      `Account: ${accountId}`,
+      "",
+      "Only sign this if you opened Scrim at the site above. This signature proves you control this account. It does not move any money.",
+    ],
+  });
+}
+
+// Unlocking the private balance is a separate, optional step. NEAR Intents ownership message: a signed
+// "empty intent" that cannot move funds and lets Scrim read that person's private balance.
+export async function createOwnershipChallenge(tx: Tx, rawAccountId: string, network: Network, sessionId: string): Promise<IssuedChallenge> {
+  const accountId = normalizeNearAccount(rawAccountId);
+  if (!accountId) throw badRequest("Invalid NEAR account ID.");
+  if (network !== "mainnet" || !config.enabledNetworks.includes(network)) throw badRequest("The private balance is on mainnet.");
   const id = randomUUID();
   const expiresAt = new Date(Date.now() + config.challengeTtlSeconds * 1000);
   const nonce = versionedNonce(await intentsChain.currentSalt(), expiresAt);
   const message = ownershipMessage(accountId, expiresAt);
   await tx`
     INSERT INTO auth_challenges (id, purpose, network, subject, message, nonce, recipient, session_id, expires_at)
-    VALUES (${id}, ${purpose}, ${network}, ${accountId}, ${message}, ${nonce}, ${INTENTS_CONTRACT}, ${sessionId ?? null}, ${expiresAt})`;
+    VALUES (${id}, 'private_access', ${network}, ${accountId}, ${message}, ${nonce}, ${INTENTS_CONTRACT}, ${sessionId}, ${expiresAt})`;
   return { challengeId: id, message, nonce: nonce.toString("base64"), recipient: INTENTS_CONTRACT, expiresAt: expiresAt.toISOString() };
-}
-
-export function createSignInChallenge(accountId: string, network: Network) {
-  return createOwnershipChallenge(sql, accountId, network);
 }
 
 // Verifies a wallet-signed NEP-413 envelope against a stored challenge and consumes it.
@@ -104,7 +106,7 @@ export async function consumeSignedChallenge(
 }
 
 export async function signIn(envelope: SignedEnvelope): Promise<{ token: string; session: Session; privateStatus: PrivateStatus }> {
-  const { token, session, signed } = await sql.begin(async (tx) => {
+  const { token, session } = await sql.begin(async (tx) => {
     const signed = await consumeSignedChallenge(tx, envelope, { purpose: "sign_in" });
     const token = randomBytes(32).toString("base64url");
     const id = randomUUID();
@@ -113,10 +115,9 @@ export async function signIn(envelope: SignedEnvelope): Promise<{ token: string;
       INSERT INTO sessions (id, token_hash, account_id, public_key, network, expires_at)
       VALUES (${id}, ${hashToken(token)}, ${signed.accountId}, ${signed.publicKey}, ${signed.network}, ${expiresAt})`;
     await audit(tx, null, { type: "human", id: signed.accountId }, "session.created", id, { network: signed.network });
-    return { token, signed, session: { id, accountId: signed.accountId, publicKey: signed.publicKey, network: signed.network, expiresAt } };
+    return { token, session: { id, accountId: signed.accountId, publicKey: signed.publicKey, network: signed.network, expiresAt } };
   });
-  const privateStatus = await connectPrivateBalance(session, { message: signed.message, nonce: signed.nonce, publicKey: signed.publicKey, signature: envelope.signature });
-  return { token, session, privateStatus };
+  return { token, session, privateStatus: session.network === "mainnet" ? "none" : "mainnet_only" };
 }
 
 // Re-unlock the private balance inside an existing session (after setup, or when access expired).

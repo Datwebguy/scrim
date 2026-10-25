@@ -107,13 +107,3 @@ All JSON under `/api/v1`. Every response is `Cache-Control: no-store`. Mutations
 ## 11. Configuration
 
 See `.env.example`. Required: `DATABASE_URL`, `SCRIM_SECRET_KEY`, `SCRIM_PROOF_KEY` (generate with `npm run keys`). To move money: `ONECLICK_API_KEY`. In production the service refuses to run without the secrets, and `/api/health` names whichever are missing.
-
-## 12. Known gaps before a public launch
-
-1. Rate limiting (per IP and per account) on public and sign-in endpoints.
-2. External security review of the service and, later, any contracts.
-3. Contract-wallet and multisig account sign-in.
-4. A background worker to follow transfers when nobody has the page open (today status is refreshed when viewed).
-5. Device-side proofs, payroll batches and payroll-total proofs, accountant exports.
-6. On-chain team rules.
-7. Monitoring and alerting on upstream errors and stuck transfers.

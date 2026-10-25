@@ -47,7 +47,7 @@ function buildPolicy(input: MandateInput, version: number, corridor: Corridor): 
     throw badRequest((error as Error).message);
   }
   if (perAction <= 0n) throw badRequest("Per-action cap must be greater than zero.");
-  if (rolling < perAction) throw badRequest("Rolling cap must be at least the per-action cap.");
+  if (rolling < perAction) throw badRequest("The limit per time window must be at least the limit per payment.");
   if (!Number.isInteger(input.windowHours) || input.windowHours < 1 || input.windowHours > 24 * 31) throw badRequest("Window must be between 1 hour and 31 days.");
   if (input.counterparties.length === 0) throw badRequest("Add at least one approved counterparty.");
   if (input.counterparties.length > 100) throw badRequest("At most 100 counterparties per mandate.");

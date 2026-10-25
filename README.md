@@ -68,7 +68,6 @@ You need a NEAR testnet account. Any NEAR wallet can create one for free, for ex
 - [Security](#security)
 - [Project layout](#project-layout)
 - [Development](#development)
-- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -171,7 +170,7 @@ flowchart LR
 
 **Move money.** Scrim asks NEAR Intents for a price, then your wallet signs the exact transfer. Scrim checks the signature against the exact payload before submitting, and it can be used once. Scrim then follows the transfer to the end and shows you each stage.
 
-**Prove a fact.** A proof is a short statement ("holds at least…" or "paid…") made for one reader, signed by Scrim, with an expiry. The reader opens a link and the check runs in their browser, without an account. Proving on your own device is on the [roadmap](#roadmap).
+**Prove a fact.** A proof is a short statement ("holds at least…" or "paid…") made for one reader, signed by Scrim, with an expiry. The reader opens a link and the check runs in their browser, without an account.
 
 **Set rules.** A request (from a person or an agent) is first checked against the rules. Anything outside them is stopped before anyone sees it. The rest waits for the number of approvals you chose, each given by a wallet signature tied to that exact amount and recipient. Approved requests are paid from the owner's private balance on mainnet, or with a real NEAR transfer on testnet that Scrim reads back from the chain before marking it paid. An agent with its own wallet can skip the approval step, within the same limits.
 
@@ -308,7 +307,7 @@ Tools: `get_limits`, `request_payment`, `find_paid_apis`, `pay_x402`, `list_paym
 - **Joining an account needs your yes.** Being added as an approver is an invitation; until you accept you can't see the account or approve for it.
 - **Approvals are bound to one request**, showing the amount and recipient first.
 - **One payout per request.** Each request records the transfer paying it; nothing else can settle or reopen it.
-- **Agent limits are enforced on the server**, under a lock per agent. A payment that may have moved money keeps counting against the limit.
+- **Agent limits are enforced on the server**, under a lock per agent. Every payment that could have moved money keeps counting against the limit.
 - **Agent wallets sign only the exact price Scrim checked**, at most once per purchase. Their keys stay in OutLayer's enclave.
 - **Outgoing requests reach only public https addresses**, pinned after one lookup, never following redirects. Seller text reaches agents marked as data.
 - **Private data is sealed** (AES-256-GCM, bound to its record), and the sealing key can be changed without losing anything. Session and agent keys are stored only as hashes.
@@ -345,19 +344,6 @@ npm run build       # production build
 Tests use real services: NEAR testnet and mainnet RPC, NEAR Intents, CoinGecko. They create real testnet accounts and send real testnet NEAR, so they need internet access. They reset the database named by `TEST_DATABASE_URL` (default `scrim_test`). Three mainnet tests that request private transfer quotes run only when `ONECLICK_API_KEY` is set. There are no mocks or sample data.
 
 GitHub Actions runs type check, unused-code check, tests and build on every push.
-
-## Roadmap
-
-- Proofs generated on your own device
-- Payroll batches
-- Account rules enforced on-chain
-- Contract-wallet sign-in
-- A shielded pool of its own
-- Buying from x402 sellers that take a request body (POST)
-- Ask that can draft a payment for you to approve
-- Agents that swap coins within their limits
-- Selling to standard x402 buyers, not only through NEAR Intents
-- Ask that checks the secure hardware's own proof, not only the signature
 
 ## Contributing
 

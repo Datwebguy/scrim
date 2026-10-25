@@ -26,8 +26,8 @@ Wallet connection for HOT, Meteor, Intear, MyNearWallet, Nightly, OKX and more. 
 ## Chain Signatures
 Lets a NEAR account sign on other chains through an MPC network, so an account that holds no keys of its own, such as a DAO, can still pay on those chains. Scrim does not need it for personal and team accounts today; it is the path for contract-owned accounts.
 
-## NEAR AI Cloud and OutLayer (planned)
-Private inference in TEEs (`https://cloud-api.near.ai/v1`) and TEE-held, policy-guarded wallets for software. Candidate homes for private decision logic and for device-independent proving.
+## NEAR AI Cloud and OutLayer
+Private inference in TEEs (`https://cloud-api.near.ai/v1`) and TEE-held, policy-guarded wallets for software.
 
 ## Wallet and account notes
 Account keys on NEAR can be full-access or function-call only. Sign-in requires a full-access key. Implicit accounts (64 hex characters) work without registration.

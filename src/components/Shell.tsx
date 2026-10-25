@@ -6,6 +6,7 @@ import { NETWORK_INFO, type Network } from "@/protocol/networks";
 import { AccountMenu } from "./AccountMenu";
 import { SessionProvider } from "./session";
 import { ToastProvider } from "./ui";
+import { Wordmark } from "@/components/Wordmark";
 
 const NAV: { href: string; label: string; privateMoney?: boolean; match?: (p: string) => boolean }[] = [
   { href: "/app", label: "Home", match: (p) => p === "/app" },
@@ -38,7 +39,7 @@ function Frame({ accountId, network, otherNetworks, teamPending, children }: { a
   return (
         <div className="ws">
           <aside className={`ws-side ${open ? "open" : ""}`}>
-            <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" />scrim</Link>
+            <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" /><Wordmark /></Link>
             <nav aria-label="Main" style={{ display: "grid", gap: 4 }}>
               {NAV.filter((item) => !item.privateMoney || info.privateMoney).map((item) => {
                 const active = item.match ? item.match(pathname) : pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -56,7 +57,7 @@ function Frame({ accountId, network, otherNetworks, teamPending, children }: { a
           </aside>
           <div className="ws-main">
             <div className="ws-top">
-              <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" style={{ width: 24, height: 24 }} />scrim</Link>
+              <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" style={{ width: 24, height: 24 }} /><Wordmark /></Link>
               <span className="ws-top-actions">
                 <AccountMenu />
                 <button onClick={() => setOpen((v) => !v)} aria-expanded={open}>{open ? "Close" : "Menu"}</button>

@@ -212,7 +212,7 @@ An **agent** is software that pays on your behalf: an AI assistant, a payroll sc
 { "mcpServers": { "scrim": { "type": "http", "url": "https://<your-site>/api/mcp", "headers": { "Authorization": "Bearer scrim_sk_…" } } } }
 ```
 
-Tools: `get_limits`, `request_payment`, `pay_x402`, `list_payments`, `get_payment`.
+Tools: `get_limits`, `request_payment`, `find_paid_apis`, `pay_x402`, `list_payments`, `get_payment`.
 
 **Connect code (HTTPS).**
 
@@ -222,6 +222,7 @@ Tools: `get_limits`, `request_payment`, `pay_x402`, `list_payments`, `get_paymen
 | `POST /api/v1/agent/payments` | Ask to pay: `{recipient, amount, memo}` with an `Idempotency-Key` header |
 | `GET /api/v1/agent/payments` | Recent requests |
 | `GET /api/v1/agent/payments/:id` | One request, and for an x402 purchase what the seller returned |
+| `GET /api/v1/agent/x402/search?q=` | Find paid APIs in the public x402 catalog, with price and whether this agent can pay |
 | `POST /api/v1/agent/x402` | Buy from an x402 seller: `{url}` with an `Idempotency-Key` header |
 
 **Updates (webhooks).** Set an `https://` address under **Connect** and Scrim calls it when a request is created, stopped, approved, being paid, paid, failed or cancelled. Each call carries `Scrim-Signature: t=<unix seconds>,v1=<hex>`, where `v1` is the HMAC-SHA256 of `"<t>.<raw body>"` with the signing secret (`whsec_…`, shown once). Reject calls with a wrong signature or a timestamp older than five minutes. Only public addresses are allowed.
@@ -241,6 +242,8 @@ Tools: `get_limits`, `request_payment`, `pay_x402`, `list_payments`, `get_paymen
 | Funding | **Add funds privately**: an address on Base, Ethereum, Arbitrum, Solana or NEAR that credits the private balance | OutLayer's funding page |
 | Payments leave from | The wallet's private balance | The wallet's public NEAR Intents balance |
 | What the public chain shows | The payment arriving, not which wallet sent it | Every payment, from the agent's wallet |
+
+**Buy from any x402 seller (agents with their own wallet).** Most x402 sellers take a standard payment: a signed USDC authorization on an EVM chain, or a Solana transfer. An agent with its own wallet pays these too, on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche and Solana, with the `exact` scheme or, on EVM chains, `upto` (pay for what was used, up to the price shown). Scrim builds the payment with the x402 reference client ([`@x402/evm`](https://www.npmjs.com/package/@x402/evm), [`@x402/svm`](https://www.npmjs.com/package/@x402/svm)) and the wallet signs it inside OutLayer's enclave; the seller's payment service pays the fee. If the wallet's address on that chain is short, Scrim first tops it up from the agent's private balance, so the seller never sees where the money came from. `find_paid_apis` (or `GET /api/v1/agent/x402/search?q=`) searches the public catalog and marks what the agent can pay.
 
 **Alerts for people.** Approvers can tap **Connect Telegram** on the Team screen to get a message when a payment needs them.
 

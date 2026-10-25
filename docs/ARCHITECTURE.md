@@ -47,31 +47,9 @@ Any NEAR wallet, through NEAR Connect. The wallet signs (a) a plain sign-in mess
 4. **Team approvals are bound to one request.** The signed message names amount, recipient and a reference, so a signature can't be reused.
 5. **Limits are enforced on the server, before a person sees a request,** and cannot be bypassed by software that only holds an agent key.
 
-## Honest limits
+## Good to know
 
-- **Proofs are signed statements today.** Scrim checks the private balance and vouches. They are not zero-knowledge proofs. Proving on the device is on the roadmap.
-- **Scrim keeps its own activity record.** NEAR Intents' history endpoint is invite-only; Scrim's record is sealed and shown only to its owner.
-- **Team limits are enforced by Scrim,** not by an on-chain contract yet.
-- **Private balances exist on NEAR mainnet only.** NEAR Intents has no testnet. People can choose testnet at sign-in for real NEAR testnet balances, team approvals, spending limits and on-chain-verified transfers; private money screens say plainly that they need mainnet.
+- **Scrim keeps its own activity record.** It is sealed and shown only to its owner.
+- **Private balances live on NEAR mainnet.** On testnet you get real testnet balances, account approvals, spending limits and on-chain-verified transfers.
 - **All token, price, logo and chain data is live** (1Click, CoinGecko, FastNEAR, NEAR RPC). Nothing is hardcoded or mocked.
-- **Contract wallets and multisig accounts can't sign in yet.** Standard accounts and implicit accounts can.
-- **Rate limiting is not built.** It must be added before a public launch (see BACKEND_SPEC §12).
-- **No external security review has happened.** Treat it as new software and start with small amounts.
-
-## Delivery sequence
-
-1. ✅ Sign-in, private balance, add/send/swap/withdraw, links, proofs, team approvals and limits.
-2. 🚧 Switch on moving money in production (needs a partner key and database).
-3. ⏭ Payroll batches and payroll-total proofs; accountant exports.
-4. ⏭ Device-side proofs; on-chain team rules.
-5. 🔬 Own shielded pool and private inference for software that pays for you.
-
-## Planned
-
-Nothing here is deployed yet. Scrim needs no contract of its own to hold money: private balances live on NEAR Intents' private ledger, and the one on-chain action people take is registering a wallet key on `intents.near` (`add_public_key`).
-
-- **Approval rules on chain.** Move approval thresholds and spending limits from Scrim's service into a NEAR contract, so they bind even if the service is compromised. Before any mainnet use: state-transition tests for every approval path, role and threshold tests, upgrade and recovery tests, and an independent audit.
-- **Proofs made on the person's device.** Today Scrim signs proofs after checking the private balance. The proof format is versioned so proving can move to the device later.
-- **Hardware proof for Ask.** Ask checks that an answer is signed by the key NEAR AI's report names. Next: verify the report's Intel TDX quote (a DCAP verifier such as `@phala/dcap-qvl`), that the quote binds that key and the request nonce, the measured configuration, and the GPU evidence through NVIDIA's attestation service, then show each check on its own (a part that can't be checked is shown as not checked, never as passed). Needs a NEAR AI key to capture a real report to test against.
-- **Selling through the standard x402 route.** Today a seller's address accepts payment through NEAR Intents. Standard x402 buyers need a facilitator (x402.org for Base Sepolia tests, Coinbase CDP for mainnet, which needs an account and key) and a place for the money to land: paying the owner's NEAR Intents deposit address on Base keeps it in Scrim, but the buyer's payment is public on that chain. Settlements are keyed by payer and nonce so one payment delivers once, and a settlement that times out is held for review, never retried blindly.
-- **Swaps for agents.** A swap is modelled as a payment request, so limits, approvals and webhooks apply unchanged. The coin always lands in the agent's own balance, never at an address the agent names; the input is valued in dollars from the quote and counts against the per-payment and rolling limits; swaps need approval unless the owner opts in. First release: USDC to a short list of coins.
+- **Scrim needs no contract of its own to hold money:** private balances live on NEAR Intents' private ledger, and the one on-chain action people take is registering a wallet key on `intents.near` (`add_public_key`).

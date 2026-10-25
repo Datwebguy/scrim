@@ -9,6 +9,7 @@ import { formatAmount } from "@/protocol/amount";
 import { corridorFor } from "@/protocol/corridor";
 import type { Session } from "./auth";
 import { overview } from "./balances";
+import { askAccount, chargeQuestion, type AskAccount } from "./ask-credits";
 import { badRequest, HttpError } from "./errors";
 import { publicHoldings } from "./holdings";
 import { listPayments } from "./payments";
@@ -21,6 +22,7 @@ const API = "https://cloud-api.near.ai/v1";
 const MODEL = () => process.env.NEARAI_MODEL || "z-ai/glm-5.3-flash";
 
 export type AskAnswer = {
+  account: AskAccount;
   answer: string;
   model: string;
   verification: { signed: boolean; attested: boolean; signingAddress: string | null; chatId: string; detail: string };
@@ -90,6 +92,19 @@ export async function ask(session: Session, question: string): Promise<AskAnswer
   const q = question.trim();
   if (q.length < 3 || q.length > 500) throw badRequest("Ask a question of 3 to 500 characters.");
   const model = MODEL();
+  if (!process.env.NEARAI_API_KEY) throw new HttpError(503, "not_enabled", "Ask your money isn't switched on for this site yet.");
+
+  // Paid for first (the free question, or from the person's own credits), and given back if it fails.
+  const refund = await chargeQuestion(session);
+  try {
+    return await answer(session, q, model);
+  } catch (error) {
+    await refund().catch((e) => console.error("[ask] refund", e));
+    throw error;
+  }
+}
+
+async function answer(session: Session, q: string, model: string): Promise<AskAnswer> {
 
   // 1. Which key does the model's secure hardware sign with? Asked with a fresh nonce, before sending anything.
   const nonce = randomBytes(32).toString("hex");
@@ -131,5 +146,5 @@ export async function ask(session: Session, question: string): Promise<AskAnswer
       await new Promise((r) => setTimeout(r, 1500));
     }
   }
-  return { answer, model, verification };
+  return { account: await askAccount(session), answer, model, verification };
 }

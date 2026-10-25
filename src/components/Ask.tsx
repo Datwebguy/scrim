@@ -1,10 +1,19 @@
 "use client";
 import { useState } from "react";
 import { api } from "@/client/api";
+import { useApi } from "@/client/use-api";
+import { signTransfer } from "@/client/wallet";
+import type { TransferView } from "./money";
+import { useSession } from "./session";
 import { Heading } from "./money";
 import { Spinner } from "./ui";
 
+type Account = { freeLeft: number; creditUsd: number; priceUsd: number; questionsLeft: number; canTopUp: boolean };
+const TOP_UPS = [1, 5, 20];
+const cents = (usd: number) => (usd < 1 ? `${Math.round(usd * 100)} cents` : `$${usd.toFixed(2)}`);
+
 type Answer = {
+  account: Account;
   answer: string;
   model: string;
   verification: { signed: boolean; attested: boolean; signingAddress: string | null; chatId: string; detail: string };
@@ -18,6 +27,33 @@ export function Ask() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<{ question: string; answer: Answer } | null>(null);
+  const { network, accountId } = useSession();
+  const { data: fetched, reload } = useApi<Account>("/ask");
+  const account = result?.answer.account ?? fetched;
+  const left = account?.questionsLeft;
+  const [paying, setPaying] = useState(0);
+
+  // Buying more questions: one private transfer from your balance, approved once in your wallet.
+  async function topUp(dollars: number) {
+    setPaying(dollars);
+    setError("");
+    try {
+      let { transfer } = await api<{ transfer: TransferView }>("/ask/top-up", { body: { dollars } });
+      if (transfer.intentToSign) transfer = (await api<{ transfer: TransferView }>(`/transfers/${transfer.id}/sign`, { body: await signTransfer(network, transfer.intentToSign, accountId) })).transfer;
+      for (let i = 0; i < 40 && !["success", "failed", "refunded", "expired"].includes(transfer.status); i++) {
+        await new Promise((r) => setTimeout(r, 3000));
+        transfer = (await api<{ transfer: TransferView }>(`/transfers/${transfer.id}`)).transfer;
+      }
+      if (transfer.status !== "success") throw new Error(transfer.status === "processing" || transfer.status === "awaiting_signature" ? "It's still on its way. Your questions appear here when it arrives." : "The payment didn't go through. Nothing was taken.");
+      setResult(null);
+      reload();
+    } catch (e) {
+      setError((e as Error).message);
+      reload();
+    } finally {
+      setPaying(0);
+    }
+  }
 
   async function submit(q: string) {
     if (!q.trim()) return;
@@ -47,7 +83,26 @@ export function Ask() {
             <button key={s} type="button" className="chip" disabled={busy} onClick={() => void submit(s)}>{s}</button>
           ))}
         </div>
-        <button className="btn btn-primary" style={{ justifySelf: "start" }} disabled={busy || !question.trim()}>{busy ? <><Spinner /> Thinking privately…</> : "Ask"}</button>
+        <div className="between">
+          <button className="btn btn-primary" disabled={busy || !question.trim() || left === 0}>{busy ? <><Spinner /> Thinking privately…</> : "Ask"}</button>
+          {account && <small className="muted">{account.freeLeft ? "Your first question is free." : `${left} question${left === 1 ? "" : "s"} left${account.creditUsd ? ` ($${account.creditUsd.toFixed(2)})` : ""}`}</small>}
+        </div>
+        {account && account.freeLeft === 0 && (
+          <div className="form-grid">
+            <small className="muted">Questions cost {cents(account.priceUsd)} each, paid from your own private balance. You approve once, then ask as many as you bought. Unused questions never expire.</small>
+            {account.canTopUp ? (
+              <div className="chips">
+                {TOP_UPS.map((d) => (
+                  <button key={d} type="button" className="chip" disabled={paying > 0} onClick={() => void topUp(d)}>
+                    {paying === d ? <Spinner /> : `Add $${d} · ${Math.floor(d / account.priceUsd)} questions`}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <small className="muted">{network === "testnet" ? "On mainnet you can add more questions from your private balance." : "Adding questions isn't switched on for this site yet."}</small>
+            )}
+          </div>
+        )}
         {error && <div className="notice danger">{error}</div>}
       </form>
 

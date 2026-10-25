@@ -13,6 +13,7 @@ const NAV: { href: string; label: string; privateMoney?: boolean; match?: (p: st
   { href: "/app/send", label: "Send" },
   { href: "/app/swap", label: "Swap", privateMoney: true },
   { href: "/app/requests", label: "Get paid", privateMoney: true },
+  { href: "/app/sell", label: "Sell", privateMoney: true },
   { href: "/app/proofs", label: "Proofs", privateMoney: true },
   { href: "/app/activity", label: "Activity" },
   { href: "/app/ask", label: "Ask" },

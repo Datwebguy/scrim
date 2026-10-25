@@ -1,0 +1,136 @@
+"use client";
+import { useState } from "react";
+import { api } from "@/client/api";
+import { useApi } from "@/client/use-api";
+import { AssetPicker, CopyField, Heading, StateChip, useAssets } from "./money";
+import { Spinner, useToast } from "./ui";
+
+type Product = { code: string; name: string; description: string; symbol: string; chainName: string; display: string; delivers: "text" | "api"; open: boolean; sales: number; earned: string };
+type Sale = { at: string; status: string; paidWith: string; received: string };
+
+// Sell anything over x402: agents and people pay from any coin on any chain, it lands privately,
+// and the buyer gets what you sell once the payment is confirmed.
+export function Sell() {
+  const toast = useToast();
+  const assets = useAssets();
+  const { data, reload } = useApi<{ products: Product[] }>("/products", { every: 20_000 });
+  const [form, setForm] = useState({ name: "", description: "", amount: "", kind: "text" as "text" | "api", text: "", url: "", headerName: "", headerValue: "" });
+  const [assetId, setAssetId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [openCode, setOpenCode] = useState<string | null>(null);
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm({ ...form, [k]: e.target.value });
+  const origin = typeof window === "undefined" ? "" : window.location.origin;
+
+  async function create(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const deliver = form.kind === "text" ? { kind: "text", text: form.text } : { kind: "api", url: form.url, header: form.headerName ? { name: form.headerName, value: form.headerValue } : undefined };
+      const { product } = await api<{ product: Product }>("/products", { body: { name: form.name, description: form.description, assetId, amount: form.amount, deliver } });
+      setForm({ ...form, name: "", description: "", amount: "", text: "", url: "", headerName: "", headerValue: "" });
+      setOpenCode(product.code);
+      reload();
+      toast("You're selling it. Share its addresses below.");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function stop(code: string) {
+    if (!confirm("Stop selling this? Sales so far stay in your records.")) return;
+    try {
+      await api(`/products/${code}`, { method: "DELETE" });
+      reload();
+    } catch (err) {
+      toast((err as Error).message, "error");
+    }
+  }
+
+  const products = data?.products ?? [];
+  return (
+    <div className="narrow wide">
+      <Heading eyebrow="Sell" title="Sell to agents and people" text="Sell a file, a code, a report or your API. Agents pay over x402, people on a pay page, from any coin on any chain. Every sale lands in your private balance, and buyers get what you sell once the payment is confirmed." />
+
+      {products.length > 0 && (
+        <div className="form-grid" style={{ marginBottom: 20 }}>
+          {products.map((p) => (
+            <div key={p.code} className="card card-pad form-grid">
+              <div className="between">
+                <div>
+                  <h3 style={{ margin: 0 }}>{p.name}</h3>
+                  <small className="muted">{p.display} {p.symbol} · delivers {p.delivers === "text" ? "a text or link" : "your API's answer"}{p.open ? "" : " · stopped"}</small>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <b>{p.sales} sale{p.sales === 1 ? "" : "s"}</b>
+                  <small className="muted" style={{ display: "block" }}>{p.earned} {p.symbol} earned</small>
+                </div>
+              </div>
+              {p.open && (
+                <>
+                  <CopyField label="For AI agents (x402)" value={`${origin}/api/x402/pay/${p.code}`} />
+                  <CopyField label="For people" value={`${origin}/pay/${p.code}`} />
+                </>
+              )}
+              <div className="connect-row">
+                <button className="btn btn-ghost btn-sm" onClick={() => setOpenCode(openCode === p.code ? null : p.code)}>{openCode === p.code ? "Hide sales" : "Sales"}</button>
+                {p.open && <button className="btn btn-ghost btn-sm" onClick={() => stop(p.code)}>Stop selling</button>}
+              </div>
+              {openCode === p.code && <Sales code={p.code} />}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <form className="card card-pad form-grid" onSubmit={create}>
+        <h2 style={{ margin: 0 }}>{products.length ? "Sell something else" : "Sell something"}</h2>
+        <label className="field">What is it?<input className="input" value={form.name} onChange={set("name")} placeholder="Market report, API access, a download" maxLength={80} required /></label>
+        <label className="field">Short description<small>Buyers and agents see this before they pay.</small><input className="input" value={form.description} onChange={set("description")} maxLength={280} /></label>
+        <AssetPicker label="You receive" assets={assets} value={assetId} onChange={setAssetId} />
+        <label className="field">Price<input className="input" inputMode="decimal" value={form.amount} onChange={set("amount")} placeholder="0.00" required /></label>
+        <div className="segmented" role="radiogroup" aria-label="What the buyer gets">
+          <button type="button" role="radio" aria-checked={form.kind === "text"} onClick={() => setForm({ ...form, kind: "text" })}>A text or link</button>
+          <button type="button" role="radio" aria-checked={form.kind === "api"} onClick={() => setForm({ ...form, kind: "api" })}>My API</button>
+        </div>
+        {form.kind === "text" ? (
+          <label className="field">What the buyer gets<small>A message, a code or a download link. Shown only after payment.</small><textarea className="input" rows={4} value={form.text} onChange={set("text")} maxLength={4000} required /></label>
+        ) : (
+          <>
+            <label className="field">Your API address<small>Scrim calls it after each confirmed payment and passes the answer to the buyer.</small><input className="input mono" value={form.url} onChange={set("url")} placeholder="https://api.example.com/report" required /></label>
+            <div className="connect-row">
+              <label className="field" style={{ flex: 1 }}>Secret header (optional)<input className="input mono" value={form.headerName} onChange={set("headerName")} placeholder="X-Api-Key" /></label>
+              <label className="field" style={{ flex: 1 }}>Value<input className="input mono" value={form.headerValue} onChange={set("headerValue")} type="password" /></label>
+            </div>
+          </>
+        )}
+        {error && <p className="form-error" role="alert">{error}</p>}
+        <button className="btn btn-primary btn-lg" disabled={busy || !assetId}>{busy && <Spinner />} Start selling</button>
+      </form>
+    </div>
+  );
+}
+
+function Sales({ code }: { code: string }) {
+  const { data, loading } = useApi<{ sales: Sale[] }>(`/products/${code}`, { every: 15_000 });
+  if (loading && !data) return <Spinner />;
+  const sales = data?.sales ?? [];
+  if (sales.length === 0) return <p className="muted">No sales yet.</p>;
+  return (
+    <table className="table">
+      <thead><tr><th>When</th><th>Paid with</th><th>You received</th><th>Status</th></tr></thead>
+      <tbody>
+        {sales.map((s, i) => (
+          <tr key={i}>
+            <td>{new Date(s.at).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+            <td>{s.paidWith}</td>
+            <td className="amt">{s.received}</td>
+            <td><StateChip status={s.status} /></td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}

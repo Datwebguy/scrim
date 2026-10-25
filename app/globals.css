@@ -1100,3 +1100,18 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 [data-theme="dark"] .l-foot-engraving { opacity: 0.15; }
 /* Text links in the header and footer get a finger-sized tap area without changing how they look. */
 .site-nav nav a, .l-footer nav a, .site-footer nav a, .card-title > a { display: inline-block; padding-block: 6px; }
+
+/* The notification bell: round like the theme switch, with a small orange count when something is waiting. */
+.bell-wrap { position: relative; display: inline-flex; }
+.bell { position: relative; display: grid; place-items: center; width: 34px; height: 34px; flex: none; padding: 0; border-radius: 50%; border: 1px solid var(--line-2); background: var(--card); color: var(--ink); cursor: pointer; }
+.bell:hover { border-color: var(--orange); }
+.bell svg { width: 18px; height: 18px; }
+.on-dark-toggle .bell, .ws-top .bell { background: transparent; border-color: #34342d; color: #e9e8e0; padding: 0; border-radius: 50%; width: 34px; height: 34px; }
+.bell-badge { position: absolute; top: -5px; right: -5px; display: grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; background: var(--orange); color: #1a0c06; font: 700 11px var(--mono); }
+.bell-pop { position: absolute; top: calc(100% + 8px); right: 0; z-index: 60; width: min(320px, calc(100vw - 32px)); padding: 6px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--paper); color: var(--ink); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25); }
+.bell-item { display: block; padding: 12px; border-radius: 8px; color: var(--ink); text-decoration: none; font-size: 14px; line-height: 1.4; }
+.bell-item:hover { background: var(--hover-row); }
+.bell-empty { margin: 0; padding: 12px; color: var(--ink-3); font-size: 14px; }
+.ws-side-head .bell-pop { left: 0; right: auto; }
+
+@media (max-width: 900px) { .ws-top .bell-pop { position: fixed; top: 62px; left: 16px; right: 16px; width: auto; } }

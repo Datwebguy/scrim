@@ -1184,7 +1184,7 @@ function Signers({ treasury, accountId }: { treasury: Treasury; accountId: strin
               {s.accountId === accountId && <span className="muted"> (you)</span>}
             </span>
           </span>
-          <span className={`pill ${s.role === "owner" ? "pill-dark" : ""} plain`}>{s.role === "owner" ? "Owner" : s.state === "invited" ? "Invited, waiting for a yes" : s.state === "declined" ? "Declined" : "Approver"}</span>
+          <span className={`pill ${s.role === "owner" ? "pill-dark" : ""} plain`}>{s.role === "owner" ? "Owner" : s.state === "invited" ? "Invited" : s.state === "declined" ? "Declined" : "Approver"}</span>
         </div>
       ))}
     </div>

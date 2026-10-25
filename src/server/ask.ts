@@ -99,7 +99,7 @@ export async function ask(session: Session, question: string): Promise<AskAnswer
   try {
     return await answer(session, q, model);
   } catch (error) {
-    await refund();
+    await refund().catch((e) => console.error("[ask] refund", e));
     throw error;
   }
 }

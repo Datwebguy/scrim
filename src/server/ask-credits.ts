@@ -5,10 +5,14 @@ import type { Session } from "./auth";
 import { catalog } from "./assets";
 import { sql } from "./db";
 import { badRequest, HttpError } from "./errors";
-import { createTransfer, getTransfer, type Transfer } from "./transfers";
+import { cancelTransfer, createTransfer, getTransfer, type Transfer } from "./transfers";
 
 // What one question costs, in US dollars; and where top-ups go (the site owner's NEAR account).
-const PRICE_MICROS = () => BigInt(Math.round(Math.max(0, Number(process.env.ASK_PRICE_USD ?? 0.02) || 0) * 1e6));
+// A missing, zero or mistyped price falls back to 2 cents: a question is never free by accident.
+const PRICE_MICROS = () => {
+  const usd = Number(process.env.ASK_PRICE_USD ?? 0.02);
+  return BigInt(Math.round((Number.isFinite(usd) && usd > 0 ? usd : 0.02) * 1e6));
+};
 const FEE_ACCOUNT = () => process.env.ASK_FEE_ACCOUNT?.trim() || null;
 const TOP_UPS = [1, 5, 20]; // dollars; credits never expire
 
@@ -50,18 +54,30 @@ export async function startTopUp(session: Session, dollars: number): Promise<Tra
   if (!TOP_UPS.includes(dollars)) throw badRequest(`Choose ${TOP_UPS.map((d) => `$${d}`).join(" or ")}.`);
   const usdc = (await catalog()).find((a) => a.symbol === "USDC" && a.chain === "near");
   if (!usdc) throw new HttpError(503, "upstream", "USDC isn't available right now.");
+  const [{ open }] = await sql<{ open: number }[]>`SELECT count(*)::int AS open FROM ask_topups WHERE account_id = ${session.accountId} AND credited_at IS NULL AND created_at > now() - interval '1 hour'`;
+  if (open >= 3) throw badRequest("You have top-ups still on their way. Wait for them before adding more.");
   const transfer = await createTransfer(session, { kind: "send", fromAssetId: usdc.assetId, amount: String(dollars), recipient: to, note: "Ask credits" });
-  await sql`INSERT INTO ask_topups (transfer_id, account_id, usd_micros) VALUES (${transfer.id}, ${session.accountId}, ${dollars * 1_000_000})`;
+  // Nothing moves until the person signs; if the record can't be kept, the transfer is cancelled first.
+  try {
+    await sql`INSERT INTO ask_topups (transfer_id, account_id, usd_micros) VALUES (${transfer.id}, ${session.accountId}, ${dollars * 1_000_000})`;
+  } catch (error) {
+    await cancelTransfer(session, transfer.id).catch(() => null);
+    throw error;
+  }
   return transfer;
 }
 
 // Credits each top-up once its private transfer has been delivered. Safe to call repeatedly.
 async function creditFinishedTopUps(session: Session) {
-  const pending = await sql<{ transfer_id: string; usd_micros: string }[]>`
-    SELECT transfer_id, usd_micros::text FROM ask_topups WHERE account_id = ${session.accountId} AND credited_at IS NULL AND created_at > now() - interval '2 days'`;
+  // Any uncredited top-up whose transfer has arrived, however long it took; only a few in-flight ones
+  // are re-checked with the payment network per visit.
+  const pending = await sql<{ transfer_id: string; usd_micros: string; status: string }[]>`
+    SELECT a.transfer_id, a.usd_micros::text, t.status FROM ask_topups a JOIN transfers t ON t.id = a.transfer_id
+    WHERE a.account_id = ${session.accountId} AND a.credited_at IS NULL AND t.status NOT IN ('cancelled', 'expired', 'failed', 'refunded')
+    ORDER BY a.created_at DESC LIMIT 5`;
   for (const t of pending) {
-    const transfer = await getTransfer(session, t.transfer_id).catch(() => null);
-    if (transfer?.status !== "success") continue;
+    const status = t.status === "success" ? "success" : (await getTransfer(session, t.transfer_id).catch(() => null))?.status;
+    if (status !== "success") continue;
     await sql.begin(async (tx) => {
       const marked = await tx`UPDATE ask_topups SET credited_at = now() WHERE transfer_id = ${t.transfer_id} AND credited_at IS NULL RETURNING transfer_id`;
       if (marked.length !== 1) return;

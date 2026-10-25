@@ -167,7 +167,8 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
   if (input.kind === "add" && input.privacy === "public") {
     const from = await assetById(String(input.fromAssetId ?? ""));
     if (from.chain === "near") throw badRequest("Coins on NEAR go straight to your wallet's address.");
-    const to = (await catalog()).find((a) => a.chain === "near" && a.symbol === from.symbol);
+    const matches = (await catalog()).filter((a) => a.chain === "near" && a.symbol === from.symbol);
+    const to = matches.length === 1 ? matches[0] : undefined;
     if (!to) throw badRequest(`${from.symbol} can't arrive in a NEAR wallet. Add it to your private balance instead.`);
     return {
       from, to, amountAsset: from, recipient: account, needsUserToken: false, deadlineMinutes: 24 * 60, public: true,
@@ -394,12 +395,16 @@ async function refreshOne(session: Session, id: string): Promise<Transfer> {
 // from the public payment-link page, which holds only the transfer's random ID.
 async function refreshRow(row: Row): Promise<Transfer> {
   const id = row.id;
-  if (row.status === "awaiting_deposit" || row.status === "processing") {
+  const sealed = open<Details>(row.details_sealed, aad(row.id, row.account_id));
+  // A wallet pays on its own, so a wallet transfer closed here may still have been paid: keep following it for two days.
+  const lateWalletPayment = sealed.public === true && (row.status === "expired" || row.status === "cancelled") && row.created_at.getTime() > Date.now() - 2 * 86_400_000;
+  if (row.status === "awaiting_deposit" || row.status === "processing" || lateWalletPayment) {
     try {
-      const details = open<Details>(row.details_sealed, aad(row.id, row.account_id));
+      const details = sealed;
       const s = await oneclick.status(details.trackAddress, details.trackMemo);
       const ended = END_STATE[s.status];
-      if (ended && row.team_request_id && details.public) await walletPayoutSent(row);
+      // Only money that arrived counts: a closed wallet payout that was never paid leaves its request approved.
+      if (ended === "success" && row.team_request_id && details.public) await walletPayoutSent(row);
       if (ended) {
         details.resultHashes = s.swapDetails?.destinationChainTxHashes?.map((h) => h.hash) ?? details.resultHashes;
         await save(row.id, row.account_id, ended, details);
@@ -415,7 +420,7 @@ async function refreshRow(row: Row): Promise<Transfer> {
         }
         // A product stays open for the next buyer; a one-off link is done once paid.
         if (row.pay_link_id && ended === "success") await sql`UPDATE pay_links SET status = 'paid' WHERE id = ${row.pay_link_id} AND status = 'open' AND product_sealed IS NULL`;
-      } else if (s.status === "PROCESSING" && row.status === "awaiting_deposit") {
+      } else if (s.status === "PROCESSING" && row.status !== "processing") {
         await save(row.id, row.account_id, "processing", details);
         await walletPayoutSent(row);
       }
@@ -448,7 +453,6 @@ export async function depositSent(session: Session, id: string, txHash: string):
   if (row.status !== "awaiting_deposit") return refreshRow(row);
   if (!/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(txHash)) throw badRequest("That transaction hash doesn't look right.");
   await oneclick.submitDeposit(txHash, row.deposit_address!, row.deposit_memo).catch(() => null);
-  await walletPayoutSent(row);
   return refreshRow(row);
 }
 
@@ -468,6 +472,9 @@ export async function cancelTransfer(session: Session, id: string): Promise<Tran
 // from their NEAR wallet in public, as they choose.
 export async function payTeamRequest(session: Session, requestId: string, privacy: "private" | "public" = "private"): Promise<Transfer> {
   if (session.network !== "mainnet") throw new HttpError(400, "wrong_network", "On testnet, pay with your wallet: it sends real test NEAR straight to the recipient.");
+  // An earlier payout from the wallet may have been paid after it closed here: catch up before paying again.
+  const earlier = await sql<Row[]>`SELECT * FROM transfers WHERE team_request_id = ${requestId} AND status IN ('awaiting_deposit', 'expired', 'cancelled') AND created_at > now() - interval '2 days'`;
+  for (const row of earlier) await refreshRow(row).catch(() => null);
   const request = await approvedTeamRequest(session, requestId);
   const corridor = corridorFor("mainnet");
   return createTransfer(session, {

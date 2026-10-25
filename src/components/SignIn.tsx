@@ -6,6 +6,7 @@ import { connectedAccount, signInWithWallet } from "@/client/wallet";
 import { isNetwork, NETWORK_INFO, type Network } from "@/protocol/networks";
 import { Spinner } from "./ui";
 import { Wordmark } from "@/components/Wordmark";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const KEY = "scrim:network";
 
@@ -69,6 +70,7 @@ export function SignIn({ networks }: { networks: Network[] }) {
         </ul>
       </div>
       <div className="gate-form">
+        <div className="gate-theme"><ThemeToggle /></div>
         <div>
           <h1>Sign in with your wallet</h1>
           <p>Choose your NEAR wallet and approve one message. It proves the account is yours. It can't move any money.</p>

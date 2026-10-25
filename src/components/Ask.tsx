@@ -2,13 +2,13 @@
 import { useState } from "react";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
-import { signTransfer } from "@/client/wallet";
+import { sendToken, signTransfer } from "@/client/wallet";
 import type { TransferView } from "./money";
 import { useSession } from "./session";
 import { Heading } from "./money";
 import { Spinner } from "./ui";
 
-type Account = { freeLeft: number; creditUsd: number; priceUsd: number; questionsLeft: number; canTopUp: boolean };
+type Account = { freeLeft: number; creditUsd: number; priceUsd: number; questionsLeft: number; canTopUp: boolean; walletPay: { to: string; token: string } | null };
 const TOP_UPS = [1, 5, 20];
 const cents = (usd: number) => (usd < 1 ? `${Math.round(usd * 100)} cents` : `$${usd.toFixed(2)}`);
 
@@ -32,12 +32,37 @@ export function Ask() {
   const account = result?.answer.account ?? fetched;
   const left = account?.questionsLeft;
   const [paying, setPaying] = useState(0);
+  const [payFrom, setPayFrom] = useState<"private" | "wallet">("private");
+  // A wallet payment that is sent but not yet credited, so it can be claimed again without paying twice.
+  const [unclaimed, setUnclaimed] = useState("");
 
-  // Buying more questions: one private transfer from your balance, approved once in your wallet.
+  async function claim(txHash: string) {
+    for (let i = 0; ; i++) {
+      try {
+        await api<{ account: Account }>("/ask/top-up/wallet", { body: { txHash } });
+        setUnclaimed("");
+        return;
+      } catch (e) {
+        // Only "not on the chain yet" is worth waiting for; anything else is shown as it is.
+        if (i >= 9 || !/isn't on the chain yet/.test((e as Error).message)) throw e;
+        await new Promise((r) => setTimeout(r, 3000));
+      }
+    }
+  }
+
+  // Buying more questions: one transfer, from the private balance or straight from the wallet, approved once.
   async function topUp(dollars: number) {
     setPaying(dollars);
     setError("");
     try {
+      if (payFrom === "wallet" && account?.walletPay) {
+        const txHash = await sendToken(network, account.walletPay.token, account.walletPay.to, String(dollars * 1_000_000));
+        setUnclaimed(txHash);
+        await claim(txHash);
+        setResult(null);
+        reload();
+        return;
+      }
       let { transfer } = await api<{ transfer: TransferView }>("/ask/top-up", { body: { dollars } });
       if (transfer.intentToSign) transfer = (await api<{ transfer: TransferView }>(`/transfers/${transfer.id}/sign`, { body: await signTransfer(network, transfer.intentToSign, accountId) })).transfer;
       for (let i = 0; i < 40 && !["success", "failed", "refunded", "expired"].includes(transfer.status); i++) {
@@ -89,7 +114,13 @@ export function Ask() {
         </div>
         {account && account.freeLeft === 0 && (
           <div className="form-grid">
-            <small className="muted">Questions cost {cents(account.priceUsd)} each, paid from your own private balance. You approve once, then ask as many as you bought. Unused questions never expire.</small>
+            <small className="muted">Questions cost {cents(account.priceUsd)} each, paid with your own USDC. You approve once, then ask as many as you bought. Unused questions never expire.</small>
+            {account.canTopUp && account.walletPay && (
+              <div className="segmented" role="radiogroup" aria-label="Pay from">
+                <button type="button" role="radio" aria-checked={payFrom === "private"} onClick={() => setPayFrom("private")}>Private balance</button>
+                <button type="button" role="radio" aria-checked={payFrom === "wallet"} onClick={() => setPayFrom("wallet")}>My wallet</button>
+              </div>
+            )}
             {account.canTopUp ? (
               <div className="chips">
                 {TOP_UPS.map((d) => (
@@ -99,11 +130,17 @@ export function Ask() {
                 ))}
               </div>
             ) : (
-              <small className="muted">{network === "testnet" ? "On mainnet you can add more questions from your private balance." : "Adding questions isn't switched on for this site yet."}</small>
+              <small className="muted">{network === "testnet" ? "On mainnet you can add more questions with USDC." : "Adding questions isn't switched on for this site yet."}</small>
             )}
           </div>
         )}
         {error && <div className="notice danger">{error}</div>}
+        {unclaimed && paying === 0 && (
+          <div className="notice info">
+            Your wallet payment was sent. <span className="mono">{unclaimed.slice(0, 10)}…</span>{" "}
+            <button type="button" className="linklike" onClick={() => { setError(""); claim(unclaimed).then(() => { setResult(null); reload(); }, (e) => setError((e as Error).message)); }}>Add it to my questions</button>
+          </div>
+        )}
       </form>
 
       {result && v && (

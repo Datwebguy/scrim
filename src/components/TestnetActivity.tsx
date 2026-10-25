@@ -62,7 +62,7 @@ export function WalletActivityList() {
 export function TestnetActivity() {
   return (
     <div className="narrow wide">
-      <Heading eyebrow="Activity" title="Everything you've done" text="Testnet transfers are public: anyone can look them up. On mainnet, money you send from your private balance stays private." />
+      <Heading eyebrow="Activity" title="Everything you've done" text="Testnet transfers are public. On mainnet you can choose private for any payment." />
       <WalletActivityList />
       <p className="muted small-print">Payments you approve and pay also appear under Accounts → History.</p>
     </div>

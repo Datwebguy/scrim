@@ -33,9 +33,9 @@ export default async function Home() {
           <div className="l-bg" aria-hidden="true"><span className="orb o1" /><span className="orb o2" /><span className="orb o3" /><span className="grid" /></div>
           <div className="wrap l-hero-grid">
             <Reveal>
-              <span className="eyebrow">Private money on NEAR</span>
-              <h1>Move money.<br /><em>Keep it private.</em></h1>
-              <p className="lead">Hold, send, swap and get paid. Only you see it.</p>
+              <span className="eyebrow">Money on NEAR</span>
+              <h1>Move money.<br /><em>Private when you want it.</em></h1>
+              <p className="lead">Hold, send, swap and get paid. Public or private, your choice.</p>
               <div className="hero-actions">
                 <Link href="/app" className="btn btn-signal btn-lg">Get started <span className="arrow">→</span></Link>
                 <a href="#how" className="btn btn-ghost btn-lg">See how</a>
@@ -60,22 +60,22 @@ export default async function Home() {
 
         <section className="section" id="how">
           <div className="wrap">
-            <Reveal className="l-head center"><span className="eyebrow">How it moves</span><h2>One balance. Every move private.</h2></Reveal>
+            <Reveal className="l-head center"><span className="eyebrow">How it moves</span><h2>One balance. Private when you choose.</h2></Reveal>
             <Reveal><div className="l-demo-wrap"><FlowDemo icons={icons} /></div></Reveal>
           </div>
         </section>
 
         <section className="section l-story" id="features">
           <div className="wrap">
-            <Row eyebrow="Send" title="Pay anyone, on any chain." text="Nobody can trace it back to you."><SendScene nets={icons} /></Row>
-            <Row eyebrow="Swap" title="Swap without an audience." text="Trade inside your private balance." flip><SwapScene coins={coins} /></Row>
+            <Row eyebrow="Send" title="Pay anyone, on any chain." text="Choose private and it can't be traced back to you."><SendScene nets={icons} /></Row>
+            <Row eyebrow="Swap" title="Swap your way." text="Trade in public or inside your private balance." flip><SwapScene coins={coins} /></Row>
             <Row eyebrow="Get paid" title="Share a link. Get paid." text="They pay from any coin. No account needed."><PaidScene nets={icons} /></Row>
           </div>
         </section>
 
         <section className="section dark-section" id="accounts">
           <div className="wrap">
-            <Reveal className="l-head"><span className="eyebrow">Rules for your money</span><h2>Private to everyone. Clear to you.</h2></Reveal>
+            <Reveal className="l-head"><span className="eyebrow">Rules for your money</span><h2>Clear to you. Private if you like.</h2></Reveal>
             <Reveal><TeamScene /></Reveal>
           </div>
         </section>
@@ -83,13 +83,13 @@ export default async function Home() {
         <section className="section l-story" id="agents">
           <div className="wrap">
             <Row eyebrow="Agents" title="Let software pay. Within your rules." text="Give an agent its own key and spending limits. It asks and people approve, or it pays by itself from a wallet of its own. Anything outside the limits is stopped." flip><AgentScene /></Row>
-            <Row eyebrow="x402" title="Pay for APIs. Get paid by agents." text="Agents find paid APIs and data, and pay them on Base, Solana and six more chains, within your limits. Their wallet is topped up privately, so sellers never see whose money it is. And you can sell to agents too: a file, a report or your API, paid into your private balance."><X402Scene /></Row>
+            <Row eyebrow="x402" title="Pay for APIs. Get paid by agents." text="Agents find paid APIs and data, and pay them on Base, Solana and six more chains, within your limits. Choose private or public for each agent wallet. And you can sell to agents too: a file, a report or your API, paid into your private balance or your wallet."><X402Scene /></Row>
           </div>
         </section>
 
         <section className="section l-story" id="ask">
           <div className="wrap">
-            <Row eyebrow="Ask" title="Ask your money. Nobody else hears it." text="Ask about your payments in plain words. AI answers inside NEAR AI's secure hardware, and every answer is signed and checked. Scrim keeps no copy." flip><AskScene /></Row>
+            <Row eyebrow="Ask" title="Ask your money. Keep it between you and the AI." text="Ask about your payments in plain words. AI answers inside NEAR AI's secure hardware, and every answer is signed and checked. Scrim keeps no copy." flip><AskScene /></Row>
           </div>
         </section>
 
@@ -109,9 +109,9 @@ export default async function Home() {
           <div className="wrap faq-wrap">
             <div><span className="eyebrow">FAQ</span><h2>Quick answers.</h2></div>
             <div className="faq">
-              <details open><summary>Is it really private?</summary><p>Your money sits on NEAR Intents&apos; private ledger, not the public chain.</p></details>
+              <details open><summary>Can I keep things private?</summary><p>Yes. Choose private for any payment and it stays off the public chain. Choose public when you want it on the chain.</p></details>
               <details><summary>Does Scrim hold my money?</summary><p>No. Only your wallet can move it.</p></details>
-              <details><summary>Can I try it free?</summary><p>Yes, on testnet. Private money runs on mainnet only.</p></details>
+              <details><summary>Can I try it free?</summary><p>Yes, on testnet. Private options need mainnet; testnet is public.</p></details>
               <details><summary>Can AI agents use it?</summary><p>Yes. Each agent gets its own key and limits. You approve what it asks to pay, or let it pay by itself from its own wallet. Agents can also pay for APIs and pay your links over x402.</p></details>
               <details><summary>Is the AI private?</summary><p>Yes. Ask runs on NEAR AI Cloud&apos;s confidential hardware. Scrim checks each answer&apos;s signature against that hardware&apos;s attestation, and stores neither your question nor the answer.</p></details>
               <details><summary>What does it cost?</summary><p>Free to open. Network fees are shown before you confirm.</p></details>

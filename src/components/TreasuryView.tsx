@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/client/api";
 import { relativeTime, short, STATUS_LABEL } from "@/client/format";
-import { sendNear, signChallenge, signTransfer } from "@/client/wallet";
+import { sendNear, sendToken, signChallenge, signTransfer } from "@/client/wallet";
 import { formatAmount } from "@/protocol/amount";
 import { describeWindow } from "@/protocol/policy";
 import type { Agent } from "@/server/agents";
@@ -340,7 +340,7 @@ function Requests({ payments, treasury, onOpen, onNew }: { payments: Payment[]; 
 function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { payment: Payment; treasury: Treasury; accountId: string; onClose: () => void; onChanged: () => void }) {
   const { network } = useSession();
   const toast = useToast();
-  const [busy, setBusy] = useState<"" | "approve" | "cancel" | "pay">("");
+  const [busy, setBusy] = useState<"" | "approve" | "cancel" | "pay" | "payWallet">("");
   const [error, setError] = useState("");
   const approvedByMe = payment.approvals.some((a) => a.accountId === accountId);
   const isPurchase = payment.memo.startsWith("x402 ");
@@ -351,7 +351,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  async function run(kind: "approve" | "cancel" | "pay") {
+  async function run(kind: "approve" | "cancel" | "pay" | "payWallet") {
     setBusy(kind);
     setError("");
     try {
@@ -378,6 +378,26 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
         }
         try { sessionStorage.removeItem(saved); } catch { /* optional */ }
         toast("Paid. The transfer is confirmed on testnet.");
+      } else if (kind === "payWallet") {
+        // Public payout from the owner's NEAR wallet: USDC on NEAR to a one-time address that delivers on Base.
+        // Remembered once the wallet has paid, so trying again only reports it and never pays twice.
+        const saved = `scrim:wallet-payout:${payment.id}`;
+        let paid: { transferId: string; txHash: string } | null = null;
+        try { paid = JSON.parse(sessionStorage.getItem(saved) ?? "null"); } catch { /* optional */ }
+        if (!paid) {
+          const { transfer } = await api<{ transfer: { id: string; amountIn: string; fromAsset: { assetId: string }; deposit: { address: string } | null } }>(`/payments/${payment.id}/pay`, { body: { from: "wallet" } });
+          if (!transfer.deposit) throw new Error("No payment address came back. Try again.");
+          paid = { transferId: transfer.id, txHash: await sendToken(network, transfer.fromAsset.assetId.replace(/^nep141:/, ""), transfer.deposit.address, transfer.amountIn) };
+          try { sessionStorage.setItem(saved, JSON.stringify(paid)); } catch { /* optional */ }
+        }
+        let status = (await api<{ transfer: { status: string } }>(`/transfers/${paid.transferId}/sent`, { body: { txHash: paid.txHash } })).transfer.status;
+        // Wait until NEAR Intents has picked it up, so the request shows as being paid.
+        for (let i = 0; i < 20 && status === "awaiting_deposit"; i++) {
+          await new Promise((r) => setTimeout(r, 3000));
+          status = (await api<{ transfer: { status: string } }>(`/transfers/${paid.transferId}`)).transfer.status;
+        }
+        if (status !== "awaiting_deposit") try { sessionStorage.removeItem(saved); } catch { /* optional */ }
+        toast(status === "awaiting_deposit" ? "Sent from your wallet. It shows here once it's picked up." : "Payment sent from your wallet");
       } else if (kind === "pay") {
         const { transfer } = await api<{ transfer: { id: string; intentToSign: { message: string; nonce: string; recipient: string } } }>(`/payments/${payment.id}/pay`, { method: "POST" });
         const signed = await signTransfer(network, transfer.intentToSign, accountId);
@@ -425,7 +445,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
             </div>
             <div>
               <dt>Route</dt>
-              <dd>{isPurchase ? "x402 purchase: see below" : treasury.network === "mainnet" ? "Private balance → USDC on Base" : "Your wallet → the recipient, on testnet"}</dd>
+              <dd>{isPurchase ? "x402 purchase: see below" : treasury.network === "mainnet" ? "Private balance or your wallet → USDC on Base" : "Your wallet → the recipient, on testnet"}</dd>
             </div>
             <div>
               <dt>Requested by</dt>
@@ -511,6 +531,11 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
           {payment.status === "approved" && treasury.ownerAccountId === accountId && (
             <button className="btn btn-signal" onClick={() => run("pay")} disabled={!!busy}>
               {busy === "pay" && <Spinner />} {network === "testnet" ? "Pay with my wallet" : "Pay from my private balance"}
+            </button>
+          )}
+          {payment.status === "approved" && treasury.ownerAccountId === accountId && network === "mainnet" && !isPurchase && (
+            <button className="btn btn-ghost" onClick={() => run("payWallet")} disabled={!!busy}>
+              {busy === "payWallet" && <Spinner />} Pay from my wallet
             </button>
           )}
           {["awaiting_approval", "approved"].includes(payment.status) && (

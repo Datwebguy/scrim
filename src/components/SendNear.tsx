@@ -38,7 +38,7 @@ export function SendNear() {
 
   return (
     <div className="narrow">
-      <Heading eyebrow="Send" title="Send test NEAR" text="This is a normal blockchain transfer, so it is public. On mainnet, Send pays privately." />
+      <Heading eyebrow="Send" title="Send test NEAR" text="This is a public transfer on the blockchain. On mainnet you can also send privately." />
       <form className="card card-pad form-grid" onSubmit={submit}>
         <label className="field">Send to<small>A NEAR testnet account</small>
           <input className="input" value={to} onChange={(e) => setTo(e.target.value)} placeholder="account.testnet" autoComplete="off" spellCheck={false} required /></label>

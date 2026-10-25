@@ -103,13 +103,22 @@ Choose a network when you sign in. Everything shown is real data from the networ
 | Money | Free test coins, worth nothing | Real money |
 | Sign-in and team approvals | ✅ | ✅ |
 | Spending limits and agents | ✅ | ✅ |
+| Agents that pay by themselves (own wallet) | ✅ NEAR | ✅ USDC |
 | Real NEAR transfers, checked on-chain | ✅ | ✅ |
+| Activity, read from the chain | ✅ | ✅ |
 | Private balance, add money, send, swap | — | ✅ |
 | Payment links and proofs | — | ✅ |
+| x402: buy from paid APIs, get paid by agents | — | ✅ |
+| Private agent wallets | — | ✅ |
 
 The private features need NEAR Intents, which only exists on mainnet. On testnet those screens say so plainly. The recommended path is to try Scrim on testnet first, then move to mainnet with a separate account and small amounts.
 
-<p align="center"><img src="docs/images/testnet.png" alt="Testnet wallet" width="620"></p>
+<p align="center">
+  <img src="docs/images/team.png" alt="A team account: one agent request waiting for approval, one paid, one stopped by its limits" width="880">
+</p>
+<p align="center">
+  <img src="docs/images/activity.png" alt="Activity: the wallet's own transactions in plain words, with details for one transfer" width="880">
+</p>
 
 ## How it works
 
@@ -119,6 +128,9 @@ flowchart LR
   S -- private session --> I[NEAR Intents private ledger]
   I <--> B[Bridge: 30+ networks]
   S --- D[(Postgres)]
+  A[Agent] -- key with limits --> S
+  S -- pays within limits --> O[OutLayer agent wallet]
+  O --> I
 ```
 
 **Sign in.** You approve one message in any NEAR wallet. On mainnet it is the NEAR Intents ownership message, a signed empty intent that cannot move funds. That single signature both signs you in and opens your private session. Scrim checks on-chain that the key really belongs to your account.
@@ -131,7 +143,7 @@ flowchart LR
 
 ### Where the data comes from
 
-Coins, prices, logos and networks come live from NEAR Intents and CoinGecko. Testnet balances come from the NEAR RPC and FastNEAR. Nothing is hardcoded.
+Coins, prices, logos and networks come live from NEAR Intents and CoinGecko. Testnet balances come from the NEAR RPC and FastNEAR, and Activity reads each wallet's transactions from FastNEAR's transaction index. Nothing is hardcoded.
 
 ## Run it yourself
 
@@ -214,9 +226,13 @@ Tools: `get_limits`, `request_payment`, `pay_x402`, `list_payments`, `get_paymen
 
 **Updates (webhooks).** Set an `https://` address under **Connect** and Scrim calls it when a request is created, stopped, approved, being paid, paid, failed or cancelled. Each call carries `Scrim-Signature: t=<unix seconds>,v1=<hex>`, where `v1` is the HMAC-SHA256 of `"<t>.<raw body>"` with the signing secret (`whsec_…`, shown once). Reject calls with a wrong signature or a timestamp older than five minutes. Only public addresses are allowed.
 
+<p align="center"><img src="docs/images/connect.png" alt="Connect an agent: its key, updates, its own wallet, and how to plug it in, including paid APIs" width="720"></p>
+
+<p align="center"><img src="docs/images/x402.png" alt="x402: an agent asks a paid API, gets 402, Scrim checks the limits and pays privately, the API answers" width="720"></p>
+
 **Get paid by agents (x402).** Every payment link also has an agent address, `/api/x402/pay/<code>`, that speaks [x402](https://x402.org) with the `exact` scheme and the `near-intents` upfront method (as proposed in x402-foundation/x402#3370). An agent gets a `402 Payment Required` listing USDC and USDT on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche and Solana, asks for a quote, pays the one-time deposit address, and presents the transaction. NEAR Intents delivers the money into the link owner's private balance, so the payer never sees where it went. Scrim acts as the facilitator: operation tokens are HMAC-bound to the deposit, the resource and the destination, each operation settles once, and refunds go straight back to the payer.
 
-**Buy from x402 sellers (agents).** An agent can also *pay* an x402 address, such as a paid API: `POST /api/v1/agent/x402` with `{ "url": "https://…" }`, or the MCP tool `pay_x402`. Scrim reads the seller's `402`, picks a NEAR Intents route (USDC on Base preferred), prices it in USD, and files a team payment request named after the seller's web address. The agent's limits apply (the seller's `https://` address must be one of its allowed recipients) and people approve as usual. When the owner pays, Scrim gets a fresh quote from the seller, never above what was approved, and pays the quoted deposit address with a private withdrawal the owner's wallet signs. Refunds go to the owner's own deposit address, so they return to the private balance. Once NEAR Intents delivers, Scrim presents the payment to the seller and keeps the response for the agent (`GET /api/v1/agent/payments/:id` or `get_payment`). The seller never sees the team's wallet.
+**Buy from x402 sellers (agents).** An agent can also *pay* an x402 address, such as a paid API: `POST /api/v1/agent/x402` with `{ "url": "https://…" }`, or the MCP tool `pay_x402`. Scrim reads the seller's `402`, picks a NEAR Intents route (USDC on Base preferred), prices it in USD, and files a team payment request named after the seller's web address. The agent's limits apply (the seller's `https://` address must be one of its allowed recipients) and people approve as usual; an agent with its own wallet pays the seller by itself instead, from its private balance by default. When the owner pays, Scrim gets a fresh quote from the seller, never above what was approved, and pays the quoted deposit address with a private withdrawal the owner's wallet signs. Refunds go to the owner's own deposit address, so they return to the private balance. Once NEAR Intents delivers, Scrim presents the payment to the seller and keeps the response for the agent (`GET /api/v1/agent/payments/:id` or `get_payment`). The seller never sees the team's wallet.
 
 **Agents that pay by themselves.** The owner can give an agent its own wallet: **Connect → Create wallet**. The wallet is an [OutLayer](https://outlayer.ai) agent wallet: its key is created and kept inside a secure enclave (Intel TDX) and never reaches Scrim, which stores only the wallet's access key, sealed. The owner funds it and sets its spending rules on OutLayer with their own NEAR wallet, so the wallet enforces a second, independent set of limits. With **Let it pay by itself** on, a request that passes the agent's Scrim limits is paid at once from the agent's wallet; anything outside them is stopped as before. On testnet it sends NEAR and Scrim checks the transfer on-chain. On mainnet it sends USDC, x402 purchases included, and the owner chooses per agent:
 
@@ -238,6 +254,7 @@ Tools: `get_limits`, `request_payment`, `pay_x402`, `list_payments`, `get_paymen
 - **Webhooks** are signed, public-address-only (checked again at send time), and never follow redirects.
 - **Rate limits** apply per client on every route, with stricter limits on sign-in, payment links and agent keys.
 - **Responses are never cached**, and browser-originated changes must come from the same origin.
+- **Agent wallet keys never reach Scrim.** They are created and kept in OutLayer's secure enclave (Intel TDX); Scrim keeps only a sealed access key, and the owner's on-chain spending rules apply on top of Scrim's limits.
 - **Your keys stay in your wallet.** Scrim never sees them, and the private ledger is run by NEAR Intents.
 
 ## Project layout

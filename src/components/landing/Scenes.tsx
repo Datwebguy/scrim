@@ -158,3 +158,28 @@ export function AgentScene() {
     </div>
   );
 }
+
+/* x402: an agent calls a paid API, gets "402 Payment Required", Scrim checks its limits, pays privately, and the API answers. */
+export function X402Scene() {
+  const steps = [
+    { from: "agent", text: "Asks a paid API for data" },
+    { from: "api", text: "402 · Payment required" },
+    { from: "scrim", text: "Within the agent's limits" },
+    { from: "scrim", text: "Paid from a private balance" },
+    { from: "api", text: "200 · Here is your data" },
+  ];
+  const { ref, step } = useLoop(steps.length + 2, 1000);
+  return (
+    <div ref={ref} className="sc-card sc-x402">
+      <div className="sc-x402-ends"><span>Agent</span><i aria-hidden="true" /><span>Paid API</span></div>
+      <ol>
+        {steps.map((s, i) => (
+          <li key={s.text} className={`by-${s.from} ${step >= i ? "on" : ""} ${step === i ? "now" : ""}`}>
+            <b>{s.from === "agent" ? "Agent" : s.from === "api" ? "API" : "Scrim"}</b>{s.text}
+          </li>
+        ))}
+      </ol>
+      <div className={`sc-x402-foot ${step >= steps.length - 1 ? "on" : ""}`}>The API never sees whose money paid it.</div>
+    </div>
+  );
+}

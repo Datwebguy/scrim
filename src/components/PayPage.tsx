@@ -3,11 +3,12 @@ import { useEffect, useState } from "react";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
 import { AssetPicker, CopyField, fmt, StateChip, type AssetInfo } from "./money";
+import { PayFromSolanaWallet } from "./PayFromSolanaWallet";
 import { PayFromWallet } from "./PayFromWallet";
 import { Spinner } from "./ui";
 
 type LinkView = { code: string; to: string; symbol: string; chainName: string; display: string; note: string; status: string; receive?: "private" | "wallet" };
-type Payment = { id: string; status: string; amountIn: string; fromAsset: { symbol: string; chainName: string; decimals: number }; deposit: { address: string; memo: string | null; network: string; minimum: string | null; evm?: { chainId: number; token: `0x${string}` | null } | null } | null };
+type Payment = { id: string; status: string; amountIn: string; fromAsset: { symbol: string; chainName: string; decimals: number }; deposit: { address: string; memo: string | null; network: string; minimum: string | null; evm?: { chainId: number; token: `0x${string}` | null } | null; solana?: { mint: string | null } | null } | null };
 
 // What a buyer receives once their payment is confirmed: the seller's text or link, or their API's answer.
 function Bought({ delivered, retry }: { delivered: { status: number; contentType: string; body: string } | null; retry: () => void }) {
@@ -101,6 +102,10 @@ export function PayPage({ code }: { code: string }) {
                 </ul>
                 {payment.deposit.evm && (
                   <PayFromWallet to={payment.deposit.address} chainId={payment.deposit.evm.chainId} token={payment.deposit.evm.token}
+                    symbol={payment.fromAsset.symbol} decimals={payment.fromAsset.decimals} minimum={null} exact={payment.amountIn} />
+                )}
+                {payment.deposit.solana && (
+                  <PayFromSolanaWallet to={payment.deposit.address} mint={payment.deposit.solana.mint}
                     symbol={payment.fromAsset.symbol} decimals={payment.fromAsset.decimals} minimum={null} exact={payment.amountIn} />
                 )}
               </>

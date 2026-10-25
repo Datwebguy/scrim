@@ -85,7 +85,7 @@ Scrim lets you choose private whenever you want it, and public when you prefer, 
 | | |
 | --- | --- |
 | **Private balance** | Turn it on and your holdings and history live on a private ledger, so the public sees nothing. |
-| **Add money** | Pick a coin and a network. You get a one-time address; send from any wallet or exchange and it lands in your private balance (or your wallet). 30+ networks. On EVM chains, **Pay from my wallet** sends it from MetaMask, Rabby or a wallet app's browser in one tap. |
+| **Add money** | Pick a coin and a network. You get a one-time address; send from any wallet or exchange and it lands in your private balance (or your wallet). 30+ networks. On EVM chains, **Pay from my wallet** sends it from MetaMask, Rabby or a wallet app's browser in one tap; on Solana, from Phantom, Solflare or Backpack. |
 | **Send** | Pay another NEAR account, or any address on any supported chain. Send from your private balance and it cannot be traced back to you, or send from your wallet (public). |
 | **Swap** | Trade one coin for another, in public or inside your private balance. |
 | **Get paid** | Share a payment link. The payer needs no account and can pay from any coin on any chain. |

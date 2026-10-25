@@ -16,7 +16,10 @@ An owner can give an agent its own wallet (Connect → **Create wallet**), secur
 2. **Spending rules** opens OutLayer, where the owner sets the wallet's own limits with their NEAR wallet.
 3. **Let it pay by itself** → requests inside the agent's Scrim limits are paid straight from its wallet, with no approval step. `get_payment` shows `submitting`, then `settled` or `failed`.
 
-On testnet the wallet sends NEAR and Scrim reads the transfer back from the chain. On mainnet it sends USDC from its NEAR Intents balance, and pays x402 sellers the same way.
+On testnet the wallet sends NEAR and Scrim reads the transfer back from the chain. On mainnet it sends USDC and pays x402 sellers the same way, choosing per agent:
+
+- **Private** (default): funds go in through **Add funds privately** (an address on Base, Ethereum, Arbitrum, Solana or NEAR) and every payment leaves from the wallet's private balance. Recipients see a payment arrive, not which wallet sent it.
+- **Public**: the wallet pays from its public NEAR Intents balance, so each payment can be looked up on the blockchain.
 
 ## Option 1: AI assistants (MCP)
 Scrim is an MCP server at `https://<your-site>/api/mcp` (Streamable HTTP).

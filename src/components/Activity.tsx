@@ -1,14 +1,21 @@
 "use client";
 import { useApi } from "@/client/use-api";
+import { useState } from "react";
 import { fmt, Heading, KIND_LABEL, StateChip, type TransferView } from "./money";
+import { WalletActivityList } from "./TestnetActivity";
 
 export function Activity() {
-  const { data, loading } = useApi<{ transfers: TransferView[] }>("/transfers", { every: 10_000 });
+  const [tab, setTab] = useState<"private" | "wallet">("private");
+  const { data, loading } = useApi<{ transfers: TransferView[] }>(tab === "private" ? "/transfers" : null, { every: 10_000 });
   const rows = (data?.transfers ?? []).filter((t) => !["cancelled"].includes(t.status) && !(t.status === "expired" && t.kind !== "add"));
   return (
     <div className="narrow wide">
-      <Heading eyebrow="Activity" title="Everything you've done" text="This list is private. It lives in your account and nowhere on the public blockchain." />
-      {loading && !data ? <div className="skeleton" /> : rows.length === 0 ? (
+      <Heading eyebrow="Activity" title="Everything you've done" text={tab === "private" ? "This list is private. It lives in your account and nowhere on the public blockchain." : "Your connected wallet's own transactions. These are public on the blockchain."} />
+      <div className="panel-tabs" role="tablist" style={{ margin: "0 0 16px" }}>
+        <button role="tab" aria-selected={tab === "private"} onClick={() => setTab("private")}>Private</button>
+        <button role="tab" aria-selected={tab === "wallet"} onClick={() => setTab("wallet")}>Wallet</button>
+      </div>
+      {tab === "wallet" ? <WalletActivityList /> : loading && !data ? <div className="skeleton" /> : rows.length === 0 ? (
         <div className="card empty"><span className="icon">≡</span><h3>Nothing yet</h3><p>When you add, send, swap or get paid, it shows up here.</p></div>
       ) : (
         <div className="card table-card">

@@ -56,11 +56,14 @@ export const address = (network: Network, apiKey: string, chain: string) =>
 
 export type WalletRequest = {
   request_id?: string;
-  status: "success" | "failed" | "processing" | "pending_approval" | "needs_review" | "refunded";
+  status: "success" | "failed" | "processing" | "pending_approval" | "pending_deposit" | "needs_review" | "refunded";
   tx_hash?: string;
   poll_url?: string;
   error?: string;
-  result?: { destination_tx_hash?: string | null; reason?: string; never_executed?: boolean; never_submitted?: boolean; tx_hash?: string };
+  result?: {
+    destination_tx_hash?: string | null; reason?: string; never_executed?: boolean; never_submitted?: boolean; tx_hash?: string;
+    swap_details?: { destinationChainTxHashes?: string[]; refundReason?: string };
+  };
 };
 
 // Native NEAR transfer, signed in the enclave and broadcast on chain (needs a little NEAR for gas).
@@ -70,6 +73,22 @@ export const transferNear = (network: Network, apiKey: string, to: string, yocto
 // Gasless withdrawal from the agent's NEAR Intents balance, to NEAR or another chain (mainnet only).
 export const withdraw = (network: Network, apiKey: string, body: { to: string; amount: string; token: string; chain: string }, idempotencyKey: string) =>
   call<WalletRequest>(network, "/wallet/v1/intents/withdraw", { apiKey, idempotencyKey, answerWithin: 20, body: { ...body, async: body.chain !== "near" } });
+
+// The same withdrawal from the wallet's private balance: the wallet never appears on the public chain,
+// only the delivery to the recipient does. Mainnet only; answers 503 where it isn't offered.
+export const privateWithdraw = (network: Network, apiKey: string, body: { to: string; amount: string; token: string; chain: string }, idempotencyKey: string) =>
+  call<WalletRequest>(network, "/wallet/v1/confidential/withdraw", { apiKey, idempotencyKey, body });
+
+export const privateBalance = (network: Network, apiKey: string, token: string) =>
+  call<{ balance: string }>(network, `/wallet/v1/confidential/balance?token=${encodeURIComponent(token)}`, { apiKey });
+
+// An address on another chain that credits the wallet's private balance directly, so funding it never
+// links the wallet on the public chain. USDC from any chain arrives as NEAR USDC.
+export const privateDepositAddress = (network: Network, apiKey: string, chain: string, amount: string) =>
+  call<{ deposit_address: string; amount: string; amount_out?: string; expires_at?: string }>(network, "/wallet/v1/confidential/deposit/cross-chain", { apiKey, body: { chain, token: "USDC", amount } });
+
+// Where a finished withdrawal landed on the recipient's chain.
+export const deliveryHash = (r: WalletRequest) => r.result?.destination_tx_hash ?? r.result?.swap_details?.destinationChainTxHashes?.[0] ?? null;
 
 export const request = (network: Network, apiKey: string, id: string) => call<WalletRequest>(network, `/wallet/v1/requests/${encodeURIComponent(id)}`, { apiKey });
 

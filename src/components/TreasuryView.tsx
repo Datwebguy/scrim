@@ -205,6 +205,8 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
   );
 }
 
+const RULE_LABEL: Record<string, string> = { active: "switched on", expiry: "end date", counterparty: "allowed recipient", per_action_cap: "limit per payment", rolling_cap: "limit per time window" };
+
 const PURCHASE_STATUS: Record<string, string> = {
   requested: "Waiting to be paid", stopped: "Stopped by limits", funding: "Topping up the agent's wallet",
   paying: "Paying the seller", delivering: "Paid, waiting for the seller", delivered: "Delivered", failed: "Didn't go through",
@@ -406,7 +408,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
         </div>
         <div className="drawer-body">
           <div>
-            <span className="section-label">Pay · {treasury.unit.routeLabel}</span>
+            <span className="section-label">Pay · {isPurchase ? "x402 purchase" : treasury.unit.routeLabel}</span>
             <div className="big-amount">
               {amountIn(payment.amount, treasury.unit)}
               <small>{treasury.unit.symbol}</small>
@@ -451,7 +453,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
                   <div key={c.rule} className={`check ${c.passed ? "" : "fail"}`}>
                     <span className="mark">{c.passed ? "✓" : "×"}</span>
                     <b style={{ fontWeight: 600 }}>{c.detail}</b>
-                    <small>{c.rule.replace(/_/g, " ")}</small>
+                    <small>{RULE_LABEL[c.rule] ?? c.rule.replace(/_/g, " ")}</small>
                   </div>
                 ))}
               </div>
@@ -1178,7 +1180,7 @@ function Audit({ events, agents }: { events: AuditEvent[]; agents: Agent[] }) {
   const detail = (e: AuditEvent) => {
     const d = e.data;
     if (e.action === "payment.approved") return `${d.approvals}/${d.threshold}${d.thresholdReached ? " · threshold reached" : ""}`;
-    if (e.action === "payment.policy_rejected") return `failed: ${(d.failedRules as string[] | undefined)?.join(", ").replace(/_/g, " ")}`;
+    if (e.action === "payment.policy_rejected") return `outside: ${(d.failedRules as string[] | undefined)?.map((r) => RULE_LABEL[r] ?? r.replace(/_/g, " ")).join(", ")}`;
     if (e.action.startsWith("agent.") && d.policyVersion) return `v${d.policyVersion}`;
     return "";
   };

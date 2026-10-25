@@ -2,7 +2,10 @@ import Link from "next/link";
 import { catalog } from "@/server/assets";
 import { FlowDemo } from "@/components/landing/FlowDemo";
 import { AskScene, HeroCard, PaidScene, ProofScene, SendScene, SwapScene, TeamScene, AgentScene, X402Scene } from "@/components/landing/Scenes";
+import { Orbit } from "@/components/landing/Orbit";
 import { Reveal } from "@/components/landing/Reveal";
+import { TaglineReveal } from "@/components/landing/TaglineReveal";
+import { Wordmark } from "@/components/Wordmark";
 
 export const revalidate = 300;
 
@@ -15,7 +18,7 @@ export default async function Home() {
   return (
     <>
       <header className="site-nav">
-        <Link href="/" className="brand" aria-label="Scrim home"><img src="/scrim-mark.png" alt="" />scrim</Link>
+        <Link href="/" className="brand" aria-label="Scrim home"><img src="/scrim-mark.png" alt="" /><Wordmark /></Link>
         <nav aria-label="Primary">
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
@@ -128,8 +131,17 @@ export default async function Home() {
       </main>
 
       <footer className="l-footer">
-        <div className="wrap">
-          <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" />scrim</Link>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="l-foot-engraving" src="/brand/flammarion.webp" alt="" loading="lazy" />
+        <div className="wrap l-foot-top">
+          <div>
+            <TaglineReveal lines={["Money on NEAR,", "private when you want it."]} />
+            <p className="l-foot-sub">Send, swap and get paid on {live ? `${live.chains.length} chains` : "any chain"}. Approvals and limits for accounts. Agents that pay within your rules.</p>
+          </div>
+          <Orbit chains={live?.chains ?? []} />
+        </div>
+        <div className="wrap l-foot-row">
+          <Link href="/" className="brand" aria-label="Scrim home"><Wordmark /></Link>
           <nav aria-label="Footer">
             <Link href="/app">App</Link>
             <Link href="/verify">Check a proof</Link>
@@ -137,6 +149,7 @@ export default async function Home() {
           </nav>
           <span className="l-built">Built on NEAR</span>
         </div>
+        <div className="l-foot-giant" aria-hidden="true"><Wordmark /></div>
       </footer>
     </>
   );

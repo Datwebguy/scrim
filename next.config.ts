@@ -20,6 +20,14 @@ const config: NextConfig = {
     return [
       { source: "/app/team", destination: "/app/accounts", permanent: true },
       { source: "/app/team/:path*", destination: "/app/accounts/:path*", permanent: true },
+      // The site moved from scrim-alpha.vercel.app. Pages follow it; API calls stay put, so agents,
+      // x402 buyers and wallets set up with the old address keep working.
+      {
+        source: "/:path((?!api/).*)",
+        has: [{ type: "host", value: "scrim-alpha.vercel.app" }],
+        destination: "https://scrimfinance.vercel.app/:path",
+        permanent: false,
+      },
     ];
   },
   async headers() {

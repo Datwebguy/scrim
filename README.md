@@ -239,7 +239,9 @@ Environment changes apply on the next deployment.
 
 ## Agents
 
-An **agent** is software that pays on your behalf: an AI assistant, a payroll script, a billing job. It works on personal and shared accounts. By default an agent *asks* to pay and people approve. With a wallet of its own, the owner can let it pay by itself within its limits.
+An **agent** is a helper that spends for you, only inside the rules you set: an AI assistant, a payroll script, a billing job. It works on personal and shared accounts. By default an agent *asks* to pay and people approve. With a wallet of its own, the owner can let it pay by itself within its limits.
+
+**What is x402?** A way to pay online for a paid service. A website says "pay a few cents to use me", the agent pays, and it gets what it asked for. An agent uses x402 as one way to spend; every x402 payment counts against the same limits as any other payment.
 
 **The agent's key.** When an owner adds an agent (Accounts → Agents), Scrim shows a key once, starting with `scrim_sk_`. The software sends it as `Authorization: Bearer scrim_sk_…`. The key can ask to pay within the agent's limits. It cannot approve, change limits or move money, and it is not a wallet key. Scrim stores only a hash. If it is lost or leaked, **Connect → Make a new key** replaces it and the old one stops at once.
 

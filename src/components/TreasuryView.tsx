@@ -636,7 +636,7 @@ function Agents({ agents, payments, role, unit, onCreate, onEdit, onToggle, onCo
       <div className="card empty">
         <span className="icon">⌁</span>
         <h3>No agents yet</h3>
-        <p>An agent is software that pays on your behalf. It gets its own key and spending limits: who it may pay, how much each time, and how much per day. It can ask to pay, and buy from paid APIs over x402. With a wallet of its own, it can pay by itself within those limits. It can never approve.</p>
+        <p>An agent is a helper that spends for you, only inside the rules you set: who it may pay, how much each time, and how much per day. It can pay people and pay-per-use online services (x402). It either asks you first or, with a wallet of its own, pays by itself within those rules. It can never approve its own payments or change its rules.</p>
         {role === "owner" && (
           <button className="btn btn-primary" onClick={onCreate}>
             Add your first agent

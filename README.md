@@ -25,7 +25,7 @@ Open `/app`, choose **Testnet** and connect a NEAR testnet wallet. Full setup is
 
 ## Try it
 
-The live site is **https://scrim-alpha.vercel.app**. Each step says what to do and what you should see. Steps 1–8 use testnet and free test coins; steps 9–11 use mainnet.
+The live site is **https://scrim-alpha.vercel.app**. Each step says what to do and what you should see. Steps 1–8 and 11 use testnet and free test coins; steps 9, 10 and 12 use mainnet.
 
 You need a NEAR testnet account. Any NEAR wallet can create one for free, for example [Meteor](https://wallet.meteorwallet.app) or [HOT](https://hot-labs.org).
 
@@ -49,7 +49,8 @@ You need a NEAR testnet account. Any NEAR wallet can create one for free, for ex
     curl -i https://scrim-alpha.vercel.app/api/x402/pay/<link code>
     ```
     → `402 Payment Required` with a `PAYMENT-REQUIRED` header listing USDC and USDT routes on eight chains, all delivered into the link owner's private balance.
-11. **An agent that pays by itself (mainnet).** In **Agents → Connect**, choose **Create wallet**, keep **Private**, use **Add funds privately**, then **Let it pay by itself**. → Requests inside the agent's limits go straight to *Paid*, from the agent's private balance, with no approval step.
+11. **Ask about your money.** Open **Ask** and tap "What do I hold right now?". → A plain answer from your own records, with **Verified private answer**: the answer was signed inside NEAR AI's secure hardware, by the key its attestation report names.
+12. **An agent that pays by itself (mainnet).** In **Agents → Connect**, choose **Create wallet**, keep **Private**, use **Add funds privately**, then **Let it pay by itself**. → Requests inside the agent's limits go straight to *Paid*, from the agent's private balance, with no approval step.
 
 ---
 
@@ -89,6 +90,7 @@ Scrim keeps your money private, works across 30+ networks, and lets you show exa
 | **Get paid** | Share a payment link. The payer needs no account and can pay from any coin on any chain. |
 | **Proofs** | Show that you hold at least an amount, or that a payment was made, to one named reader. The proof expires (1, 7 or 30 days), can be taken back, and is checked in the reader's browser without revealing your balance or history. |
 | **Teams** | Shared accounts where M of N people approve each payment, with spending limits and a history your accountant can read. |
+| **Ask** | Ask about your own money in plain words ("what did we pay suppliers last week?"). Answered by AI running in NEAR AI Cloud's secure hardware; each answer's signature is checked against the hardware's attestation. |
 | **Activity** | Everything you did, in plain words. Private payments are listed only for you; your connected wallet's own transactions are read from the chain. |
 | **Agents** | Give software its own key and limits. It asks to pay and people approve, or, with a wallet of its own, it pays by itself within those limits. Agents can pay your links and buy from paid APIs over x402. See [Agents](#agents). |
 
@@ -140,6 +142,8 @@ flowchart LR
 **Prove a fact.** A proof is a short statement ("holds at least…" or "paid…") made for one reader, signed by Scrim, with an expiry. The reader opens a link and the check runs in their browser, without an account. Proving on your own device is on the [roadmap](#roadmap).
 
 **Run a team.** A request (from a person or an agent) is first checked against the rules. Anything outside them is stopped before anyone sees it. The rest waits for the number of approvals you chose, each given by a wallet signature tied to that exact amount and recipient. Approved requests are paid from the owner's private balance on mainnet, or with a real NEAR transfer on testnet that Scrim reads back from the chain before marking it paid. An agent with its own wallet can skip the approval step, within the same limits.
+
+**Ask your money (NEAR AI Cloud).** The Ask screen sends your question and your own records (balances, payments, team requests, wallet transactions) to a model running in NEAR AI Cloud's confidential hardware (Intel TDX and NVIDIA confidential GPUs). Before asking, Scrim fetches the model's attestation report with a fresh nonce. After, it checks the answer's signature over the exact request and response bytes, and that the signing key is the one the report names. Scrim keeps no copy of the question or the answer. Set `NEARAI_API_KEY` (and optionally `NEARAI_MODEL`) to switch it on.
 
 ### Where the data comes from
 

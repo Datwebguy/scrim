@@ -684,7 +684,7 @@ function AgentDialog({ state, treasuryId, unit, onClose, onSaved }: { state: { m
 
   const preview = useMemo(() => {
     const filled = counterparties.filter((c) => c.address.trim()).length;
-    return `${name || "This agent"} can request up to ${perAction || "—"} ${unit.symbol} per payment and ${rolling || "—"} ${unit.symbol} per ${describeWindow(windowHours * 3600)} window, to ${filled} approved ${filled === 1 ? "address" : "addresses"}. Every request still needs your approval.`;
+    return `${name || "This agent"} can request up to ${perAction || "—"} ${unit.symbol} per payment and ${rolling || "—"} ${unit.symbol} per ${describeWindow(windowHours * 3600)} window, to ${filled} approved ${filled === 1 ? "address" : "addresses"}. Each request waits for approval unless you later let it pay by itself.`;
   }, [name, perAction, rolling, windowHours, counterparties, unit.symbol]);
 
   async function submit(event: React.FormEvent) {

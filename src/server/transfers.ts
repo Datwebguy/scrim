@@ -78,6 +78,14 @@ async function evmDeposit(asset: Asset): Promise<{ chainId: number; token: `0x${
   return { chainId: id, token: token as `0x${string}` | null };
 }
 
+// For deposits on Solana: the token's mint address (null for SOL itself), so a connected Solana wallet can send it.
+async function solanaDeposit(asset: Asset): Promise<{ mint: string | null } | null> {
+  if (!asset.depositChain?.startsWith("sol:")) return null;
+  const mint = (await oneclick.tokens()).find((t) => t.assetId === asset.assetId)?.contractAddress ?? null;
+  if (mint && !/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint)) return null;
+  return { mint };
+}
+
 // FLEX_INPUT deposits still need a quote amount the route accepts; the minimum shown follows from it.
 // Use the bridge's published minimum, except where it is missing or a single unit (which the route
 // refuses): then ask for about one dollar's worth, or one whole coin when there's no price.
@@ -99,7 +107,7 @@ export type Transfer = {
   amountOut: string;
   recipient: string | null;
   note: string;
-  deposit: { address: string; memo: string | null; chainName: string; minimum: string | null; evm: { chainId: number; token: `0x${string}` | null } | null } | null; // evm: lets a browser wallet pay it in one tap
+  deposit: { address: string; memo: string | null; chainName: string; minimum: string | null; evm: { chainId: number; token: `0x${string}` | null } | null; solana: { mint: string | null } | null } | null; // evm, solana: let a connected wallet pay it in one tap
   intentToSign: { message: string; nonce: string; recipient: string } | null;
   resultHashes: string[];
   etaSeconds: number | null;
@@ -261,7 +269,7 @@ async function toTransfer(row: Row): Promise<Transfer> {
     id: row.id, kind: row.kind, status: row.status, createdAt: row.created_at, expiresAt: row.expires_at,
     fromAsset: light(from), toAsset: light(to), amountIn: d.amountIn, amountOut: d.amountOut, recipient: d.recipient, note: d.note,
     deposit: (row.kind === "add" || row.kind === "link_payment" || d.public) && row.deposit_address
-      ? { address: row.deposit_address, memo: row.deposit_memo, chainName: from.chainName, minimum: d.depositMinimum, evm: row.deposit_memo ? null : await evmDeposit(from) } : null,
+      ? { address: row.deposit_address, memo: row.deposit_memo, chainName: from.chainName, minimum: d.depositMinimum, evm: row.deposit_memo ? null : await evmDeposit(from), solana: row.deposit_memo ? null : await solanaDeposit(from) } : null,
     intentToSign: row.status === "awaiting_signature" ? d.intent : null,
     resultHashes: d.resultHashes, etaSeconds: d.etaSeconds ?? null, teamRequestId: row.team_request_id, fromWallet: d.public === true,
   };

@@ -370,7 +370,8 @@ async function refreshRow(row: Row): Promise<Transfer> {
             void import("./x402-client").then((m) => m.deliverPurchase(requestId)).catch((e) => console.error("[x402] delivery", e));
           }
         }
-        if (row.pay_link_id && ended === "success") await sql`UPDATE pay_links SET status = 'paid' WHERE id = ${row.pay_link_id} AND status = 'open'`;
+        // A product stays open for the next buyer; a one-off link is done once paid.
+        if (row.pay_link_id && ended === "success") await sql`UPDATE pay_links SET status = 'paid' WHERE id = ${row.pay_link_id} AND status = 'open' AND product_sealed IS NULL`;
       } else if (s.status === "PROCESSING" && row.status === "awaiting_deposit") {
         await save(row.id, row.account_id, "processing", details);
       }
@@ -445,6 +446,12 @@ export async function createLinkPayment(link: { id: string; accountId: string; n
     VALUES (${id}, ${link.accountId}, ${link.network}, 'link_payment', 'awaiting_deposit', ${depositAddress}, ${memo}, ${seal(details, aad(id, link.accountId))}, ${link.id}, ${deadline})`;
   const [row] = await sql<Row[]>`SELECT * FROM transfers WHERE id = ${id}`;
   return toTransfer(row);
+}
+
+// The owner's record of payments made to one of their links or products.
+export async function linkPayments(session: Session, linkId: string): Promise<Transfer[]> {
+  const rows = await sql<Row[]>`SELECT * FROM transfers WHERE account_id = ${session.accountId} AND pay_link_id = ${linkId} AND kind = 'link_payment' ORDER BY created_at DESC LIMIT 200`;
+  return Promise.all(rows.map(toTransfer));
 }
 
 // Public status for a payer: only the transfer's random ID is needed, and only that payment is shown.

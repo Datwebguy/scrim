@@ -6,7 +6,7 @@
 
 **Private money for people and businesses, on NEAR.**
 
-Hold, send, swap and get paid, and only you see it. Scrim gives you a private balance on top of [NEAR Intents](https://near-intents.org). Add money from almost any chain, pay anyone on any chain, and prove a single fact to a single person when someone asks. Teams get approvals and spending limits. Software agents can ask to pay within rules people control, or pay by themselves from a wallet of their own.
+Hold, send, swap and get paid, and only you see it. Scrim gives you a private balance on top of [NEAR Intents](https://near-intents.org). Add money from almost any chain, pay anyone on any chain, and prove a single fact to a single person when someone asks. Teams get approvals and spending limits. Software agents can ask to pay within rules people control, or pay by themselves from a wallet of their own, including for paid APIs over x402. And you can ask about your money in plain words, answered by private AI on NEAR AI Cloud.
 
 Scrim never holds your keys or your money. You sign in with your own NEAR wallet and approve every move yourself.
 
@@ -108,9 +108,10 @@ Choose a network when you sign in. Everything shown is real data from the networ
 | Agents that pay by themselves (own wallet) | ✅ NEAR | ✅ USDC |
 | Real NEAR transfers, checked on-chain | ✅ | ✅ |
 | Activity, read from the chain | ✅ | ✅ |
+| Ask about your money (private AI) | ✅ | ✅ |
 | Private balance, add money, send, swap | — | ✅ |
 | Payment links and proofs | — | ✅ |
-| x402: buy from paid APIs, get paid by agents | — | ✅ |
+| x402: find and buy paid APIs, get paid by agents | — | ✅ |
 | Private agent wallets | — | ✅ |
 
 The private features need NEAR Intents, which only exists on mainnet. On testnet those screens say so plainly. The recommended path is to try Scrim on testnet first, then move to mainnet with a separate account and small amounts.
@@ -145,9 +146,13 @@ flowchart LR
 
 **Ask your money (NEAR AI Cloud).** The Ask screen sends your question and your own records (balances, payments, team requests, wallet transactions) to a model running in NEAR AI Cloud's confidential hardware (Intel TDX and NVIDIA confidential GPUs). Before asking, Scrim fetches the model's attestation report with a fresh nonce. After, it checks the answer's signature over the exact request and response bytes, and that the signing key is the one the report names. Scrim keeps no copy of the question or the answer. Set `NEARAI_API_KEY` (and optionally `NEARAI_MODEL`) to switch it on.
 
+<p align="center"><img src="docs/images/ask-scene.png" alt="Ask: a question goes into NEAR AI's secure hardware with your records, the answer's signature is checked" width="720"></p>
+
+<p align="center"><img src="docs/images/ask.png" alt="The Ask screen with suggested questions" width="720"></p>
+
 ### Where the data comes from
 
-Coins, prices, logos and networks come live from NEAR Intents and CoinGecko. Testnet balances come from the NEAR RPC and FastNEAR, and Activity reads each wallet's transactions from FastNEAR's transaction index. Nothing is hardcoded.
+Coins, prices, logos and networks come live from NEAR Intents and CoinGecko. Paid APIs come from Coinbase's public x402 catalog, and Ask's answers from NEAR AI Cloud. Testnet balances come from the NEAR RPC and FastNEAR, and Activity reads each wallet's transactions from FastNEAR's transaction index. Nothing is hardcoded.
 
 ## Run it yourself
 
@@ -261,6 +266,7 @@ Tools: `get_limits`, `request_payment`, `find_paid_apis`, `pay_x402`, `list_paym
 - **Webhooks** are signed, public-address-only (checked again at send time), and never follow redirects.
 - **Rate limits** apply per client on every route, with stricter limits on sign-in, payment links and agent keys.
 - **Responses are never cached**, and browser-originated changes must come from the same origin.
+- **Private AI answers are checked.** Before asking, Scrim fetches NEAR AI's attestation report with a fresh nonce; after, it verifies the answer's signature over the exact bytes and that the key is the attested one. Questions and answers are not stored.
 - **Agent wallet keys never reach Scrim.** They are created and kept in OutLayer's secure enclave (Intel TDX); Scrim keeps only a sealed access key, and the owner's on-chain spending rules apply on top of Scrim's limits.
 - **Your keys stay in your wallet.** Scrim never sees them, and the private ledger is run by NEAR Intents.
 
@@ -299,6 +305,8 @@ GitHub Actions runs type check, unused-code check, tests and build on every push
 - Team rules enforced on-chain
 - Contract-wallet sign-in
 - A shielded pool of its own
+- Buying from x402 sellers that take a request body (POST)
+- Ask that can draft a payment for you to approve
 
 ## Contributing
 

@@ -867,3 +867,19 @@ button.chip.on { background: var(--ink); color: #fff; border-color: var(--ink); 
 .sc-x402-foot { font: 500 12px var(--mono); color: var(--muted); text-align: center; opacity: 0; transition: opacity .4s; }
 .sc-x402-foot.on { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .sc-x402 li { opacity: 1; transform: none; } .sc-x402-foot { opacity: 1; } .sc-x402-ends i { animation: none; } }
+
+/* Ask scene */
+.sc-ask { gap: 12px; position: relative; }
+.sc-ask-q { justify-self: end; max-width: 85%; padding: 10px 14px; border-radius: 14px 14px 4px 14px; background: var(--ink); color: #fff; font-size: 14px; font-weight: 600; opacity: .3; transition: opacity .4s; }
+.sc-ask-q.on { opacity: 1; }
+.sc-ask-box { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 12px; background: var(--paper); border: 1px dashed var(--line-2); font-size: 13px; }
+.sc-ask-lock { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: var(--ink); color: var(--orange); }
+.sc-ask-box.busy { border-color: var(--orange); }
+.sc-ask-box.busy .sc-ask-lock { animation: pulse 1s ease-in-out infinite; }
+.sc-ask ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sc-ask li { display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 600; color: var(--muted); opacity: .35; transition: opacity .35s, color .35s; }
+.sc-ask li span { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--paper-2); font-size: 11px; }
+.sc-ask li.on { opacity: 1; color: var(--ink); }
+.sc-ask li.on span { background: var(--green-wash); color: var(--green); }
+@media (prefers-reduced-motion: reduce) { .sc-ask-q, .sc-ask li { opacity: 1; } }
+.sc-ask .sc-stamp { top: auto; bottom: 18px; }

@@ -194,7 +194,7 @@ export async function requestPurchase(agent: Agent, url: string, idempotencyKey:
   return { payment, purchase: (await purchaseFor(payment.id))! };
 }
 
-type Row = { request_id: string; url: string; entry: Entry; route: "near-intents" | "wallet"; funding_request_id: string | null; status: Purchase["status"]; quote_sealed: string | null; result_sealed: string | null; error: string | null; signed_at: Date | null; updated_at: Date };
+type Row = { request_id: string; url: string; entry: Entry; route: "near-intents" | "wallet"; funding_request_id: string | null; status: Purchase["status"]; quote_sealed: string | null; result_sealed: string | null; error: string | null; signed_at: Date | null };
 const aad = (requestId: string) => `x402:${requestId}`;
 
 export async function purchaseFor(requestId: string): Promise<Purchase | null> {
@@ -209,9 +209,12 @@ export async function purchaseFor(requestId: string): Promise<Purchase | null> {
 // ── 2. Paying ──
 // Fresh terms from the seller on the route we priced, with refunds going to `refundTo(entry)`.
 async function freshQuote(row: Row, approvedAmount: string, refundTo: (entry: Entry) => Promise<string>) {
+  // Left "paying" by a payout that expired (transfers last 15 minutes): open it to be paid again. Only
+  // after 20 minutes, so a payer still setting up its transfer is never undercut.
   if (row.status === "paying" && !(await payoutOpen(row.request_id))) {
-    await sql`UPDATE x402_purchases SET status = 'requested', updated_at = now() WHERE request_id = ${row.request_id} AND status = 'paying'`;
-    row = { ...row, status: "requested" };
+    await sql`UPDATE x402_purchases SET status = 'requested', updated_at = now()
+      WHERE request_id = ${row.request_id} AND status = 'paying' AND updated_at < now() - interval '20 minutes'`;
+    row = (await purchaseRow(row.request_id));
   }
   if (row.status !== "requested" && row.status !== "failed") throw conflict("This purchase is already being paid.");
   const first = await safeRequest(row.url, { timeoutMs: 10_000 });
@@ -237,6 +240,14 @@ async function freshQuote(row: Row, approvedAmount: string, refundTo: (entry: En
     WHERE request_id = ${row.request_id} AND status IN ('requested', 'failed') RETURNING request_id`;
   if (claimed.length !== 1) throw new HttpError(409, "conflict_claimed", "This purchase is already being paid.");
   return { quoted, asset };
+}
+
+// Claims the one signing step of a wallet purchase. Only one caller wins, only from the status it read,
+// and never once a payment has been signed.
+export async function claimForSigning(requestId: string, from: Purchase["status"]): Promise<boolean> {
+  const claimed = await sql`UPDATE x402_purchases SET status = 'paying', error = NULL, updated_at = now()
+    WHERE request_id = ${requestId} AND status = ${from} AND status IN ('requested', 'funding') AND signed_at IS NULL RETURNING request_id`;
+  return claimed.length === 1;
 }
 
 // Whether a payout for this purchase may still be paying (a transfer in flight, or the agent's wallet sending it).
@@ -349,10 +360,7 @@ export async function advanceWalletPurchase(requestId: string, network: Network,
   }
 
   // Claim the payment step: one signature per purchase.
-  const claimed = await sql`UPDATE x402_purchases SET status = 'paying', error = NULL, updated_at = now()
-    WHERE request_id = ${requestId} AND status = ${row.status} AND updated_at = ${row.updated_at} AND signed_at IS NULL
-      AND status IN ('requested', 'funding') RETURNING request_id`;
-  if (claimed.length !== 1) return { state: "pending" };
+  if (!(await claimForSigning(requestId, row.status))) return { state: "pending" };
   const first = await safeRequest(row.url, { timeoutMs: 10_000 });
   const required = first && first.status === 402 ? readRequired(first) : null;
   const fresh = required?.accepts?.find((e) => e.scheme === entry.scheme && e.network === entry.network && e.asset.toLowerCase() === entry.asset.toLowerCase()

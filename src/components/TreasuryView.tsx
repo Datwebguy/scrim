@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/client/api";
 import { relativeTime, short, STATUS_LABEL } from "@/client/format";
-import { sendNear, signChallenge, signTransfer } from "@/client/wallet";
+import { sendNear, sendToken, signChallenge, signTransfer } from "@/client/wallet";
 import { formatAmount } from "@/protocol/amount";
 import { describeWindow } from "@/protocol/policy";
 import type { Agent } from "@/server/agents";
@@ -340,7 +340,7 @@ function Requests({ payments, treasury, onOpen, onNew }: { payments: Payment[]; 
 function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { payment: Payment; treasury: Treasury; accountId: string; onClose: () => void; onChanged: () => void }) {
   const { network } = useSession();
   const toast = useToast();
-  const [busy, setBusy] = useState<"" | "approve" | "cancel" | "pay">("");
+  const [busy, setBusy] = useState<"" | "approve" | "cancel" | "pay" | "payWallet">("");
   const [error, setError] = useState("");
   const approvedByMe = payment.approvals.some((a) => a.accountId === accountId);
   const isPurchase = payment.memo.startsWith("x402 ");
@@ -351,7 +351,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  async function run(kind: "approve" | "cancel" | "pay") {
+  async function run(kind: "approve" | "cancel" | "pay" | "payWallet") {
     setBusy(kind);
     setError("");
     try {
@@ -378,6 +378,13 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
         }
         try { sessionStorage.removeItem(saved); } catch { /* optional */ }
         toast("Paid. The transfer is confirmed on testnet.");
+      } else if (kind === "payWallet") {
+        // Public payout from the owner's NEAR wallet: USDC on NEAR to a one-time address that delivers on Base.
+        const { transfer } = await api<{ transfer: { id: string; amountIn: string; fromAsset: { assetId: string }; deposit: { address: string } | null } }>(`/payments/${payment.id}/pay`, { body: { from: "wallet" } });
+        if (!transfer.deposit) throw new Error("No payment address came back. Try again.");
+        const txHash = await sendToken(network, transfer.fromAsset.assetId.replace(/^nep141:/, ""), transfer.deposit.address, transfer.amountIn);
+        await api(`/transfers/${transfer.id}/sent`, { body: { txHash } });
+        toast("Payment sent from your wallet");
       } else if (kind === "pay") {
         const { transfer } = await api<{ transfer: { id: string; intentToSign: { message: string; nonce: string; recipient: string } } }>(`/payments/${payment.id}/pay`, { method: "POST" });
         const signed = await signTransfer(network, transfer.intentToSign, accountId);
@@ -425,7 +432,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
             </div>
             <div>
               <dt>Route</dt>
-              <dd>{isPurchase ? "x402 purchase: see below" : treasury.network === "mainnet" ? "Private balance → USDC on Base" : "Your wallet → the recipient, on testnet"}</dd>
+              <dd>{isPurchase ? "x402 purchase: see below" : treasury.network === "mainnet" ? "Private balance or your wallet → USDC on Base" : "Your wallet → the recipient, on testnet"}</dd>
             </div>
             <div>
               <dt>Requested by</dt>
@@ -511,6 +518,11 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
           {payment.status === "approved" && treasury.ownerAccountId === accountId && (
             <button className="btn btn-signal" onClick={() => run("pay")} disabled={!!busy}>
               {busy === "pay" && <Spinner />} {network === "testnet" ? "Pay with my wallet" : "Pay from my private balance"}
+            </button>
+          )}
+          {payment.status === "approved" && treasury.ownerAccountId === accountId && network === "mainnet" && !isPurchase && (
+            <button className="btn btn-ghost" onClick={() => run("payWallet")} disabled={!!busy}>
+              {busy === "payWallet" && <Spinner />} Pay from my wallet
             </button>
           )}
           {["awaiting_approval", "approved"].includes(payment.status) && (

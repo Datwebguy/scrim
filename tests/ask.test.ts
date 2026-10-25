@@ -1,6 +1,6 @@
 // Ask your money against the real NEAR AI Cloud. Runs only when NEARAI_API_KEY is set (it spends credits).
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { ask } from "@/server/ask";
+import { ask, askAllowance } from "@/server/ask";
 import type { Session } from "@/server/auth";
 import { sql } from "@/server/db";
 import { createTestnetWallet, resetDatabase, signInAs } from "./live";
@@ -25,5 +25,9 @@ describe("ask your money: input", () => {
   it("refuses empty or very long questions before calling anyone", async () => {
     await expect(ask(session, " ")).rejects.toThrow(/3 to 500/);
     await expect(ask(session, "x".repeat(501))).rejects.toThrow(/3 to 500/);
+  });
+
+  it("gives each account a daily allowance, since answers run on the site's credits", async () => {
+    expect(await askAllowance(session)).toEqual({ perDay: 10, left: 10 });
   });
 });

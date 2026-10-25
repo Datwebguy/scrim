@@ -936,12 +936,147 @@ function ConnectDialog({ agent, role, onClose, onNewKey, onChanged }: { agent: A
         )}
       </section>
 
+      <AgentWalletBlock agent={agent} owner={owner} onChanged={onChanged} />
+
       <section className="connect-block">
         <span className="section-label">Plug it in</span>
         <ConnectGuide apiKey={`${agent.keyPrefix}…`} />
         <small className="muted">Use the full key you saved in place of {agent.keyPrefix}…</small>
       </section>
     </Modal>
+  );
+}
+
+type AgentWallet = {
+  network: string;
+  accountId: string;
+  autonomous: boolean;
+  private: boolean;
+  policyUrl: string | null;
+  fundUrl: string;
+  balances: { near: string | null; usdc: string | null; usdcIntents: string | null; usdcPrivate: string | null };
+};
+
+// The agent's own wallet on OutLayer. With it, the owner can let the agent pay by itself within its limits.
+function AgentWalletBlock({ agent, owner, onChanged }: { agent: Agent; owner: boolean; onChanged: () => void }) {
+  const toast = useToast();
+  const [wallet, setWallet] = useState<AgentWallet | null | undefined>(undefined);
+  const [busy, setBusy] = useState(false);
+  const [fund, setFund] = useState({ chain: "base", amount: "" });
+  const [deposit, setDeposit] = useState<{ chain: string; address: string; amount: string } | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    setWallet(undefined);
+    setDeposit(null);
+    api<{ wallet: AgentWallet | null }>(`/agents/${agent.id}/wallet`)
+      .then((r) => live && setWallet(r.wallet))
+      .catch(() => live && setWallet(null));
+    return () => {
+      live = false;
+    };
+  }, [agent.id]);
+
+  const act = async (method: "POST" | "PATCH", body?: unknown) => {
+    setBusy(true);
+    try {
+      setWallet((await api<{ wallet: AgentWallet }>(`/agents/${agent.id}/wallet`, { method, body })).wallet);
+      onChanged();
+    } catch (e) {
+      toast((e as Error).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const fundPrivately = async () => {
+    setBusy(true);
+    try {
+      setDeposit((await api<{ deposit: { chain: string; address: string; amount: string } }>(`/agents/${agent.id}/wallet/deposit`, { method: "POST", body: fund })).deposit);
+    } catch (e) {
+      toast((e as Error).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggle = (on: boolean) => {
+    if (on && !confirm(`Let ${agent.name} pay by itself? Payments within its limits will be sent from its own wallet without approval.`)) return;
+    void act("PATCH", { autonomous: on });
+  };
+
+  return (
+    <section className="connect-block">
+      <span className="section-label">Agent wallet</span>
+      {wallet === undefined ? (
+        <Spinner />
+      ) : wallet === null ? (
+        <>
+          <p className="muted">Give {agent.name} a wallet of its own, secured by OutLayer. You fund it and set its spending rules; then it can pay within its limits without waiting for approval.</p>
+          {owner && (
+            <div className="connect-row">
+              <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => act("POST")}>
+                {busy ? <Spinner /> : "Create wallet"}
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <div className="connect-row">
+            <code>{wallet.accountId.length > 24 ? `${wallet.accountId.slice(0, 10)}…${wallet.accountId.slice(-8)}` : wallet.accountId}</code>
+            <small className="muted">
+              {[wallet.balances.near && `${wallet.balances.near} NEAR`, wallet.balances.usdc && `${wallet.balances.usdc} USDC`, !wallet.private && wallet.balances.usdcIntents && `${wallet.balances.usdcIntents} USDC ready to pay`, wallet.private && wallet.balances.usdcPrivate && `${wallet.balances.usdcPrivate} USDC private`].filter(Boolean).join(" · ") || "Balance unavailable"}
+            </small>
+          </div>
+          {owner && (
+            <div className="connect-row">
+              {!wallet.private && <a className="btn btn-ghost btn-sm" href={wallet.fundUrl} target="_blank" rel="noreferrer">Add funds</a>}
+              {wallet.policyUrl && <a className="btn btn-ghost btn-sm" href={wallet.policyUrl} target="_blank" rel="noreferrer">Spending rules</a>}
+              <button className={`btn btn-sm ${wallet.autonomous ? "btn-ghost" : "btn-primary"}`} disabled={busy} onClick={() => toggle(!wallet.autonomous)}>
+                {busy ? <Spinner /> : wallet.autonomous ? "Ask before paying" : "Let it pay by itself"}
+              </button>
+            </div>
+          )}
+          {owner && wallet.network === "mainnet" && (
+            <div className="segmented" role="radiogroup" aria-label="How it pays">
+              <button role="radio" aria-checked={wallet.private} disabled={busy} onClick={() => !wallet.private && act("PATCH", { private: true })}>Private</button>
+              <button role="radio" aria-checked={!wallet.private} disabled={busy} onClick={() => wallet.private && act("PATCH", { private: false })}>Public</button>
+            </div>
+          )}
+          {wallet.network === "mainnet" && (
+            <p className="muted">
+              {wallet.private
+                ? "Pays from its private balance: recipients see the payment arrive, but not that it came from this wallet."
+                : "Pays from its public balance: every payment can be looked up on the blockchain."}
+            </p>
+          )}
+          {owner && wallet.private && (
+            <div className="form-grid">
+              <span className="section-label">Add funds privately (USDC)</span>
+              <div className="connect-row">
+                <select className="input" value={fund.chain} onChange={(e) => { setFund({ ...fund, chain: e.target.value }); setDeposit(null); }}>
+                  <option value="base">Base</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="solana">Solana</option><option value="near">NEAR</option>
+                </select>
+                <input className="input" inputMode="decimal" placeholder="25" value={fund.amount} onChange={(e) => { setFund({ ...fund, amount: e.target.value }); setDeposit(null); }} />
+                <button className="btn btn-primary btn-sm" disabled={busy || !fund.amount.trim()} onClick={fundPrivately}>{busy ? <Spinner /> : "Get address"}</button>
+              </div>
+              {deposit && (
+                <>
+                  <div className="notice">Send {deposit.amount} USDC on {deposit.chain[0].toUpperCase() + deposit.chain.slice(1)} to this address. It lands in the agent&apos;s private balance.</div>
+                  <Secret value={deposit.address} />
+                </>
+              )}
+            </div>
+          )}
+          <p className="muted">
+            {wallet.autonomous
+              ? `${agent.name} pays by itself from this wallet, within its limits here and its spending rules on OutLayer.`
+              : `${agent.name} asks and people approve. Payments come from the team.`}
+          </p>
+        </>
+      )}
+    </section>
   );
 }
 

@@ -10,12 +10,14 @@
 import { formatAmount } from "@/protocol/amount";
 import { USDC_NEAR_TO_BASE } from "@/protocol/corridor";
 import { normalizeOrigin } from "@/protocol/identifiers";
+import type { Network } from "@/protocol/networks";
 import type { Agent } from "./agents";
 import { assetById, catalog, type Asset } from "./assets";
 import type { Session } from "./auth";
 import { sql } from "./db";
 import { badRequest, conflict, HttpError, notFound } from "./errors";
 import * as oneclick from "./oneclick";
+import * as outlayer from "./outlayer";
 import { createAgentPayment, type Payment } from "./payments";
 import { safeRequest } from "./safe-fetch";
 import { open, seal } from "./secrets";
@@ -143,14 +145,10 @@ export async function purchaseFor(requestId: string): Promise<Purchase | null> {
   };
 }
 
-// ── 2. The owner pays ──
-// Called instead of a normal payout when an approved request is an x402 purchase.
-export async function payPurchase(session: Session, request: Payment): Promise<Transfer> {
-  const [row] = await sql<Row[]>`SELECT * FROM x402_purchases WHERE request_id = ${request.id}`;
-  if (!row) throw notFound("Purchase not found.");
+// ── 2. Paying ──
+// Fresh terms from the seller on the route we priced, with refunds going to `refundTo(entry)`.
+async function freshQuote(row: Row, approvedAmount: string, refundTo: (entry: Entry) => Promise<string>) {
   if (row.status !== "requested" && row.status !== "failed") throw conflict("This purchase is already being paid.");
-
-  // Fresh terms: the seller's 402 now, on the same route we priced.
   const first = await safeRequest(row.url, { timeoutMs: 10_000 });
   const required = first && first.status === 402 ? readRequired(first) : null;
   const entry = required?.accepts?.find((e) => e.network === row.entry.network && e.asset.toLowerCase() === row.entry.asset.toLowerCase() && e.extra?.assetTransferMethod === "near-intents");
@@ -158,9 +156,7 @@ export async function payPurchase(session: Session, request: Payment): Promise<T
   const asset = await originAsset(entry);
   if (!asset) throw new HttpError(502, "upstream", "The seller's payment route isn't supported.");
 
-  // Refunds go to the owner's own deposit address on that chain, which forwards into the private balance.
-  const refund = await oneclick.bridgeDepositAddress(session.accountId, originChainOf(entry.network)!);
-  const quotePayload = { x402Version: 2, resource: { url: required?.resource?.url ?? row.url }, accepted: entry, payload: { type: "quote", refundTo: refund.address } };
+  const quotePayload = { x402Version: 2, resource: { url: required?.resource?.url ?? row.url }, accepted: entry, payload: { type: "quote", refundTo: await refundTo(entry) } };
   const second = await safeRequest(row.url, { timeoutMs: 20_000, headers: { "payment-signature": encode(quotePayload) } });
   const quotedList = second && second.status === 402 ? readRequired(second) : null;
   const quoted = quotedList?.accepts?.find((e) => e.network === entry.network && e.extra?.operationToken && e.payTo);
@@ -168,37 +164,80 @@ export async function payPurchase(session: Session, request: Payment): Promise<T
 
   // Never pay more than was approved (with the same small buffer).
   const quotedUsd = asset.priceUsd ? (Number(quoted.amount) / 10 ** asset.decimals) * asset.priceUsd : null;
-  if (quotedUsd === null || quotedUsd > (Number(request.amount) / 1e6) * 1.02) throw conflict("The seller's price is now higher than what was approved.");
+  if (quotedUsd === null || quotedUsd > (Number(approvedAmount) / 1e6) * 1.02) throw conflict("The seller's price is now higher than what was approved.");
 
   await sql`UPDATE x402_purchases SET status = 'paying', error = NULL, updated_at = now(),
     quote_sealed = ${seal({ resource: quotePayload.resource, accepted: entry, quoted }, aad(row.request_id))} WHERE request_id = ${row.request_id}`;
+  return { quoted, asset };
+}
+
+async function purchaseRow(requestId: string) {
+  const [row] = await sql<Row[]>`SELECT * FROM x402_purchases WHERE request_id = ${requestId}`;
+  if (!row) throw notFound("Purchase not found.");
+  return row;
+}
+
+const unpay = (requestId: string) => sql`UPDATE x402_purchases SET status = 'requested', updated_at = now() WHERE request_id = ${requestId} AND status = 'paying'`;
+
+// The owner pays: called instead of a normal payout when an approved request is an x402 purchase.
+// Refunds go to the owner's own deposit address on that chain, which forwards into the private balance.
+export async function payPurchase(session: Session, request: Payment): Promise<Transfer> {
+  const row = await purchaseRow(request.id);
+  const { quoted, asset } = await freshQuote(row, request.amount, async (entry) => (await oneclick.bridgeDepositAddress(session.accountId, originChainOf(entry.network)!)).address);
   try {
     return await createTransfer(session, {
-    kind: "withdraw",
-    fromAssetId: USDC_NEAR_TO_BASE.assetId,
-    toAssetId: asset.assetId,
-    amount: formatAmount(BigInt(quoted.amount), asset.decimals, 0),
-    recipient: quoted.payTo,
-    note: `x402 ${new URL(row.url).host}`,
-    teamRequestId: request.id,
+      kind: "withdraw",
+      fromAssetId: USDC_NEAR_TO_BASE.assetId,
+      toAssetId: asset.assetId,
+      amount: formatAmount(BigInt(quoted.amount), asset.decimals, 0),
+      recipient: quoted.payTo,
+      note: `x402 ${new URL(row.url).host}`,
+      teamRequestId: request.id,
     });
   } catch (error) {
-    await sql`UPDATE x402_purchases SET status = 'requested', updated_at = now() WHERE request_id = ${row.request_id} AND status = 'paying'`;
+    await unpay(row.request_id);
+    throw error;
+  }
+}
+
+// OutLayer's names for the chains a seller may ask to be paid on.
+function walletChainOf(network: string): string | null {
+  const evm: Record<string, string> = { "eip155:1": "ethereum", "eip155:8453": "base", "eip155:42161": "arbitrum", "eip155:10": "optimism", "eip155:137": "polygon" };
+  return evm[network] ?? (network === SOLANA_MAINNET ? "solana" : null);
+}
+
+// An agent that pays by itself: USDC from its own wallet (private balance by default) to the quoted
+// deposit address. Refunds go back to the agent's own address on that chain.
+export async function payPurchaseFromWallet(requestId: string, network: Network, apiKey: string, fromPrivate: boolean): Promise<outlayer.WalletRequest> {
+  const row = await purchaseRow(requestId);
+  const chain = walletChainOf(row.entry.network);
+  if (!chain) throw badRequest("The agent's wallet can't pay on this seller's chain.");
+  const [request] = await sql<{ amount: string }[]>`SELECT amount::text AS amount FROM payment_requests WHERE id = ${requestId}`;
+  const { quoted, asset } = await freshQuote(row, request.amount, async () => (await outlayer.address(network, apiKey, chain === "solana" ? "solana" : "ethereum")).address);
+  try {
+    if (asset.symbol !== "USDC") throw badRequest("The agent's wallet pays sellers in USDC only.");
+    return await (fromPrivate ? outlayer.privateWithdraw : outlayer.withdraw)(network, apiKey, { to: quoted.payTo, amount: quoted.amount, token: `nep141:${outlayer.USDC[network]}`, chain }, `scrim-${requestId}`);
+  } catch (error) {
+    await unpay(requestId);
     throw error;
   }
 }
 
 // ── 3. Delivery ──
+async function payoutHash(requestId: string): Promise<string | undefined> {
+  const [transfer] = await sql<{ id: string; account_id: string; details_sealed: string }[]>`
+    SELECT id, account_id, details_sealed FROM transfers WHERE team_request_id = ${requestId} AND status = 'success' ORDER BY created_at DESC LIMIT 1`;
+  if (!transfer) return undefined;
+  return open<{ resultHashes?: string[] }>(transfer.details_sealed, `transfer:${transfer.id}:${transfer.account_id}`).resultHashes?.[0];
+}
+
 // After the payout settles: present the payment to the seller and keep what it returns.
 // Safe to call repeatedly; it only acts while the purchase is paying or delivering.
-export async function deliverPurchase(requestId: string): Promise<Purchase | null> {
+// `paidWith` is the deposit transaction when the agent's own wallet paid; otherwise it comes from the payout.
+export async function deliverPurchase(requestId: string, paidWith?: string): Promise<Purchase | null> {
   const [row] = await sql<Row[]>`SELECT * FROM x402_purchases WHERE request_id = ${requestId}`;
   if (!row || !row.quote_sealed || (row.status !== "paying" && row.status !== "delivering")) return row ? purchaseFor(requestId) : null;
-  const [transfer] = await sql<{ id: string; account_id: string; status: string; details_sealed: string }[]>`
-    SELECT id, account_id, status, details_sealed FROM transfers WHERE team_request_id = ${requestId} AND status = 'success' ORDER BY created_at DESC LIMIT 1`;
-  if (!transfer) return purchaseFor(requestId);
-  const details = open<{ resultHashes?: string[] }>(transfer.details_sealed, `transfer:${transfer.id}:${transfer.account_id}`);
-  const txHash = details.resultHashes?.[0];
+  const txHash = paidWith ?? (await payoutHash(requestId));
   if (!txHash) return purchaseFor(requestId);
 
   const q = open<{ resource: { url: string }; accepted: Entry; quoted: Entry }>(row.quote_sealed, aad(requestId));

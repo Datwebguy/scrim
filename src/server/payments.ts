@@ -144,13 +144,15 @@ export async function createHumanPayment(session: Session, treasuryId: string, i
 }
 
 export async function createAgentPayment(agent: Agent, input: CreatePaymentInput): Promise<Payment> {
-  if (agent.mode !== "request_only") throw forbidden("Autonomous execution is not enabled for this release.");
-  return announceNew(await sql.begin(async (tx) => {
+  const payment = announceNew(await sql.begin(async (tx) => {
     const [row] = await tx<{ id: string; status: string; owner_account_id: string }[]>`SELECT id, status, owner_account_id FROM treasuries WHERE id = ${agent.treasuryId}`;
     const { treasury } = await treasuryForMember(tx, row.owner_account_id, row.id);
     if (treasury.status !== "active") throw forbidden("This treasury is not accepting payment requests.");
     return insertPayment(tx, treasury, { type: "agent", id: agent.id }, agent, input);
   }));
+  // An agent with its own wallet pays what its limits allow, without waiting for people.
+  if (agent.mode === "autonomous" && payment.status === "awaiting_approval") (await import("./agent-wallets")).scheduleAutoPay(payment.id);
+  return payment;
 }
 
 // Only a newly created request is announced; a repeat with the same Idempotency-Key is not.

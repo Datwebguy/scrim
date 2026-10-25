@@ -12,12 +12,15 @@ export const PROOF_PREFIX = "scrimproof1";
 
 export type ProofClaim =
   | { type: "balance_at_least"; amount: string; symbol: string | null; unit: "asset" | "usd" }
-  | { type: "payment"; amount: string; symbol: string; chainName: string; exact: boolean; paidAt: string };
+  // `to`: who was paid (a NEAR account or an address on that chain). Proofs made before it was added have none.
+  | { type: "payment"; amount: string; symbol: string; chainName: string; exact: boolean; paidAt: string; to?: string };
 
 export type ProofPayload = {
   v: 1;
   id: string;
   reader: string;
+  // `account`: the NEAR account Scrim verified as the sender. `holder` is only the name the sender typed.
+  account?: string;
   holder: string | null;
   issuedAt: string;
   expiresAt: string;
@@ -60,5 +63,5 @@ export function describeClaim(claim: ProofClaim): string {
   if (claim.type === "balance_at_least") {
     return claim.unit === "usd" ? `holds at least $${claim.amount} in private funds` : `holds at least ${claim.amount} ${claim.symbol}`;
   }
-  return `${claim.exact ? "sent exactly" : "sent at least"} ${claim.amount} ${claim.symbol} to ${claim.chainName}`;
+  return `${claim.exact ? "sent exactly" : "sent at least"} ${claim.amount} ${claim.symbol} ${claim.to ? `to ${claim.to} on ${claim.chainName}` : `to ${claim.chainName}`}`;
 }

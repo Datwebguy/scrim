@@ -15,7 +15,7 @@ import type { Agent } from "./agents";
 import { assetById, catalog, type Asset } from "./assets";
 import type { Session } from "./auth";
 import { sql } from "./db";
-import { badRequest, conflict, HttpError, notFound } from "./errors";
+import { badRequest, conflict, forbidden, HttpError, notFound } from "./errors";
 import * as oneclick from "./oneclick";
 import * as outlayer from "./outlayer";
 import { createAgentPayment, type Payment } from "./payments";
@@ -158,6 +158,10 @@ export async function requestPurchase(agent: Agent, url: string, idempotencyKey:
   if (!seller) throw badRequest("Use the seller's full https:// address.");
   const [team] = await sql<{ network: string }[]>`SELECT network FROM treasuries WHERE id = ${agent.treasuryId}`;
   if (team?.network !== "mainnet") throw badRequest("x402 purchases are available on mainnet.");
+  // Nothing is fetched for an agent that couldn't pay this seller anyway.
+  if (!agent.enabled) throw forbidden("This agent is paused by its owner.");
+  if (agent.policy.expiresAt && new Date(agent.policy.expiresAt) <= new Date()) throw forbidden("This agent's limits have ended.");
+  if (!agent.policy.counterparties.some((c) => c.address === seller)) throw forbidden(`${seller} isn't on this agent's allowed recipients. Ask its owner to add it.`);
   const res = await safeRequest(url, { timeoutMs: 10_000 });
   if (!res) throw badRequest("Couldn't reach that address.");
   if (res.status !== 402) throw badRequest(`That address didn't ask for payment (it answered ${res.status}).`);
@@ -190,7 +194,7 @@ export async function requestPurchase(agent: Agent, url: string, idempotencyKey:
   return { payment, purchase: (await purchaseFor(payment.id))! };
 }
 
-type Row = { request_id: string; url: string; entry: Entry; route: "near-intents" | "wallet"; funding_request_id: string | null; status: Purchase["status"]; quote_sealed: string | null; result_sealed: string | null; error: string | null };
+type Row = { request_id: string; url: string; entry: Entry; route: "near-intents" | "wallet"; funding_request_id: string | null; status: Purchase["status"]; quote_sealed: string | null; result_sealed: string | null; error: string | null; signed_at: Date | null };
 const aad = (requestId: string) => `x402:${requestId}`;
 
 export async function purchaseFor(requestId: string): Promise<Purchase | null> {
@@ -205,6 +209,13 @@ export async function purchaseFor(requestId: string): Promise<Purchase | null> {
 // ── 2. Paying ──
 // Fresh terms from the seller on the route we priced, with refunds going to `refundTo(entry)`.
 async function freshQuote(row: Row, approvedAmount: string, refundTo: (entry: Entry) => Promise<string>) {
+  // Left "paying" by a payout that expired (transfers last 15 minutes): open it to be paid again. Only
+  // after 20 minutes, so a payer still setting up its transfer is never undercut.
+  if (row.status === "paying" && !(await payoutOpen(row.request_id))) {
+    await sql`UPDATE x402_purchases SET status = 'requested', updated_at = now()
+      WHERE request_id = ${row.request_id} AND status = 'paying' AND updated_at < now() - interval '20 minutes'`;
+    row = (await purchaseRow(row.request_id));
+  }
   if (row.status !== "requested" && row.status !== "failed") throw conflict("This purchase is already being paid.");
   const first = await safeRequest(row.url, { timeoutMs: 10_000 });
   const required = first && first.status === 402 ? readRequired(first) : null;
@@ -223,9 +234,29 @@ async function freshQuote(row: Row, approvedAmount: string, refundTo: (entry: En
   const quotedUsd = asset.priceUsd ? (Number(quoted.amount) / 10 ** asset.decimals) * asset.priceUsd : null;
   if (quotedUsd === null || quotedUsd > (Number(approvedAmount) / 1e6) * 1.02) throw conflict("The seller's price is now higher than what was approved.");
 
-  await sql`UPDATE x402_purchases SET status = 'paying', error = NULL, updated_at = now(),
-    quote_sealed = ${seal({ resource: quotePayload.resource, accepted: entry, quoted }, aad(row.request_id))} WHERE request_id = ${row.request_id}`;
+  // Claim it: of two payers racing, only one gets here; the other changes nothing.
+  const claimed = await sql`UPDATE x402_purchases SET status = 'paying', error = NULL, updated_at = now(),
+    quote_sealed = ${seal({ resource: quotePayload.resource, accepted: entry, quoted }, aad(row.request_id))}
+    WHERE request_id = ${row.request_id} AND status IN ('requested', 'failed') RETURNING request_id`;
+  if (claimed.length !== 1) throw new HttpError(409, "conflict_claimed", "This purchase is already being paid.");
   return { quoted, asset };
+}
+
+// Claims the one signing step of a wallet purchase. Only one caller wins, only from the status it read,
+// and never once a payment has been signed.
+export async function claimForSigning(requestId: string, from: Purchase["status"]): Promise<boolean> {
+  const claimed = await sql`UPDATE x402_purchases SET status = 'paying', error = NULL, updated_at = now()
+    WHERE request_id = ${requestId} AND status = ${from} AND status IN ('requested', 'funding') AND signed_at IS NULL RETURNING request_id`;
+  return claimed.length === 1;
+}
+
+// Whether a payout for this purchase may still be paying (a transfer in flight, or the agent's wallet sending it).
+async function payoutOpen(requestId: string): Promise<boolean> {
+  const open = await sql`
+    SELECT 1 FROM transfers WHERE team_request_id = ${requestId}
+      AND (status IN ('processing', 'success') OR (status IN ('awaiting_signature', 'awaiting_deposit') AND expires_at > now()))
+    UNION ALL SELECT 1 FROM agent_payouts WHERE request_id = ${requestId}`;
+  return open.length > 0;
 }
 
 async function purchaseRow(requestId: string) {
@@ -242,6 +273,7 @@ export async function payPurchase(session: Session, request: Payment): Promise<T
   const row = await purchaseRow(request.id);
   if (row.route === "wallet") throw badRequest("This seller is paid from the agent's own wallet, not the account balance.");
   const { quoted, asset } = await freshQuote(row, request.amount, async (entry) => (await oneclick.bridgeDepositAddress(session.accountId, originChainOf(entry.network)!)).address);
+  // From here this call holds the claim, so undoing it on failure is safe.
   try {
     return await createTransfer(session, {
       kind: "withdraw",
@@ -293,6 +325,9 @@ export async function advanceWalletPurchase(requestId: string, network: Network,
   if (row.route !== "wallet") throw badRequest("This purchase isn't paid from the agent's wallet.");
   if (row.status === "delivered") return { state: "paid", txHash: null };
   if (row.status === "paying" || row.status === "delivering" || row.status === "stopped") return { state: "pending" };
+  // A purchase is signed at most once. Once signed, the seller may have taken the money, so it is never signed again.
+  if (row.signed_at) return row.status === "failed" ? Promise.reject(new HttpError(502, "upstream", row.error ?? "The seller didn't accept the payment.")) : { state: "pending" };
+  if (row.status === "failed") throw new HttpError(502, "upstream", row.error ?? "This purchase didn't go through.");
   const entry = row.entry;
   const chain = walletChain(entry.network);
   const asset = await originAsset(entry);
@@ -325,15 +360,17 @@ export async function advanceWalletPurchase(requestId: string, network: Network,
   }
 
   // Claim the payment step: one signature per purchase.
-  const claimed = await sql`UPDATE x402_purchases SET status = 'paying', error = NULL, updated_at = now()
-    WHERE request_id = ${requestId} AND status IN ('requested', 'funding', 'failed') RETURNING request_id`;
-  if (claimed.length !== 1) return { state: "pending" };
+  if (!(await claimForSigning(requestId, row.status))) return { state: "pending" };
   const first = await safeRequest(row.url, { timeoutMs: 10_000 });
   const required = first && first.status === 402 ? readRequired(first) : null;
-  const fresh = required?.accepts?.find((e) => e.scheme === entry.scheme && e.network === entry.network && e.asset.toLowerCase() === entry.asset.toLowerCase() && e.payTo === entry.payTo);
-  if (!required || !fresh) return fail("The seller no longer offers this payment route.");
-  if (BigInt(fresh.amount) > need) return fail("The seller's price is now higher than what was approved.");
-  const payload = await signPayment(network, apiKey, required as never, fresh as never, addrs).catch((e: Error) => fail(`Couldn't sign the payment: ${e.message}`));
+  const fresh = required?.accepts?.find((e) => e.scheme === entry.scheme && e.network === entry.network && e.asset.toLowerCase() === entry.asset.toLowerCase()
+    && e.payTo === entry.payTo && /^\d+$/.test(e.amount) && BigInt(e.amount) <= need && payableByWallet(e as never));
+  if (!required || !fresh) return fail("The seller no longer offers this payment route at the approved price.");
+  // Sign exactly the entry that was checked: the seller's other entries never reach the signer.
+  const payload = await signPayment(network, apiKey, { ...required, accepts: [fresh] } as never, fresh as never, addrs).catch((e: Error) => fail(`Couldn't sign the payment: ${e.message}`));
+  const signedAmount = (payload as { accepted?: { amount?: string } }).accepted?.amount;
+  if (signedAmount !== fresh.amount) return fail("The signed payment didn't match the approved price. Nothing was sent.");
+  await sql`UPDATE x402_purchases SET signed_at = now(), updated_at = now() WHERE request_id = ${requestId}`;
   const res = await safeRequest(row.url, { timeoutMs: 45_000, maxBytes: 256 * 1024, headers: { "payment-signature": encode(payload) } });
   if (!res) {
     await sql`UPDATE x402_purchases SET status = 'delivering', error = 'Sent, but the seller did not answer. Not paying again.', updated_at = now() WHERE request_id = ${requestId}`;

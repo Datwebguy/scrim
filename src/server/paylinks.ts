@@ -9,7 +9,16 @@ import { badRequest, HttpError, notFound } from "./errors";
 import { open, seal } from "./secrets";
 
 const ALPHABET = "abcdefghjkmnpqrstvwxyz23456789"; // no look-alike characters
-export const newCode = () => Array.from(randomBytes(10), (b) => ALPHABET[b % ALPHABET.length]).join("");
+// 12 characters, each equally likely (bytes that would favour some characters are skipped): about 59 bits.
+export function newCode(length = 12): string {
+  let code = "";
+  while (code.length < length) {
+    for (const b of randomBytes(length * 2)) {
+      if (b < 240 && code.length < length) code += ALPHABET[b % ALPHABET.length]; // 240 = 8 × 30
+    }
+  }
+  return code;
+}
 export const linkAad = (code: string, account: string) => `paylink:${code}:${account}`;
 
 export type PayLink = {
@@ -71,7 +80,7 @@ export async function closePayLink(session: Session, code: string) {
 
 // Public: what a payer sees. The requester is shown by account name only.
 export async function publicLink(code: string): Promise<PayLink & { to: string }> {
-  if (!/^[a-z2-9]{10}$/.test(code)) throw notFound("This payment link doesn't exist.");
+  if (!/^[a-z2-9]{10}(?:[a-z2-9]{2})?$/.test(code)) throw notFound("This payment link doesn't exist.");
   const [row] = await sql<Row[]>`SELECT * FROM pay_links WHERE id = ${code}`;
   if (!row) throw notFound("This payment link doesn't exist.");
   const link = await toLink(row);

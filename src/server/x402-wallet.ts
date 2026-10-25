@@ -40,8 +40,12 @@ export function walletChain(network: string): string | null {
 
 // Entries Scrim can pay from an agent wallet: exact (EIP-3009 or Permit2) and upto on supported EVM
 // chains, and exact on Solana. NEAR Intents entries are handled by the private route instead.
-export function payableByWallet(entry: { scheme: string; network: string; amount: string; extra?: Record<string, unknown> }): boolean {
+export function payableByWallet(entry: { scheme: string; network: string; amount: string; maxTimeoutSeconds?: number; extra?: Record<string, unknown> }): boolean {
   if (!walletChain(entry.network) || !entry.amount || !/^\d+$/.test(entry.amount)) return false;
+  // Only the plain authorization flow, and a signature that expires within the hour.
+  const flow = entry.extra?.paymentFlow;
+  if (flow !== undefined && flow !== "authorization") return false;
+  if (entry.maxTimeoutSeconds !== undefined && !(entry.maxTimeoutSeconds > 0 && entry.maxTimeoutSeconds <= 3600)) return false;
   const method = (entry.extra?.assetTransferMethod as string | undefined) ?? "eip3009";
   if (entry.network === SOLANA_MAINNET) return entry.scheme === "exact";
   if (entry.scheme === "exact") return method === "eip3009" || method === "permit2";
@@ -103,9 +107,18 @@ export async function walletAddresses(network: Network, apiKey: string): Promise
 
 // Builds the signed payment for exactly the entry Scrim chose, with the agent wallet as the signer.
 // Scrim's own limits already apply, so the reference client's default spend cap is turned off.
+// What the signer is shown: only the one entry Scrim checked, amount and terms included. Whatever else a
+// seller lists can never be chosen by the payment library instead.
+export function onlyChosen(required: PaymentRequired, chosen: PaymentRequirements): PaymentRequired {
+  const same = (e: PaymentRequirements) => e.scheme === chosen.scheme && e.network === chosen.network && e.asset.toLowerCase() === chosen.asset.toLowerCase()
+    && e.payTo === chosen.payTo && e.amount === chosen.amount && JSON.stringify(e.extra ?? {}) === JSON.stringify(chosen.extra ?? {});
+  const match = required.accepts.find(same);
+  if (!match) throw new Error("The approved payment route is no longer offered.");
+  return { ...required, accepts: [match] };
+}
+
 export async function signPayment(network: Network, apiKey: string, required: PaymentRequired, chosen: PaymentRequirements, addrs: WalletAddresses) {
-  const same = (e: PaymentRequirements) => e.scheme === chosen.scheme && e.network === chosen.network && e.asset.toLowerCase() === chosen.asset.toLowerCase() && e.payTo === chosen.payTo;
-  const client = new x402Client((_v, list) => list.find(same) ?? list[0]).setSpendControls(false);
+  const client = new x402Client((_v, list) => list[0]).setSpendControls(false);
   const id = evmId(chosen.network);
   if (id !== null) {
     if (!addrs.evm) throw new Error("The agent's wallet has no EVM address.");
@@ -116,7 +129,9 @@ export async function signPayment(network: Network, apiKey: string, required: Pa
     if (!addrs.solana) throw new Error("The agent's wallet has no Solana address.");
     registerExactSvmScheme(client, { signer: solanaSigner(network, apiKey, addrs.solana), networks: [chosen.network as never] });
   }
-  return client.createPaymentPayload({ ...required, accepts: required.accepts.filter(same) });
+  const payload = await client.createPaymentPayload(onlyChosen(required, chosen));
+  if ((payload as { accepted?: { amount?: string } }).accepted?.amount !== chosen.amount) throw new Error("The payment to sign didn't match the approved price.");
+  return payload;
 }
 
 // What the wallet's own address holds of the seller's token, in the token's smallest units.

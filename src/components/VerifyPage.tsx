@@ -65,7 +65,8 @@ export function VerifyPage() {
           ) : (
             <>
               <div className={`verdict ${verified ? "good" : "bad"}`}>{verified ? "✓ Valid" : "✕ Not valid right now"}</div>
-              <p style={{ fontSize: 18 }}>{c.payload.holder ? <b>{c.payload.holder}</b> : "The sender"} {describeClaim(c.payload.claim)}.</p>
+              <p style={{ fontSize: 18 }}>{c.payload.account ? <b className="mono" style={{ overflowWrap: "anywhere" }}>{c.payload.account}</b> : c.payload.holder ? <b>{c.payload.holder}</b> : "The sender"} {describeClaim(c.payload.claim)}.</p>
+              {c.payload.account && c.payload.holder && <p className="muted">The sender calls themselves “{c.payload.holder}”. Scrim verified the NEAR account above, not this name.</p>}
               <ul className="checks-list">
                 <li className="ok">The signature is genuine and nothing was changed.</li>
                 <li className={c.readerMatches === false ? "no" : "ok"}>Made for <b>{c.payload.reader}</b>.{c.readerMatches === false && " That isn't the name you entered."}{c.readerMatches === null && " Enter your name above to check it's you."}</li>

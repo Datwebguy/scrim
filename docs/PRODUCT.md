@@ -1,8 +1,8 @@
 # Scrim
 
-**Private money for people and businesses, on NEAR.**
+**Money on NEAR, private when you want it.**
 
-Scrim gives you a private balance. You can add money from almost any chain, pay anyone, get paid with a link, swap one coin for another, and show a single fact to a single person when they need to know. Nobody else can see the rest.
+Scrim lets you hold, send, swap and get paid on 30+ chains, from your own NEAR wallet in public or from an optional private balance nobody else can see. You choose, each time. You can get paid with a link, show a single fact to a single person when they need to know, set approvals and spending limits, and let software agents pay within your rules, including for paid APIs over x402.
 
 ## The problem
 

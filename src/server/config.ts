@@ -12,7 +12,10 @@ export const config = {
     return valid.length ? valid : ["mainnet"];
   },
   get authRecipient(): string {
-    return trim(process.env.SCRIM_AUTH_RECIPIENT) ?? "scrim.local";
+    const recipient = trim(process.env.SCRIM_AUTH_RECIPIENT);
+    // In production, wallets must show the site's own name when asked to sign in.
+    if (!recipient && process.env.NODE_ENV === "production") throw new Error("SCRIM_AUTH_RECIPIENT is not set (use the site's domain).");
+    return recipient ?? "scrim.local";
   },
   // NEAR Intents (private ledger, swaps, bridge): mainnet only.
   get oneClickUrl(): string {

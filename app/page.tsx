@@ -5,6 +5,7 @@ import { AskScene, HeroCard, PaidScene, ProofScene, SendScene, SwapScene, TeamSc
 import { Orbit } from "@/components/landing/Orbit";
 import { Reveal } from "@/components/landing/Reveal";
 import { TaglineReveal } from "@/components/landing/TaglineReveal";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Wordmark } from "@/components/Wordmark";
 
 export const revalidate = 300;
@@ -28,7 +29,7 @@ export default async function Home() {
           <a href="#proofs">Proofs</a>
           <a href="#questions">FAQ</a>
         </nav>
-        <Link href="/app" className="btn btn-primary">Open app <span className="arrow">↗</span></Link>
+        <span className="nav-actions"><ThemeToggle /><Link href="/app" className="btn btn-primary">Open app <span className="arrow">↗</span></Link></span>
       </header>
 
       <main>

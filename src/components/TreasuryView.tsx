@@ -9,6 +9,7 @@ import { describeWindow } from "@/protocol/policy";
 import type { Agent } from "@/server/agents";
 import type { Payment } from "@/server/payments";
 import type { Treasury, TreasuryRole } from "@/server/treasuries";
+import type { PurchaseDetails } from "@/server/x402-client";
 import { useSession } from "./session";
 import { TelegramAlerts } from "./TelegramAlerts";
 import { Initials, Modal, newIdempotencyKey, Spinner, StatusPill, useToast } from "./ui";
@@ -204,6 +205,46 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
   );
 }
 
+const PURCHASE_STATUS: Record<string, string> = {
+  requested: "Waiting to be paid", stopped: "Stopped by limits", funding: "Topping up the agent's wallet",
+  paying: "Paying the seller", delivering: "Paid, waiting for the seller", delivered: "Delivered", failed: "Didn't go through",
+};
+
+// What an agent's x402 request buys, how it is paid, and what the seller sent back.
+function PurchaseBlock({ paymentId, status }: { paymentId: string; status: string }) {
+  const [p, setP] = useState<PurchaseDetails | null | undefined>(undefined);
+  useEffect(() => {
+    let live = true;
+    const load = () => api<{ purchase: PurchaseDetails | null }>(`/payments/${paymentId}/purchase`).then((r) => live && setP(r.purchase)).catch(() => live && setP(null));
+    void load();
+    const timer = setInterval(load, 10_000);
+    return () => { live = false; clearInterval(timer); };
+  }, [paymentId, status]);
+  if (p === undefined) return <Spinner />;
+  if (!p) return null;
+  const body = p.response?.body ?? "";
+  let pretty = body;
+  try { pretty = JSON.stringify(JSON.parse(body), null, 2); } catch { /* not JSON: show as sent */ }
+  return (
+    <div>
+      <span className="section-label">x402 purchase</span>
+      <dl className="detail-list">
+        <div><dt>Buying</dt><dd className="mono" style={{ wordBreak: "break-all" }}>{p.url}</dd></div>
+        <div><dt>Price</dt><dd>{p.price ?? "—"}{p.scheme === "upto" ? " at most (charged for what was used)" : ""}</dd></div>
+        <div><dt>Paid with</dt><dd>{p.route === "wallet" ? `The agent's own wallet${p.chain ? `, on ${p.chain}` : ""}` : `Private balance, through NEAR Intents${p.chain ? ` (${p.chain})` : ""}`}</dd></div>
+        <div><dt>Status</dt><dd>{PURCHASE_STATUS[p.status] ?? p.status}{p.error ? ` · ${p.error}` : ""}</dd></div>
+        {p.charged && p.scheme === "upto" && <div><dt>Charged</dt><dd>{p.charged}</dd></div>}
+      </dl>
+      {p.response && (
+        <details>
+          <summary className="muted">What the seller returned · {p.response.status}{p.response.contentType ? ` · ${p.response.contentType.split(";")[0]}` : ""}</summary>
+          <div className="code"><pre>{pretty}{p.response.truncated ? "\n…" : ""}</pre></div>
+        </details>
+      )}
+    </div>
+  );
+}
+
 function Origin({ payment }: { payment: Payment }) {
   if (payment.createdBy.type === "agent") {
     const name = payment.createdBy.name ?? "Agent";
@@ -300,6 +341,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
   const [busy, setBusy] = useState<"" | "approve" | "cancel" | "pay">("");
   const [error, setError] = useState("");
   const approvedByMe = payment.approvals.some((a) => a.accountId === accountId);
+  const isPurchase = payment.memo.startsWith("x402 ");
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -381,7 +423,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
             </div>
             <div>
               <dt>Route</dt>
-              <dd>{treasury.network === "mainnet" ? "Private balance → USDC on Base" : "Your wallet → the recipient, on testnet"}</dd>
+              <dd>{isPurchase ? "x402 purchase: see below" : treasury.network === "mainnet" ? "Private balance → USDC on Base" : "Your wallet → the recipient, on testnet"}</dd>
             </div>
             <div>
               <dt>Requested by</dt>
@@ -396,6 +438,8 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
               </dd>
             </div>
           </dl>
+
+          {isPurchase && <PurchaseBlock paymentId={payment.id} status={payment.status} />}
 
           {payment.policyDecision && (
             <div>

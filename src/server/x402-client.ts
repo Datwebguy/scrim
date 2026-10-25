@@ -348,6 +348,26 @@ export async function advanceWalletPurchase(requestId: string, network: Network,
   return fail(String(receipt?.errorReason ?? `seller answered ${res.status}`));
 }
 
+// For people on the team: what an agent's x402 request is buying and what came back.
+export type PurchaseDetails = Purchase & { price: string | null; charged: string | null; chain: string | null; scheme: string };
+
+export async function purchaseDetails(session: Session, paymentId: string): Promise<PurchaseDetails | null> {
+  const { getPayment } = await import("./payments");
+  const payment = await getPayment(session, paymentId); // members only
+  const [row] = await sql<Row[]>`SELECT * FROM x402_purchases WHERE request_id = ${payment.id}`;
+  if (!row) return null;
+  const purchase = (await purchaseFor(payment.id))!;
+  const asset = await originAsset(row.entry).catch(() => null);
+  const amount = row.route === "wallet" ? row.entry.amount : row.entry.extra?.destination?.amount;
+  const priceAsset = row.route === "wallet" ? asset : await assetById(row.entry.extra?.destination?.asset ?? "").catch(() => null);
+  const response = purchase.response ? { ...purchase.response, body: purchase.response.body.slice(0, 4000), truncated: purchase.response.truncated || purchase.response.body.length > 4000 } : null;
+  return {
+    ...purchase, response, scheme: row.entry.scheme, chain: asset?.chainName ?? null,
+    price: amount && priceAsset ? `${formatAmount(BigInt(amount), priceAsset.decimals, 2)} ${priceAsset.symbol}` : null,
+    charged: purchase.response?.charged && asset && /^\d+$/.test(purchase.response.charged) ? `${formatAmount(BigInt(purchase.response.charged), asset.decimals, 2)} ${asset.symbol}` : null,
+  };
+}
+
 // ── 3. Delivery ──
 async function payoutHash(requestId: string): Promise<string | undefined> {
   const [transfer] = await sql<{ id: string; account_id: string; details_sealed: string }[]>`

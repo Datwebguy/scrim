@@ -419,7 +419,7 @@ export async function payTeamRequest(session: Session, requestId: string): Promi
 }
 
 // A payer with no account pays a link from any chain. The money lands in the requester's private balance.
-export async function createLinkPayment(link: { id: string; accountId: string; network: Network; assetId: string; amount: string; note: string; expiresAt: Date }, input: { fromAssetId: string; refundAddress: string }): Promise<Transfer> {
+export async function createLinkPayment(link: { id: string; accountId: string; network: Network; assetId: string; amount: string; note: string; expiresAt: Date; receive: "private" | "wallet" }, input: { fromAssetId: string; refundAddress: string }): Promise<Transfer> {
   requireEnabled(link.network);
   const from = await assetById(String(input.fromAssetId ?? ""));
   const to = await assetById(link.assetId);
@@ -433,7 +433,8 @@ export async function createLinkPayment(link: { id: string; accountId: string; n
   const q = await oneclick.quote({
     dry: false, swapType: "EXACT_OUTPUT", slippageTolerance: 100, originAsset: from.assetId, depositType: "ORIGIN_CHAIN",
     destinationAsset: to.assetId, amount: link.amount, refundTo, refundType: "ORIGIN_CHAIN", recipient: link.accountId,
-    recipientType: "CONFIDENTIAL_INTENTS", deadline: deadline.toISOString(), quoteWaitingTimeMs: 5000,
+    // The owner chose: into their private balance, or straight into their NEAR wallet.
+    recipientType: link.receive === "wallet" ? "DESTINATION_CHAIN" : "CONFIDENTIAL_INTENTS", deadline: deadline.toISOString(), quoteWaitingTimeMs: 5000,
   });
   const depositAddress = q.quote.depositAddress;
   if (!depositAddress) throw new HttpError(502, "upstream", "No route is available for that coin right now. Try another.");

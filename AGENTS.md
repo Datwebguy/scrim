@@ -27,7 +27,7 @@ On testnet the wallet sends NEAR and Scrim reads the transfer back from the chai
 Standard sellers are paid on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche or Solana, with the `exact` scheme or, on EVM chains, `upto` (the seller charges what was used, never more than the price shown). The agent's wallet signs the payment in OutLayer's enclave; the seller's payment service pays the network fee. If the wallet's address on that chain is short, Scrim first tops it up from the agent's private balance (at least 1 USDC; what is left stays there for the next purchase).
 
 ## Selling to agents (x402)
-Under **Sell**, an owner lists a product: a price, and what the buyer gets (a text or link, or the owner's API, called after payment). Its agent address `/api/x402/pay/<code>` answers `402 Payment Required`; an agent pays with `exact` + `near-intents` and receives the product in the paid response. Every sale lands in the owner's private balance.
+Under **Sell**, an owner lists a product: a price, and what the buyer gets (a text or link, or the owner's API, called after payment). Its agent address `/api/x402/pay/<code>` answers `402 Payment Required`; an agent pays with `exact` + `near-intents` and receives the product in the paid response. Every sale lands where the owner chooses: the private balance or their wallet.
 
 ## Option 1: AI assistants (MCP)
 Scrim is an MCP server at `https://<your-site>/api/mcp` (Streamable HTTP).

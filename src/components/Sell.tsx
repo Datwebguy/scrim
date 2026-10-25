@@ -3,12 +3,13 @@ import { useState } from "react";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
 import { AssetPicker, CopyField, Heading, StateChip, useAssets } from "./money";
+import { ReceiveChoice, type Receive } from "./ReceiveChoice";
 import { Spinner, useToast } from "./ui";
 
-type Product = { code: string; name: string; description: string; symbol: string; chainName: string; display: string; delivers: "text" | "api"; open: boolean; sales: number; earned: string };
+type Product = { code: string; name: string; description: string; symbol: string; chainName: string; display: string; delivers: "text" | "api"; receive: Receive; open: boolean; sales: number; earned: string };
 type Sale = { at: string; status: string; paidWith: string; received: string };
 
-// Sell anything over x402: agents and people pay from any coin on any chain, it lands privately,
+// Sell anything over x402: agents and people pay from any coin on any chain, it lands where the seller chose,
 // and the buyer gets what you sell once the payment is confirmed.
 export function Sell() {
   const toast = useToast();
@@ -16,6 +17,8 @@ export function Sell() {
   const { data, reload } = useApi<{ products: Product[] }>("/products", { every: 20_000 });
   const [form, setForm] = useState({ name: "", description: "", amount: "", kind: "text" as "text" | "api", text: "", url: "", headerName: "", headerValue: "" });
   const [assetId, setAssetId] = useState("");
+  const [receive, setReceive] = useState<Receive>("private");
+  const onNear = assets.find((a) => a.assetId === assetId)?.chain === "near";
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [openCode, setOpenCode] = useState<string | null>(null);
@@ -28,7 +31,7 @@ export function Sell() {
     setError("");
     try {
       const deliver = form.kind === "text" ? { kind: "text", text: form.text } : { kind: "api", url: form.url, header: form.headerName ? { name: form.headerName, value: form.headerValue } : undefined };
-      const { product } = await api<{ product: Product }>("/products", { body: { name: form.name, description: form.description, assetId, amount: form.amount, deliver } });
+      const { product } = await api<{ product: Product }>("/products", { body: { name: form.name, description: form.description, assetId, amount: form.amount, deliver, receive: onNear ? receive : "private" } });
       setForm({ ...form, name: "", description: "", amount: "", text: "", url: "", headerName: "", headerValue: "" });
       setOpenCode(product.code);
       reload();
@@ -53,7 +56,7 @@ export function Sell() {
   const products = data?.products ?? [];
   return (
     <div className="narrow wide">
-      <Heading eyebrow="Sell" title="Sell to agents and people" text="Sell a file, a code, a report or your API. Agents pay over x402, people on a pay page, from any coin on any chain. Every sale lands in your private balance, and buyers get what you sell once the payment is confirmed." />
+      <Heading eyebrow="Sell" title="Sell to agents and people" text="Sell a file, a code, a report or your API. Agents pay over x402, people on a pay page, from any coin on any chain. Each sale lands where you choose, your private balance or your wallet, and buyers get what you sell once the payment is confirmed." />
 
       {products.length > 0 && (
         <div className="form-grid" style={{ marginBottom: 20 }}>
@@ -62,7 +65,7 @@ export function Sell() {
               <div className="between">
                 <div>
                   <h3 style={{ margin: 0 }}>{p.name}</h3>
-                  <small className="muted">{p.display} {p.symbol} · delivers {p.delivers === "text" ? "a text or link" : "your API's answer"}{p.open ? "" : " · stopped"}</small>
+                  <small className="muted">{p.display} {p.symbol} · delivers {p.delivers === "text" ? "a text or link" : "your API's answer"} · lands in your {p.receive === "wallet" ? "wallet" : "private balance"}{p.open ? "" : " · stopped"}</small>
                 </div>
                 <div style={{ textAlign: "right" }}>
                   <b>{p.sales} sale{p.sales === 1 ? "" : "s"}</b>
@@ -90,6 +93,7 @@ export function Sell() {
         <label className="field">What is it?<input className="input" value={form.name} onChange={set("name")} placeholder="Market report, API access, a download" maxLength={80} required /></label>
         <label className="field">Short description<small>Buyers and agents see this before they pay.</small><input className="input" value={form.description} onChange={set("description")} maxLength={280} /></label>
         <AssetPicker label="You receive" assets={assets} value={assetId} onChange={setAssetId} />
+        <ReceiveChoice value={onNear ? receive : "private"} onChange={setReceive} onNear={onNear} />
         <label className="field">Price<input className="input" inputMode="decimal" value={form.amount} onChange={set("amount")} placeholder="0.00" required /></label>
         <div className="segmented" role="radiogroup" aria-label="What the buyer gets">
           <button type="button" role="radio" aria-checked={form.kind === "text"} onClick={() => setForm({ ...form, kind: "text" })}>A text or link</button>

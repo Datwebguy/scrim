@@ -74,7 +74,7 @@ export function Home() {
 
   return (
     <>
-      <Heading eyebrow="Home" title="Your private money" />
+      <Heading eyebrow="Home" title="Your money" />
 
       {loading && !data && <div className="skeleton" />}
 
@@ -82,7 +82,7 @@ export function Home() {
         <div className="card card-pad gate-card">
           {data.status === "needs_setup" ? (
             <>
-              <h2>One quick step to turn on private mode</h2>
+              <h2>One quick step to turn on your private balance</h2>
               <p className="muted">Your wallet is registered once so it can hold private money. You approve one transaction in your wallet. The small fee goes to the NEAR network, not to Scrim, and you only pay it this once.</p>
               {near && <p className="muted">{accountId} has <b>{near.display} NEAR</b>.</p>}
               {tooLow && (
@@ -92,7 +92,7 @@ export function Home() {
               )}
               {setupError && <p className="form-error" role="alert">{setupError}</p>}
               <div className="gate-actions">
-                <button className="btn btn-signal btn-lg" onClick={() => unlock(true)} disabled={busy}>{busy && <Spinner />} {setupError ? "Try again" : tooLow ? "Try anyway" : "Turn on private mode"}</button>
+                <button className="btn btn-signal btn-lg" onClick={() => unlock(true)} disabled={busy}>{busy && <Spinner />} {setupError ? "Try again" : tooLow ? "Try anyway" : "Turn on your private balance"}</button>
                 <button className="btn btn-ghost btn-lg" onClick={checkAgain} disabled={busy || checking}>{checking && <Spinner />} Check again</button>
               </div>
             </>
@@ -147,7 +147,7 @@ export function Home() {
             <section className="card">
               <div className="card-title"><h3>What you hold</h3></div>
               {data.holdings.length === 0 ? (
-                <div className="empty small"><h3>Nothing here yet</h3><p>Add money from any chain and it will show up here, privately.</p><Link href="/app/add" className="btn btn-primary">Add money</Link></div>
+                <div className="empty small"><h3>Nothing here yet</h3><p>Add money from any chain and it will show up here.</p><Link href="/app/add" className="btn btn-primary">Add money</Link></div>
               ) : (
                 <ul className="rows">
                   {data.holdings.map((h) => (

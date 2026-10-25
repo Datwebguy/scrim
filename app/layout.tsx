@@ -6,9 +6,9 @@ const sans = Manrope({ subsets: ["latin"], variable: "--font-sans", display: "sw
 const mono = DM_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono", display: "swap" });
 
 export const metadata: Metadata = {
-  title: { default: "Scrim — Private money on NEAR", template: "%s · Scrim" },
+  title: { default: "Scrim — Money on NEAR, private when you want it", template: "%s · Scrim" },
   description:
-    "Hold, send, swap and get paid privately on NEAR. Set limits, share approvals, and let agents pay within rules you set.",
+    "Hold, send, swap and get paid on NEAR, in public or in private, your choice. Set limits, share approvals, and let agents pay within your rules.",
 };
 
 export const viewport: Viewport = { themeColor: "#151512" };

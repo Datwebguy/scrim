@@ -4,9 +4,9 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Built on NEAR](https://img.shields.io/badge/built%20on-NEAR-000000.svg)](https://near.org)
 
-**Private money for people and businesses, on NEAR.**
+**Money on NEAR, private when you want it.**
 
-Hold, send, swap and get paid, and only you see it. Scrim gives you a private balance on top of [NEAR Intents](https://near-intents.org). Add money from almost any chain, pay anyone on any chain, and prove a single fact to a single person when someone asks. Set spending limits and approvals, alone or with others. Software agents can ask to pay within rules people control, or pay by themselves from a wallet of their own, including for paid APIs over x402. And you can ask about your money in plain words, answered by private AI on NEAR AI Cloud.
+Hold, send, swap and get paid, in public or in private, your choice. Scrim gives you an optional private balance on top of [NEAR Intents](https://near-intents.org). Add money from almost any chain, pay anyone on any chain, and prove a single fact to a single person when someone asks. Set spending limits and approvals, alone or with others. Software agents can ask to pay within rules people control, or pay by themselves from a wallet of their own, including for paid APIs over x402. And you can ask about your money in plain words, answered by AI running in NEAR AI Cloud's secure hardware.
 
 Scrim never holds your keys or your money. You sign in with your own NEAR wallet and approve every move yourself.
 
@@ -43,14 +43,14 @@ You need a NEAR testnet account. Any NEAR wallet can create one for free, for ex
    → `"status": "awaiting_approval"`. Repeat with `"amount":"2"` and a new key: → `"status": "policy_rejected"`, stopped before anyone sees it.
 7. **People approve.** In the account, open the request and tap **Approve with wallet** from each account, then **Pay with my wallet**. → Status moves to *Paid* only after Scrim reads the transfer back from the chain.
 8. **Use it from an AI assistant.** Add Scrim as an MCP server (see [Agents](#agents)) and ask the assistant "what can you still spend?". → It calls `get_limits` and answers with the agent's limits and what is left.
-9. **Private balance (mainnet).** Sign in on **Mainnet** and open **Add money**. Pick a coin and a network. → A one-time deposit address. What you send there lands in your private balance, and the public chain shows nothing about what you hold.
+9. **Private balance (mainnet).** Sign in on **Mainnet** and open **Add money**. Pick a coin and a network. → A one-time deposit address. What you send there lands in your private balance, where the public chain shows nothing about what you hold.
 10. **Get paid by an agent (mainnet).** Make a payment link, then request its agent address:
     ```sh
     curl -i https://scrim-alpha.vercel.app/api/x402/pay/<link code>
     ```
-    → `402 Payment Required` with a `PAYMENT-REQUIRED` header listing USDC and USDT routes on eight chains, all delivered into the link owner's private balance.
+    → `402 Payment Required` with a `PAYMENT-REQUIRED` header listing USDC and USDT routes on eight chains, all delivered where the link owner chose: their private balance or their wallet.
 11. **Ask about your money.** Open **Ask** and tap "What do I hold right now?". → A plain answer from your own records, with **Verified private answer**: the answer was signed inside NEAR AI's secure hardware, by the key its attestation report names.
-12. **An agent that pays by itself (mainnet).** In **Agents → Connect**, choose **Create wallet**, keep **Private**, use **Add funds privately**, then **Let it pay by itself**. → Requests inside the agent's limits go straight to *Paid*, from the agent's private balance, with no approval step.
+12. **An agent that pays by itself (mainnet).** In **Agents → Connect**, choose **Create wallet**, keep **Private**, use **Add funds privately**, then **Let it pay by itself**. → Requests inside the agent's limits go straight to *Paid*, from the agent's wallet (its private balance when set to Private), with no approval step.
 
 ---
 
@@ -75,24 +75,24 @@ You need a NEAR testnet account. Any NEAR wallet can create one for free, for ex
 
 ## Why Scrim
 
-On a public blockchain anyone can see your balance, who paid you and every payment you have sent. That is uncomfortable for a person and unworkable for a business: competitors read your supplier payments, and anyone who pays you can see everything else you hold.
+Public blockchains show everything: your balance, who paid you and every payment you send. That suits some payments, and for others you want more discretion, such as supplier payments or a salary.
 
-Scrim keeps your money private, works across 30+ networks, and lets you show exactly one fact to exactly one person. It is built to be used in minutes, in plain words, by people and teams who are not crypto experts.
+Scrim lets you choose private whenever you want it, and public when you prefer, for each payment. It works across 30+ networks, and lets you show exactly one fact to exactly one person. It is built to be used in minutes, in plain words, by people and teams who are not crypto experts.
 
 ## What you can do
 
 | | |
 | --- | --- |
-| **Private balance** | Your holdings and history live on a private ledger. The public sees nothing. |
-| **Add money** | Pick a coin and a network. You get a one-time address; send from any wallet or exchange and it lands in your private balance. 30+ networks. On EVM chains, **Pay from my wallet** sends it from MetaMask, Rabby or a wallet app's browser in one tap. |
-| **Send** | Pay another NEAR account, or any address on any supported chain. The payment cannot be traced back to your balance. |
-| **Swap** | Trade one coin for another inside your private balance. |
+| **Private balance** | Turn it on and your holdings and history live on a private ledger, so the public sees nothing. |
+| **Add money** | Pick a coin and a network. You get a one-time address; send from any wallet or exchange and it lands in your private balance (or your wallet). 30+ networks. On EVM chains, **Pay from my wallet** sends it from MetaMask, Rabby or a wallet app's browser in one tap. |
+| **Send** | Pay another NEAR account, or any address on any supported chain. Send from your private balance and it cannot be traced back to you, or send from your wallet (public). |
+| **Swap** | Trade one coin for another, in public or inside your private balance. |
 | **Get paid** | Share a payment link. The payer needs no account and can pay from any coin on any chain. |
-| **Sell** | Sell a file, a code, a report or your API to agents (over x402) and people (on a pay page), from any coin on any chain. Each sale lands in your private balance; buyers get what you sell once the payment is confirmed. A sales list shows every sale. |
+| **Sell** | Sell a file, a code, a report or your API to agents (over x402) and people (on a pay page), from any coin on any chain. Each sale lands where you choose, your private balance or your wallet; buyers get what you sell once the payment is confirmed. A sales list shows every sale. |
 | **Proofs** | Show that you hold at least an amount, or that a payment was made, to one named reader. The proof expires (1, 7 or 30 days), can be taken back, and is checked in the reader's browser without revealing your balance or history. |
 | **Accounts with rules** | Approve payments yourself, or share an account where M of N people approve each one. Spending limits for people and agents, and a full history. |
 | **Ask** | Ask about your own money in plain words ("what did we pay suppliers last week?"). Answered by AI running in NEAR AI Cloud's secure hardware; each answer's signature is checked against the hardware's attestation. |
-| **Activity** | Everything you did, in plain words. Private payments are listed only for you; your connected wallet's own transactions are read from the chain. |
+| **Activity** | Everything you did, in plain words. Private payments are listed only for you; your connected wallet's own transactions (public) are read from the chain. |
 | **Agents** | Give software its own key and limits. It asks to pay and people approve, or, with a wallet of its own, it pays by itself within those limits. Agents can pay your links and buy from paid APIs over x402. See [Agents](#agents). |
 
 Mainnet, the real product:
@@ -142,7 +142,7 @@ Choose a network when you sign in. Everything shown is real data from the networ
 | x402: find and buy paid APIs, get paid by agents | — | ✅ |
 | Private agent wallets | — | ✅ |
 
-The private features need NEAR Intents, which only exists on mainnet. On testnet those screens say so plainly. The recommended path is to try Scrim on testnet first, then move to mainnet with a separate account and small amounts.
+Private options need NEAR Intents, which only exists on mainnet; testnet is public. On testnet those screens say so plainly. The recommended path is to try Scrim on testnet first, then move to mainnet with a separate account and small amounts.
 
 On testnet, an account with an agent's requests (one waiting, one paid on-chain, one stopped by its limits), and Activity read from the chain:
 
@@ -277,9 +277,9 @@ Tools: `get_limits`, `request_payment`, `find_paid_apis`, `pay_x402`, `list_paym
 
 <p align="center"><img src="docs/images/x402.png" alt="x402: an agent asks a paid API, gets 402, Scrim checks the limits and pays privately, the API answers" width="720"></p>
 
-**Get paid by agents (x402).** Every payment link also has an agent address, `/api/x402/pay/<code>`, that speaks [x402](https://x402.org) with the `exact` scheme and the `near-intents` upfront method (as proposed in x402-foundation/x402#3370). An agent gets a `402 Payment Required` listing USDC and USDT on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche and Solana, asks for a quote, pays the one-time deposit address, and presents the transaction. NEAR Intents delivers the money into the link owner's private balance, so the payer never sees where it went. Scrim acts as the facilitator: operation tokens are HMAC-bound to the deposit, the resource and the destination, each operation settles once, and refunds go straight back to the payer.
+**Get paid by agents (x402).** Every payment link also has an agent address, `/api/x402/pay/<code>`, that speaks [x402](https://x402.org) with the `exact` scheme and the `near-intents` upfront method (as proposed in x402-foundation/x402#3370). An agent gets a `402 Payment Required` listing USDC and USDT on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche and Solana, asks for a quote, pays the one-time deposit address, and presents the transaction. NEAR Intents delivers the money where the link owner chose: their private balance (the payer never sees where it went) or their wallet. Scrim acts as the facilitator: operation tokens are HMAC-bound to the deposit, the resource and the destination, each operation settles once, and refunds go straight back to the payer.
 
-**Sell with x402.** Open **Sell**, name what you sell, set a price and choose what the buyer gets: a text or link, or your own API (with an optional secret header), which Scrim calls only after the payment is confirmed. Each product gets two addresses: one for agents (`/api/x402/pay/<code>`) and one for people (`/pay/<code>`). It can be bought any number of times. Agents pay with the `near-intents` method above; the 402 answer names the product. On a confirmed payment the agent receives the product in the same response, and presenting the same paid deposit again returns it again rather than charging twice. Sales land in your private balance and appear in the product's **Sales** list (when, paid with what, what arrived), with buyers kept anonymous.
+**Sell with x402.** Open **Sell**, name what you sell, set a price and choose what the buyer gets: a text or link, or your own API (with an optional secret header), which Scrim calls only after the payment is confirmed. Each product gets two addresses: one for agents (`/api/x402/pay/<code>`) and one for people (`/pay/<code>`). It can be bought any number of times. Agents pay with the `near-intents` method above; the 402 answer names the product. On a confirmed payment the agent receives the product in the same response, and presenting the same paid deposit again returns it again rather than charging twice. Sales land in your private balance or your wallet, as you chose, and appear in the product's **Sales** list (when, paid with what, what arrived), with buyers kept anonymous.
 
 **Buy from x402 sellers (agents).** An agent can also *pay* an x402 address, such as a paid API: `POST /api/v1/agent/x402` with `{ "url": "https://…" }`, or the MCP tool `pay_x402`. Scrim reads the seller's `402`, picks a NEAR Intents route (USDC on Base preferred), prices it in USD, and files a payment request named after the seller's web address. The agent's limits apply (the seller's `https://` address must be one of its allowed recipients) and people approve as usual; an agent with its own wallet pays the seller by itself instead, from its private balance by default. When the owner pays, Scrim gets a fresh quote from the seller, never above what was approved, and pays the quoted deposit address with a private withdrawal the owner's wallet signs. Refunds go to the owner's own deposit address, so they return to the private balance. Once NEAR Intents delivers, Scrim presents the payment to the seller and keeps the response for the agent (`GET /api/v1/agent/payments/:id` or `get_payment`). The seller never sees your wallet.
 

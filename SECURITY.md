@@ -35,12 +35,6 @@ NEAR Intents, NEAR AI Cloud, OutLayer and wallets are run by others; report issu
 
 In October 2026 the code was reviewed in four parts: sign-in and web security; every money flow; agents, x402, MCP and webhooks; and the protocol, cryptography and proofs. The review found no critical issues. Every confirmed issue was fixed, with a regression test in [tests/security.test.ts](tests/security.test.ts) that replays the attack.
 
-Known limits, stated plainly:
-
-- Proofs are statements Scrim signs after checking the balance, not zero-knowledge proofs.
-- Approvals and limits are enforced by Scrim's service, not by a NEAR contract (planned).
-- Ask checks that the answer is signed by the key NEAR AI's attestation report names; it does not yet verify the hardware evidence inside that report itself.
-
 ## For operators
 
 Production refuses to start without `SCRIM_SECRET_KEY`, `SCRIM_PROOF_KEY` and `SCRIM_AUTH_RECIPIENT`. Generate the keys with `npm run keys`, store them as sensitive variables, and never reuse development keys.

@@ -3,7 +3,7 @@ import { agentOverview, agentView } from "./agent-api";
 import { agentFromApiKey, type Agent } from "./agents";
 import { HttpError } from "./errors";
 import { createAgentPayment, getAgentPayment, listAgentPayments } from "./payments";
-import { deliverPurchase, requestPurchase } from "./x402-client";
+import { deliverPurchase, findPaidApis, requestPurchase } from "./x402-client";
 import { syncAgentPayout } from "./agent-wallets";
 
 // A Model Context Protocol server (Streamable HTTP, stateless, JSON responses).
@@ -41,10 +41,26 @@ const TOOLS = [
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
   },
   {
+    name: "find_paid_apis",
+    title: "Find paid APIs",
+    description:
+      "Searches the public x402 catalog for paid APIs and data (for example \"weather\", \"company data\", \"translation\"). Each result has its address, price in US dollars, the chains it takes and whether this agent can pay it: \"private\" (paid privately through NEAR Intents), \"wallet\" (paid from this agent's own wallet), or null. Add a result's https:// site to the agent's allowed recipients, then call pay_x402 with its address.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        query: { type: "string", description: "What you're looking for, in a few words." },
+        limit: { type: "integer", description: "Optional. How many results, 1–20 (default 10)." },
+      },
+      required: ["query"],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: true, openWorldHint: true },
+  },
+  {
     name: "pay_x402",
     title: "Buy from an x402 seller",
     description:
-      "Asks the team to pay an x402 (HTTP 402) address, such as a paid API. Scrim reads the seller's price, checks it against this agent's limits (the seller's https:// address must be an allowed recipient), and files a payment request for people to approve. Once paid, call get_payment to read what the seller returned.",
+      "Buys from an x402 (HTTP 402) address, such as a paid API. Scrim reads the seller's price and checks it against this agent's limits (the seller's https:// address must be an allowed recipient). People approve it, or, if this agent pays by itself, Scrim pays at once from its own wallet. Call get_payment to follow it and read what the seller returned.",
     inputSchema: {
       type: "object",
       properties: {
@@ -97,7 +113,10 @@ async function callTool(agent: Agent, name: string, args: Record<string, unknown
       case "pay_x402": {
         const { payment, purchase } = await requestPurchase(agent, String(args.url ?? ""), String(args.idempotency_key ?? `mcp-${randomUUID()}`));
         const view = agentView(payment);
-        return toolResult({ payment: view, purchase, next: view.status === "policy_rejected" ? "Stopped: outside this agent's limits." : "Waiting for people on the team to approve and pay. Then call get_payment." });
+        return toolResult({ payment: view, purchase, next: view.status === "policy_rejected" ? "Stopped: outside this agent's limits." : agent.mode === "autonomous" ? "Paying from this agent's wallet. Call get_payment in a moment to read what the seller returned." : "Waiting for people on the team to approve and pay. Then call get_payment." });
+      }
+      case "find_paid_apis": {
+        return toolResult({ results: await findPaidApis(String(args.query ?? ""), Number(args.limit ?? 10)) });
       }
       case "list_payments":
         return toolResult({ payments: (await listAgentPayments(agent)).map(agentView) });

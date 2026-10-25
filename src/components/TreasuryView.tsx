@@ -843,7 +843,7 @@ function ConnectGuide({ apiKey }: { apiKey: string }) {
       </div>
       {how === "ai" ? (
         <>
-          <p className="muted">Add Scrim as a tool (MCP server) in Claude or any assistant that supports MCP. It can check its limits, ask to pay, and buy from paid APIs with the pay_x402 tool.</p>
+          <p className="muted">Add Scrim as a tool (MCP server) in Claude or any assistant that supports MCP. It can check its limits, ask to pay, find paid APIs with find_paid_apis and buy them with pay_x402.</p>
           <div className="code"><pre>{mcp}</pre></div>
         </>
       ) : how === "code" ? (
@@ -853,7 +853,7 @@ function ConnectGuide({ apiKey }: { apiKey: string }) {
         </>
       ) : (
         <>
-          <p className="muted">Buy from any address that asks for payment over x402 (HTTP 402), such as a paid API. Add the seller&apos;s https:// address to the agent&apos;s allowed recipients first. Scrim checks the price against the limits, pays privately, and keeps what the seller returns: read it with GET /api/v1/agent/payments/&lt;id&gt;.</p>
+          <p className="muted">Buy from any address that asks for payment over x402 (HTTP 402), such as a paid API. Add the seller&apos;s https:// address to the agent&apos;s allowed recipients first. Scrim checks the price against the limits, pays, and keeps what the seller returns: read it with GET /api/v1/agent/payments/&lt;id&gt;. Find sellers with GET /api/v1/agent/x402/search?q=weather. Most sellers take standard payments, which an agent pays from its own wallet.</p>
           <div className="code"><pre>{buy}</pre></div>
         </>
       )}

@@ -100,7 +100,7 @@ describe("MCP server", () => {
     expect((await call({ jsonrpc: "2.0", method: "notifications/initialized" })).status).toBe(202);
     expect((await call({ jsonrpc: "2.0", id: 2, method: "tools/list" }, "scrim_sk_notakey")).status).toBe(401);
     const tools = (await call({ jsonrpc: "2.0", id: 3, method: "tools/list" })).body as { result: { tools: { name: string }[] } };
-    expect(tools.result.tools.map((t) => t.name)).toEqual(["get_limits", "request_payment", "pay_x402", "list_payments", "get_payment"]);
+    expect(tools.result.tools.map((t) => t.name)).toEqual(["get_limits", "request_payment", "find_paid_apis", "pay_x402", "list_payments", "get_payment"]);
   });
 
   it("asks to pay through a tool, and the request follows the same limits", async () => {

@@ -1,10 +1,12 @@
 "use client";
 import { useState } from "react";
 import { api } from "@/client/api";
+import { useApi } from "@/client/use-api";
 import { Heading } from "./money";
 import { Spinner } from "./ui";
 
 type Answer = {
+  left: number;
   answer: string;
   model: string;
   verification: { signed: boolean; attested: boolean; signingAddress: string | null; chatId: string; detail: string };
@@ -18,6 +20,8 @@ export function Ask() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<{ question: string; answer: Answer } | null>(null);
+  const { data: allowance } = useApi<{ perDay: number; left: number }>("/ask");
+  const left = result?.answer.left ?? allowance?.left;
 
   async function submit(q: string) {
     if (!q.trim()) return;
@@ -47,7 +51,10 @@ export function Ask() {
             <button key={s} type="button" className="chip" disabled={busy} onClick={() => void submit(s)}>{s}</button>
           ))}
         </div>
-        <button className="btn btn-primary" style={{ justifySelf: "start" }} disabled={busy || !question.trim()}>{busy ? <><Spinner /> Thinking privately…</> : "Ask"}</button>
+        <div className="between">
+          <button className="btn btn-primary" disabled={busy || !question.trim() || left === 0}>{busy ? <><Spinner /> Thinking privately…</> : "Ask"}</button>
+          {left !== undefined && <small className="muted">{left === 0 ? "No questions left today" : `${left} question${left === 1 ? "" : "s"} left today`}</small>}
+        </div>
         {error && <div className="notice danger">{error}</div>}
       </form>
 

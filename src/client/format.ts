@@ -14,12 +14,12 @@ export function relativeTime(input: string | Date) {
 }
 
 export const STATUS_LABEL: Record<string, string> = {
-  policy_rejected: "Blocked by policy",
-  awaiting_approval: "Awaiting approval",
+  policy_rejected: "Stopped by limits",
+  awaiting_approval: "Waiting for approval",
   approved: "Approved",
-  quoted: "Quote ready",
-  submitting: "Submitting",
-  settled: "Settled",
+  quoted: "Price ready",
+  submitting: "Sending",
+  settled: "Paid",
   failed: "Failed",
   expired: "Expired",
   cancelled: "Cancelled",

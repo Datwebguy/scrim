@@ -73,7 +73,7 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
               {treasury.thresholdRequired} of {treasury.signers.length} approvals
             </span>
             <span className="pill plain">{treasury.unit.routeLabel}</span>
-            <span className="pill plain">Pays out privately</span>
+            {treasury.network === "mainnet" && <span className="pill plain">Pays out privately</span>}
             <span className="pill plain">{role === "owner" ? "You own this account" : "You are an approver"}</span>
           </div>
         </div>
@@ -562,7 +562,7 @@ function Agents({ agents, payments, role, unit, onCreate, onEdit, onToggle, onCo
       <div className="card empty">
         <span className="icon">⌁</span>
         <h3>No agents yet</h3>
-        <p>An agent is software that pays on your behalf. It gets its own key and spending limits: who it may pay, how much each time, and how much per day. It can ask to pay. It can never approve.</p>
+        <p>An agent is software that pays on your behalf. It gets its own key and spending limits: who it may pay, how much each time, and how much per day. It can ask to pay, and buy from paid APIs over x402. With a wallet of its own, it can pay by itself within those limits. It can never approve.</p>
         {role === "owner" && (
           <button className="btn btn-primary" onClick={onCreate}>
             Add your first agent
@@ -619,11 +619,11 @@ function Agents({ agents, payments, role, unit, onCreate, onEdit, onToggle, onCo
               </div>
             </div>
             <div>
-              <span className="section-label">Approved counterparties</span>
+              <span className="section-label">Allowed recipients</span>
               <div className="chips">
                 {agent.policy.counterparties.map((c) => (
                   <span key={c.address} className="chip" title={c.address}>
-                    {c.label} <code>{short(c.address, 4, 4)}</code>
+                    {c.label} <code>{c.address.startsWith("https://") ? new URL(c.address).host : short(c.address, 4, 4)}</code>
                   </span>
                 ))}
               </div>
@@ -742,8 +742,8 @@ function AgentDialog({ state, treasuryId, unit, onClose, onSaved }: { state: { m
           </select>
         </label>
         <div className="field">
-          Approved counterparties
-          <small>{unit.recipientLabel.replace(/^a /, "")}es this agent may pay{unit.symbol === "NEAR" ? "" : ", or https:// sellers it may buy from (x402)"}. Anything else is blocked automatically.</small>
+          Allowed recipients
+          <small>{plural(unit.recipientLabel.replace(/^an? /, ""))} this agent may pay{unit.symbol === "NEAR" ? "" : ", or https:// sellers it may buy from (x402)"}. Anything else is blocked automatically.</small>
           {counterparties.map((c, i) => (
             <div key={i} className="counterparty-row">
               <input className="input" value={c.label} onChange={(e) => setCounterparties((list) => list.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="Label" maxLength={60} />
@@ -818,8 +818,10 @@ function Secret({ value }: { value: string }) {
 }
 
 // How to plug an agent in: as a tool for an AI assistant (MCP), or from any code over HTTPS.
+const plural = (noun: string) => (/(s|x|ch|sh)$/.test(noun) ? `${noun}es` : `${noun}s`);
+
 function ConnectGuide({ apiKey }: { apiKey: string }) {
-  const [how, setHow] = useState<"ai" | "code">("ai");
+  const [how, setHow] = useState<"ai" | "code" | "x402">("ai");
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const mcp = JSON.stringify({ mcpServers: { scrim: { type: "http", url: `${origin}/api/mcp`, headers: { Authorization: `Bearer ${apiKey}` } } } }, null, 2);
   const curl = `curl -X POST ${origin}/api/v1/agent/payments \\
@@ -827,21 +829,32 @@ function ConnectGuide({ apiKey }: { apiKey: string }) {
   -H "Idempotency-Key: <unique-id>" \\
   -H "Content-Type: application/json" \\
   -d '{"recipient":"<recipient>","amount":"<amount>","memo":"<what it is for>"}'`;
+  const buy = `curl -X POST ${origin}/api/v1/agent/x402 \\
+  -H "Authorization: Bearer ${apiKey}" \\
+  -H "Idempotency-Key: <unique-id>" \\
+  -H "Content-Type: application/json" \\
+  -d '{"url":"https://<paid-api>/<path>"}'`;
   return (
     <div className="connect-guide">
       <div className="seg" role="tablist">
         <button role="tab" aria-selected={how === "ai"} onClick={() => setHow("ai")}>AI assistant</button>
         <button role="tab" aria-selected={how === "code"} onClick={() => setHow("code")}>Your code</button>
+        <button role="tab" aria-selected={how === "x402"} onClick={() => setHow("x402")}>Paid APIs</button>
       </div>
       {how === "ai" ? (
         <>
-          <p className="muted">Add Scrim as a tool (MCP server) in Claude or any assistant that supports MCP. It can check its limits and ask to pay. People still approve.</p>
+          <p className="muted">Add Scrim as a tool (MCP server) in Claude or any assistant that supports MCP. It can check its limits, ask to pay, and buy from paid APIs with the pay_x402 tool.</p>
           <div className="code"><pre>{mcp}</pre></div>
         </>
-      ) : (
+      ) : how === "code" ? (
         <>
           <p className="muted">Ask to pay from any program. Check its limits with GET /api/v1/agent and a request with GET /api/v1/agent/payments/&lt;id&gt;.</p>
           <div className="code"><pre>{curl}</pre></div>
+        </>
+      ) : (
+        <>
+          <p className="muted">Buy from any address that asks for payment over x402 (HTTP 402), such as a paid API. Add the seller&apos;s https:// address to the agent&apos;s allowed recipients first. Scrim checks the price against the limits, pays privately, and keeps what the seller returns: read it with GET /api/v1/agent/payments/&lt;id&gt;.</p>
+          <div className="code"><pre>{buy}</pre></div>
         </>
       )}
     </div>

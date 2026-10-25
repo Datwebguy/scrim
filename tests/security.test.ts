@@ -14,6 +14,7 @@ import { sql } from "@/server/db";
 import { createAgentPayment, getPayment, markTeamRequest } from "@/server/payments";
 import { isPrivateAddress } from "@/server/safe-fetch";
 import { createTreasury } from "@/server/treasuries";
+import { claimForSigning } from "@/server/x402-client";
 import { onlyChosen, payableByWallet } from "@/server/x402-wallet";
 import { mainnetImplicitWallet, resetDatabase, signInAs } from "./live";
 
@@ -50,6 +51,15 @@ describe("transfers: the intent to sign must match the quote", () => {
 
   it("accepts the quoted transfer", () => {
     expect(intentMatchesQuote({ message: message([transfer(deposit, { "nep141:usdc.near": "1000000" })]), nonce }, expect_)).toBe(true);
+  });
+  it("refuses any other kind of intent, a second intent or a second coin", () => {
+    const ok = transfer(deposit, { "nep141:usdc.near": "1000000" });
+    expect(intentMatchesQuote({ message: message([{ intent: "add_public_key", public_key: "ed25519:x" }]), nonce }, expect_)).toBe(false);
+    expect(intentMatchesQuote({ message: message([{ intent: "ft_withdraw", token: "usdc.near", receiver_id: deposit, amount: "999999999999" }]), nonce }, expect_)).toBe(false);
+    expect(intentMatchesQuote({ message: message([{ intent: "native_withdraw", receiver_id: deposit, amount: "1" }]), nonce }, expect_)).toBe(false);
+    expect(intentMatchesQuote({ message: message([ok, ok]), nonce }, expect_)).toBe(false);
+    expect(intentMatchesQuote({ message: message([transfer(deposit, { "nep141:usdc.near": "1", "nep141:wrap.near": "1" })]), nonce }, expect_)).toBe(false);
+    expect(intentMatchesQuote({ message: message([transfer(deposit, { "nep141:usdc.near": "0" })]), nonce }, expect_)).toBe(false);
   });
   it("refuses another receiver, a bigger amount, another coin, a late deadline or a bad nonce", () => {
     expect(intentMatchesQuote({ message: message([transfer("attacker.near", { "nep141:usdc.near": "1000000" })]), nonce }, expect_)).toBe(false);
@@ -105,6 +115,22 @@ describe("accounts and payment requests", () => {
     expect(await spent()).toBe(0n); // failed, and no money could have left
     await sql`INSERT INTO x402_purchases (request_id, url, entry, status, route, signed_at) VALUES (${payment.id}, 'https://api.example.com/x', ${sql.json({})}, 'failed', 'wallet', now())`;
     expect(await spent()).toBe(2_000_000n); // a seller's payment was signed: it counts
+  });
+
+  it("lets exactly one caller claim a wallet purchase for signing, and never after it was signed", async () => {
+    const team = await createTreasury(session, { name: "Signers", kind: "individual", signers: [], threshold: 1 });
+    const { apiKey } = await createAgent(session, team.id, { name: "Buyer", perActionCap: "5", rollingCap: "20", windowHours: 24, counterparties: [{ address: "https://api.example.com", label: "Example" }] });
+    const agent = await agentFromApiKey(`Bearer ${apiKey}`);
+    const payment = await createAgentPayment(agent, { recipient: "https://api.example.com", amount: "1", idempotencyKey: "sec-0004-claim", x402: true });
+    await sql`INSERT INTO x402_purchases (request_id, url, entry, status, route) VALUES (${payment.id}, 'https://api.example.com/x', ${sql.json({})}, 'requested', 'wallet')`;
+    // Two overlapping steps read "requested": one wins, one gets nothing.
+    expect(await Promise.all([claimForSigning(payment.id, "requested"), claimForSigning(payment.id, "requested")])).toEqual(expect.arrayContaining([true, false]));
+    // Once signed, even a purchase put back to "requested" is never claimed again.
+    await sql`UPDATE x402_purchases SET status = 'requested', signed_at = now() WHERE request_id = ${payment.id}`;
+    expect(await claimForSigning(payment.id, "requested")).toBe(false);
+    // A failed purchase is never re-signed.
+    await sql`UPDATE x402_purchases SET status = 'failed', signed_at = NULL WHERE request_id = ${payment.id}`;
+    expect(await claimForSigning(payment.id, "failed")).toBe(false);
   });
 
   it("lets only the transfer paying a request settle, fail or reopen it", async () => {

@@ -504,7 +504,7 @@ export async function createLinkPayment(link: { id: string; accountId: string; n
   const from = await assetById(String(input.fromAssetId ?? ""));
   const to = await assetById(link.assetId);
   const refundTo = checkAddress(from, String(input.refundAddress ?? ""));
-  const [{ open: openAttempts }] = await sql<{ open: number }[]>`SELECT count(*)::int AS open FROM transfers WHERE pay_link_id = ${link.id} AND status = 'awaiting_deposit' AND expires_at > now()`;
+  const [{ open: openAttempts }] = await sql<{ open: number }[]>`SELECT count(*)::int AS open FROM transfers WHERE pay_link_id = ${link.id} AND ((status = 'awaiting_deposit' AND expires_at > now()) OR status = 'processing')`;
   // A product is bought by many people at once; a one-off link has one payer.
   const [{ product }] = await sql<{ product: boolean }[]>`SELECT product_sealed IS NOT NULL AS product FROM pay_links WHERE id = ${link.id}`;
   // A one-off link is paid once: while someone is paying it, nobody else can start (a second payment would

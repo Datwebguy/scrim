@@ -10,7 +10,7 @@ import type { Network } from "@/protocol/networks";
 import { audit } from "./audit";
 import type { Session } from "./auth";
 import { sql } from "./db";
-import { badRequest, conflict, notFound } from "./errors";
+import { badRequest, conflict, HttpError, notFound } from "./errors";
 import { finalTransaction } from "./near-rpc";
 import { emitPaymentEvent } from "./notify";
 import * as outlayer from "./outlayer";
@@ -190,7 +190,11 @@ async function autoPay(requestId: string) {
     }
     await syncAgentPayout(requestId);
   } catch (error) {
-    await finish(requestId, "failed", (error as Error).message);
+    // Refused before anything was sent (a 4xx): failed. Anything else (a timeout, a 5xx, a dropped
+    // connection) may have reached the wallet, which can still send under its idempotency key: a person
+    // checks it, and it keeps counting against the agent's limits meanwhile.
+    const refused = error instanceof HttpError && error.status < 500;
+    await finish(requestId, refused ? "failed" : "needs_review", (error as Error).message);
   }
 }
 

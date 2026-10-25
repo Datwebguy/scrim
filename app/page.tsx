@@ -83,7 +83,7 @@ export default async function Home() {
         <section className="section l-story" id="agents">
           <div className="wrap">
             <Row eyebrow="Agents" title="Let software pay. Within your rules." text="Give an agent its own key and spending limits. It asks and people approve, or it pays by itself from a wallet of its own. Anything outside the limits is stopped." flip><AgentScene /></Row>
-            <Row eyebrow="x402" title="Pay for APIs. Get paid by agents." text="Agents find paid APIs and data, and pay them on Base, Solana and six more chains, within your limits. Their wallet is topped up privately, so sellers never see whose money it is. Other agents pay your links the same way."><X402Scene /></Row>
+            <Row eyebrow="x402" title="Pay for APIs. Get paid by agents." text="Agents find paid APIs and data, and pay them on Base, Solana and six more chains, within your limits. Their wallet is topped up privately, so sellers never see whose money it is. And you can sell to agents too: a file, a report or your API, paid into your private balance."><X402Scene /></Row>
           </div>
         </section>
 

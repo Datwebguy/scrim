@@ -9,8 +9,8 @@ import { badRequest, HttpError, notFound } from "./errors";
 import { open, seal } from "./secrets";
 
 const ALPHABET = "abcdefghjkmnpqrstvwxyz23456789"; // no look-alike characters
-const newCode = () => Array.from(randomBytes(10), (b) => ALPHABET[b % ALPHABET.length]).join("");
-const aad = (code: string, account: string) => `paylink:${code}:${account}`;
+export const newCode = () => Array.from(randomBytes(10), (b) => ALPHABET[b % ALPHABET.length]).join("");
+export const linkAad = (code: string, account: string) => `paylink:${code}:${account}`;
 
 export type PayLink = {
   code: string; assetId: string; symbol: string; chainName: string; amount: string; display: string;
@@ -21,7 +21,7 @@ type Row = { id: string; account_id: string; network: Network; asset_id: string;
 
 async function toLink(row: Row): Promise<PayLink> {
   const asset = await assetById(row.asset_id);
-  const { note } = open<{ note: string }>(row.details_sealed, aad(row.id, row.account_id));
+  const { note } = open<{ note: string }>(row.details_sealed, linkAad(row.id, row.account_id));
   return {
     code: row.id, assetId: asset.assetId, symbol: asset.symbol, chainName: asset.chainName, amount: row.amount,
     display: formatAmount(BigInt(row.amount), asset.decimals, 2), note,
@@ -45,14 +45,14 @@ export async function createPayLink(session: Session, input: { assetId: string; 
   const code = newCode();
   await sql.begin(async (tx) => {
     await tx`INSERT INTO pay_links (id, account_id, network, asset_id, amount, details_sealed, expires_at)
-      VALUES (${code}, ${session.accountId}, ${session.network}, ${asset.assetId}, ${amount.toString()}, ${seal({ note }, aad(code, session.accountId))}, now() + make_interval(days => ${days}))`;
+      VALUES (${code}, ${session.accountId}, ${session.network}, ${asset.assetId}, ${amount.toString()}, ${seal({ note }, linkAad(code, session.accountId))}, now() + make_interval(days => ${days}))`;
     await audit(tx, null, { type: "human", id: session.accountId }, "link.created", code);
   });
   return toLink((await sql<Row[]>`SELECT * FROM pay_links WHERE id = ${code}`)[0]);
 }
 
 export async function listPayLinks(session: Session): Promise<PayLink[]> {
-  const rows = await sql<Row[]>`SELECT * FROM pay_links WHERE account_id = ${session.accountId} AND network = ${session.network} ORDER BY created_at DESC LIMIT 100`;
+  const rows = await sql<Row[]>`SELECT * FROM pay_links WHERE account_id = ${session.accountId} AND network = ${session.network} AND product_sealed IS NULL ORDER BY created_at DESC LIMIT 100`;
   return Promise.all(rows.map(toLink));
 }
 

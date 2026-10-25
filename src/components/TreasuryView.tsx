@@ -10,13 +10,14 @@ import type { Agent } from "@/server/agents";
 import type { Payment } from "@/server/payments";
 import type { Treasury, TreasuryRole } from "@/server/treasuries";
 import type { PurchaseDetails } from "@/server/x402-client";
+import { Receipts } from "./Receipts";
 import { useSession } from "./session";
 import { TelegramAlerts } from "./TelegramAlerts";
 import { Initials, Modal, newIdempotencyKey, Spinner, StatusPill, useToast } from "./ui";
 
 type AuditEvent = { id: string; actor_type: string; actor_id: string; action: string; subject_id: string | null; data: Record<string, unknown>; created_at: string };
 type Data = { treasury: Treasury; role: TreasuryRole; agents: Agent[]; payments: Payment[]; audit: AuditEvent[] };
-type Tab = "requests" | "agents" | "signers" | "audit";
+type Tab = "requests" | "receipts" | "agents" | "signers" | "audit";
 
 type Unit = Treasury["unit"];
 const amountIn = (minor: string | bigint, unit: Unit) => formatAmount(BigInt(minor), unit.decimals);
@@ -123,6 +124,7 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
         {(
           [
             ["requests", "Payments", payments.length],
+            ["receipts", "Receipts", payments.filter((p) => p.status === "settled").length],
             ["agents", "Agents", agents.length],
             ["signers", "People", treasury.signers.length],
             ["audit", "History", audit.length],
@@ -138,6 +140,7 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
       <TelegramAlerts />
 
       {tab === "requests" && <Requests payments={payments} treasury={treasury} onOpen={setSelected} onNew={() => setPaying(true)} />}
+      {tab === "receipts" && <Receipts payments={payments} treasury={treasury} />}
       {tab === "agents" && (
         <Agents
           agents={agents}

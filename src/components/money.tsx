@@ -48,7 +48,7 @@ function sortForPicking(assets: AssetInfo[]) {
 }
 
 // Choose a coin and the chain it lives on from one searchable list, each with its real logo.
-export function AssetPicker({ label, assets, value, onChange, hint }: { label: string; assets: AssetInfo[]; value: string; onChange: (assetId: string) => void; hint?: string }) {
+export function AssetPicker({ label, assets, value, onChange, hint, empty }: { label: string; assets: AssetInfo[]; value: string; onChange: (assetId: string) => void; hint?: string; empty?: string }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const box = useRef<HTMLDivElement>(null);
@@ -79,7 +79,7 @@ export function AssetPicker({ label, assets, value, onChange, hint }: { label: s
       <button type="button" className="picker-button" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         {current ? (
           <><TokenLogo icon={current.icon} symbol={current.symbol} chainIcon={current.chainIcon} /><span><b>{current.symbol}</b><small>{current.chainName}</small></span></>
-        ) : <span className="muted">Loading coins…</span>}
+        ) : <span className="muted">{empty ?? "Loading coins…"}</span>}
         <span className="picker-caret" aria-hidden="true">▾</span>
       </button>
       {open && (

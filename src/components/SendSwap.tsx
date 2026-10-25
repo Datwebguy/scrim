@@ -106,7 +106,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
       {!transfer ? (
         <form className="card card-pad form-grid" onSubmit={(e) => { e.preventDefault(); getPrice(); }}>
           <AssetPicker label={mode === "swap" ? "You pay with" : mode === "address" ? "Take from your balance" : "Coin to send"} assets={fromAssets} value={fromId} onChange={setFromId}
-            hint={held ? `You hold ${held.display} ${held.symbol}` : undefined} />
+            hint={held ? `You hold ${held.display} ${held.symbol}` : undefined} empty={priv?.status === "active" && holdings.length === 0 ? "No coins yet" : undefined} />
           {mode === "swap" && <AssetPicker label="You get" assets={assets.filter((a) => a.assetId !== fromId)} value={toId} onChange={setToId} />}
           {mode === "person" && (
             <label className="field">Send to<small>Their NEAR account, ending in .near</small>

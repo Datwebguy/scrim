@@ -206,3 +206,11 @@ describe("agents paying by themselves", () => {
     await expect(setAutonomous(signer, agentId, false)).rejects.toThrow();
   });
 });
+
+describe("private or public agent wallets", () => {
+  it("needs a wallet before choosing, and only mainnet has private balances", async () => {
+    const { setWalletPrivate, privateFundingAddress } = await import("@/server/agent-wallets");
+    await expect(setWalletPrivate(ownerSession, agentId, true)).rejects.toThrow(/wallet first/);
+    await expect(privateFundingAddress(ownerSession, agentId, "base", "5")).rejects.toThrow(/mainnet/);
+  });
+});

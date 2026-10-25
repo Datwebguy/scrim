@@ -206,9 +206,9 @@ function walletChainOf(network: string): string | null {
   return evm[network] ?? (network === SOLANA_MAINNET ? "solana" : null);
 }
 
-// An agent that pays by itself: USDC from its own wallet's NEAR Intents balance to the quoted deposit
-// address. Refunds go back to the agent's own address on that chain.
-export async function payPurchaseFromWallet(requestId: string, network: Network, apiKey: string): Promise<outlayer.WalletRequest> {
+// An agent that pays by itself: USDC from its own wallet (private balance by default) to the quoted
+// deposit address. Refunds go back to the agent's own address on that chain.
+export async function payPurchaseFromWallet(requestId: string, network: Network, apiKey: string, fromPrivate: boolean): Promise<outlayer.WalletRequest> {
   const row = await purchaseRow(requestId);
   const chain = walletChainOf(row.entry.network);
   if (!chain) throw badRequest("The agent's wallet can't pay on this seller's chain.");
@@ -216,7 +216,7 @@ export async function payPurchaseFromWallet(requestId: string, network: Network,
   const { quoted, asset } = await freshQuote(row, request.amount, async () => (await outlayer.address(network, apiKey, chain === "solana" ? "solana" : "ethereum")).address);
   try {
     if (asset.symbol !== "USDC") throw badRequest("The agent's wallet pays sellers in USDC only.");
-    return await outlayer.withdraw(network, apiKey, { to: quoted.payTo, amount: quoted.amount, token: `nep141:${outlayer.USDC[network]}`, chain }, `scrim-${requestId}`);
+    return await (fromPrivate ? outlayer.privateWithdraw : outlayer.withdraw)(network, apiKey, { to: quoted.payTo, amount: quoted.amount, token: `nep141:${outlayer.USDC[network]}`, chain }, `scrim-${requestId}`);
   } catch (error) {
     await unpay(requestId);
     throw error;

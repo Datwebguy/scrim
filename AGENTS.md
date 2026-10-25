@@ -1,9 +1,9 @@
 # Connecting an agent to Scrim
 
-An **agent** is software that pays on a team's behalf: an AI assistant, a payroll script, a billing job. In Scrim an agent can **ask** to pay. People approve.
+An **agent** is software that pays on your behalf: an AI assistant, a payroll script, a billing job. In Scrim an agent **asks** to pay and people approve, or, with a wallet of its own, pays by itself within its limits.
 
 ## The agent's key
-When an owner adds an agent (Team → Agents → Add agent), Scrim shows a key once: `scrim_sk_…`. The software sends it as `Authorization: Bearer scrim_sk_…`.
+When an owner adds an agent (Accounts → Agents → Add agent), Scrim shows a key once: `scrim_sk_…`. The software sends it as `Authorization: Bearer scrim_sk_…`.
 
 - It can only ask to pay within the agent's limits: per payment, per time window, allowed recipients, optional expiry.
 - It cannot approve, change limits or move money. It is not a wallet key.
@@ -51,7 +51,7 @@ Set an `https://` address under **Connect**. Scrim POSTs when a request is `paym
 Each delivery has `Scrim-Signature: t=<unix seconds>,v1=<hex>` where `v1 = HMAC-SHA256(signing secret, "<t>.<raw body>")`. The signing secret (`whsec_…`) is shown once when you save the address. Reject deliveries whose signature doesn't match or whose `t` is more than 5 minutes old.
 
 ## Alerts for people
-Approvers tap **Connect Telegram** on the Team screen to get a message whenever a payment needs them. The site owner sets `TELEGRAM_BOT_TOKEN` and `TELEGRAM_BOT_USERNAME`.
+Approvers tap **Connect Telegram** on the Accounts screen to get a message whenever a payment needs them. The site owner sets `TELEGRAM_BOT_TOKEN` and `TELEGRAM_BOT_USERNAME`.
 
 <!-- BEGIN:nextjs-agent-rules -->
 

@@ -240,7 +240,7 @@ const unpay = (requestId: string) => sql`UPDATE x402_purchases SET status = 'req
 // Refunds go to the owner's own deposit address on that chain, which forwards into the private balance.
 export async function payPurchase(session: Session, request: Payment): Promise<Transfer> {
   const row = await purchaseRow(request.id);
-  if (row.route === "wallet") throw badRequest("This seller is paid from the agent's own wallet, not the team balance.");
+  if (row.route === "wallet") throw badRequest("This seller is paid from the agent's own wallet, not the account balance.");
   const { quoted, asset } = await freshQuote(row, request.amount, async (entry) => (await oneclick.bridgeDepositAddress(session.accountId, originChainOf(entry.network)!)).address);
   try {
     return await createTransfer(session, {

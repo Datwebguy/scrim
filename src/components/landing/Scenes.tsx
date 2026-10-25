@@ -105,7 +105,7 @@ export function PaidScene({ nets }: { nets: Net[] }) {
   );
 }
 
-/* Teams: a request moves through limits and approvals. */
+/* Accounts with rules: a request moves through limits and approvals. */
 export function TeamScene() {
   const steps = ["Request", "Limits check", "Approvals", "Paid & recorded"];
   const { ref, step } = useLoop(steps.length + 1, 1200);
@@ -153,7 +153,7 @@ export function AgentScene() {
         <span className={phase >= 1 ? (r.ok || r.label !== "Recipient not on the list" ? "pass" : "fail") : ""}>Allowed recipients</span>
       </div>
       <div className={`sc-agent-out ${phase === 2 ? (r.ok ? "ok" : "stop") : ""}`} key={step}>
-        {phase < 2 ? r.label : r.ok ? "✓ Sent to your team to approve" : "✕ Stopped before anyone sees it"}
+        {phase < 2 ? r.label : r.ok ? "✓ Sent to you to approve" : "✕ Stopped before anyone sees it"}
       </div>
     </div>
   );

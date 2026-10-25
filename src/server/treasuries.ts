@@ -46,7 +46,7 @@ export type CreateTreasuryInput = { name: string; kind: "individual" | "team"; s
 
 export async function createTreasury(session: Session, input: CreateTreasuryInput): Promise<Treasury> {
   const name = input.name.trim();
-  if (!name || name.length > 80) throw badRequest("Name your treasury (up to 80 characters).");
+  if (!name || name.length > 80) throw badRequest("Name your account (up to 80 characters).");
   const others = new Set<string>();
   for (const raw of input.kind === "team" ? input.signers : []) {
     const id = normalizeNearAccount(raw);
@@ -55,7 +55,7 @@ export async function createTreasury(session: Session, input: CreateTreasuryInpu
   }
   const total = others.size + 1;
   if (input.kind === "team" && total < 2) throw badRequest("A team treasury needs at least one other signer.");
-  if (total > 20) throw badRequest("A treasury can have at most 20 signers.");
+  if (total > 20) throw badRequest("An account can have at most 20 approvers.");
   const threshold = input.kind === "individual" ? 1 : (input.threshold ?? Math.min(2, total));
   if (!Number.isInteger(threshold) || threshold < 1 || threshold > total) throw badRequest(`Approval threshold must be between 1 and ${total}.`);
 
@@ -81,15 +81,15 @@ export async function listTreasuries(session: Session): Promise<Treasury[]> {
 // Loads a treasury only when the caller is one of its signers. Non-members get 404, not 403,
 // so treasury IDs do not leak membership.
 export async function treasuryForMember(tx: Tx, accountId: string, treasuryId: string, network?: string): Promise<{ treasury: Treasury; role: TreasuryRole }> {
-  if (!/^[0-9a-f-]{36}$/i.test(treasuryId)) throw notFound("Treasury not found.");
+  if (!/^[0-9a-f-]{36}$/i.test(treasuryId)) throw notFound("Account not found.");
   const rows = await tx<TreasuryRow[]>`
     SELECT t.* FROM treasuries t JOIN treasury_signers s ON s.treasury_id = t.id
     WHERE t.id = ${treasuryId} AND s.account_id = ${accountId} AND (${network ?? null}::text IS NULL OR t.network = ${network ?? null})`;
-  if (!rows[0]) throw notFound("Treasury not found.");
+  if (!rows[0]) throw notFound("Account not found.");
   const [treasury] = await hydrate(tx, rows);
   return { treasury, role: treasury.signers.find((s) => s.accountId === accountId)!.role };
 }
 
 export function requireOwner(role: TreasuryRole) {
-  if (role !== "owner") throw forbidden("Only the treasury owner can change agent mandates.");
+  if (role !== "owner") throw forbidden("Only the account owner can change an agent's limits.");
 }

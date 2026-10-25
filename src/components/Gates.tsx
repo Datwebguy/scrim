@@ -9,7 +9,7 @@ export function MainnetOnly({ feature }: { feature: string }) {
     <div className="narrow">
       <Heading eyebrow={feature} title={`${feature} is on mainnet`} />
       <div className="card card-pad form-grid">
-        <p className="muted">Practice on testnet with team approvals and spending limits. Switch to mainnet when you're ready for private money.</p>
+        <p className="muted">Practice on testnet with approvals, spending limits and agents. Switch to mainnet when you're ready for private money.</p>
         <button className="btn btn-primary" style={{ justifySelf: "start" }} onClick={() => switchNetwork("mainnet")}>Use mainnet</button>
       </div>
     </div>

@@ -25,7 +25,7 @@ export function CreateTreasuryForm({ onCreated, compact = false }: { onCreated?:
         body: { name, kind, signers: signerList, threshold: kind === "team" ? Math.min(threshold, total) : 1 },
       });
       onCreated?.();
-      router.push(`/app/team/${treasury.id}`);
+      router.push(`/app/accounts/${treasury.id}`);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not create the account.");
@@ -43,7 +43,7 @@ export function CreateTreasuryForm({ onCreated, compact = false }: { onCreated?:
         </label>
         <label>
           <input type="radio" name="kind" checked={kind === "team"} onChange={() => setKind("team")} />
-          <b>Team</b>
+          <b>Shared</b>
           <span>Several people approve together.</span>
         </label>
       </div>

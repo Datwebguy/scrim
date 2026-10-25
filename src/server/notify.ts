@@ -109,19 +109,19 @@ async function telegramAlerts(row: EventRow, network: Network, event: PaymentEve
   const unit = corridorFor(network);
   const amount = `${formatAmount(BigInt(row.amount), unit.decimals)} ${unit.symbol}`;
   const who = row.created_by_type === "agent" ? `Agent <b>${escapeHtml(row.agent_name ?? "agent")}</b>` : `<b>${escapeHtml(row.created_by_id)}</b>`;
-  const link = `${config.siteUrl}/app/team/${row.treasury_id}`;
+  const link = `${config.siteUrl}/app/accounts/${row.treasury_id}`;
   const team = escapeHtml(row.treasury_name);
   const to = `<code>${escapeHtml(row.recipient)}</code>`;
 
   let text: string | null = null;
   let everyone = false;
   if (event === "payment.requested") {
-    text = `🟠 ${who} asks to pay <b>${amount}</b> to ${to}\nTeam: ${team}\n\nReview and approve: ${link}`;
+    text = `🟠 ${who} asks to pay <b>${amount}</b> to ${to}\nAccount: ${team}\n\nReview and approve: ${link}`;
     everyone = true;
-  } else if (event === "payment.policy_rejected") text = `⛔ ${who} tried to pay <b>${amount}</b> to ${to}, outside its limits. It was stopped.\nTeam: ${team}\n${link}`;
-  else if (event === "payment.approved") text = `✅ Approved: <b>${amount}</b> to ${to}. Ready to pay.\nTeam: ${team}\n${link}`;
-  else if (event === "payment.settled") text = `💸 Paid: <b>${amount}</b> to ${to}.\nTeam: ${team}`;
-  else if (event === "payment.failed") text = `⚠️ Payment failed: <b>${amount}</b> to ${to}.\nTeam: ${team}\n${link}`;
+  } else if (event === "payment.policy_rejected") text = `⛔ ${who} tried to pay <b>${amount}</b> to ${to}, outside its limits. It was stopped.\nAccount: ${team}\n${link}`;
+  else if (event === "payment.approved") text = `✅ Approved: <b>${amount}</b> to ${to}. Ready to pay.\nAccount: ${team}\n${link}`;
+  else if (event === "payment.settled") text = `💸 Paid: <b>${amount}</b> to ${to}.\nAccount: ${team}`;
+  else if (event === "payment.failed") text = `⚠️ Payment failed: <b>${amount}</b> to ${to}.\nAccount: ${team}\n${link}`;
   if (!text) return;
 
   const accounts = everyone

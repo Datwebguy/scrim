@@ -51,7 +51,7 @@ export async function handleTelegramUpdate(update: Update) {
   if (!chatId || update.message?.chat?.type !== "private") return;
   const match = text.match(/^\/start\s+([A-Za-z0-9_-]{10,64})$/);
   if (!match) {
-    await telegramApi("sendMessage", { chat_id: chatId, text: "Open Scrim, go to Team, and tap “Get alerts on Telegram” to connect this chat." });
+    await telegramApi("sendMessage", { chat_id: chatId, text: "Open Scrim, go to Accounts, and tap “Get alerts on Telegram” to connect this chat." });
     return;
   }
   const [code] = await sql<{ account_id: string; network: string }[]>`

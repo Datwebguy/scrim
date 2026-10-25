@@ -138,7 +138,7 @@ async function insertPayment(tx: Tx, treasury: Treasury, actor: Actor, agent: Ag
 export async function createHumanPayment(session: Session, treasuryId: string, input: CreatePaymentInput): Promise<Payment> {
   return announceNew(await sql.begin(async (tx) => {
     const { treasury } = await treasuryForMember(tx, session.accountId, treasuryId, session.network);
-    if (treasury.status !== "active") throw forbidden("This treasury is not accepting payment requests.");
+    if (treasury.status !== "active") throw forbidden("This account is not accepting payment requests.");
     return insertPayment(tx, treasury, { type: "human", id: session.accountId }, null, input);
   }));
 }
@@ -147,7 +147,7 @@ export async function createAgentPayment(agent: Agent, input: CreatePaymentInput
   const payment = announceNew(await sql.begin(async (tx) => {
     const [row] = await tx<{ id: string; status: string; owner_account_id: string }[]>`SELECT id, status, owner_account_id FROM treasuries WHERE id = ${agent.treasuryId}`;
     const { treasury } = await treasuryForMember(tx, row.owner_account_id, row.id);
-    if (treasury.status !== "active") throw forbidden("This treasury is not accepting payment requests.");
+    if (treasury.status !== "active") throw forbidden("This account is not accepting payment requests.");
     return insertPayment(tx, treasury, { type: "agent", id: agent.id }, agent, input);
   }));
   // An agent with its own wallet pays what its limits allow, without waiting for people.
@@ -216,7 +216,7 @@ export async function createApprovalChallenge(session: Session, paymentId: strin
       lines: [
         "Approve a Scrim payment",
         "",
-        `Treasury: ${treasury.name}`,
+        `Account: ${treasury.name}`,
         `Pay: ${formatAmount(BigInt(payment.amount), corridorFor(treasury.network).decimals)} ${corridorFor(treasury.network).symbol} (${corridorFor(treasury.network).routeLabel})`,
         `To: ${payment.recipient}`,
         `Request: ${payment.id}`,
@@ -275,7 +275,7 @@ export async function markTeamRequest(tx: Tx, requestId: string, status: "submit
 export async function approvedTeamRequest(session: Session, requestId: string) {
   const { payment, treasury } = await paymentForMember(sql, session, requestId);
   if (payment.status !== "approved") throw conflict("This request is not approved yet, or it was already paid.");
-  if (treasury.ownerAccountId !== session.accountId) throw forbidden("Only the treasury owner can pay approved requests from their balance.");
+  if (treasury.ownerAccountId !== session.accountId) throw forbidden("Only the account owner can pay approved requests from their balance.");
   return payment;
 }
 

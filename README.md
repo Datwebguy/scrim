@@ -94,7 +94,34 @@ Scrim keeps your money private, works across 30+ networks, and lets you show exa
 | **Activity** | Everything you did, in plain words. Private payments are listed only for you; your connected wallet's own transactions are read from the chain. |
 | **Agents** | Give software its own key and limits. It asks to pay and people approve, or, with a wallet of its own, it pays by itself within those limits. Agents can pay your links and buy from paid APIs over x402. See [Agents](#agents). |
 
-<p align="center"><img src="docs/images/add-money.png" alt="Add money screen with real coins and networks" width="420"></p>
+Mainnet, the real product:
+
+<table>
+  <tr>
+    <td><img src="docs/images/app-home.png" alt="Mainnet home: the private balance, with a switch to see what the public sees" width="430"></td>
+    <td><img src="docs/images/add-money.png" alt="Add money: a one-time USDC deposit address on Base, with its minimum" width="430"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Home</b>: your private balance</td>
+    <td align="center"><b>Add money</b>: a one-time address on any chain</td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/send.png" alt="Send: pay a NEAR account or any address on any chain from the private balance" width="430"></td>
+    <td><img src="docs/images/get-paid.png" alt="Get paid: create a payment link in any coin" width="430"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Send</b>: to a person or any address</td>
+    <td align="center"><b>Get paid</b>: a link anyone can pay</td>
+  </tr>
+  <tr>
+    <td><img src="docs/images/proofs.png" alt="Proofs: prove you hold at least an amount, or that a payment was made, to one named reader" width="430"></td>
+    <td><img src="docs/images/ask.png" alt="Ask: questions about your money, answered by private AI" width="430"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Proofs</b>: one fact, for one reader</td>
+    <td align="center"><b>Ask</b>: private AI on NEAR AI Cloud</td>
+  </tr>
+</table>
 
 ## Testnet and mainnet
 
@@ -116,12 +143,14 @@ Choose a network when you sign in. Everything shown is real data from the networ
 
 The private features need NEAR Intents, which only exists on mainnet. On testnet those screens say so plainly. The recommended path is to try Scrim on testnet first, then move to mainnet with a separate account and small amounts.
 
-<p align="center">
-  <img src="docs/images/team.png" alt="A team account: one agent request waiting for approval, one paid, one stopped by its limits" width="880">
-</p>
-<p align="center">
-  <img src="docs/images/activity.png" alt="Activity: the wallet's own transactions in plain words, with details for one transfer" width="880">
-</p>
+On testnet, a team with an agent's requests (one waiting, one paid on-chain, one stopped by its limits), and Activity read from the chain:
+
+<table>
+  <tr>
+    <td><img src="docs/images/team.png" alt="Testnet team account: one agent request waiting for approval, one paid, one stopped by its limits" width="430"></td>
+    <td><img src="docs/images/activity.png" alt="Testnet Activity: the wallet's own transactions in plain words, with details for one transfer" width="430"></td>
+  </tr>
+</table>
 
 ## How it works
 
@@ -147,8 +176,6 @@ flowchart LR
 **Ask your money (NEAR AI Cloud).** The Ask screen sends your question and your own records (balances, payments, team requests, wallet transactions) to a model running in NEAR AI Cloud's confidential hardware (Intel TDX and NVIDIA confidential GPUs). Before asking, Scrim fetches the model's attestation report with a fresh nonce. After, it checks the answer's signature over the exact request and response bytes, and that the signing key is the one the report names. Scrim keeps no copy of the question or the answer. Set `NEARAI_API_KEY` (and optionally `NEARAI_MODEL`) to switch it on.
 
 <p align="center"><img src="docs/images/ask-scene.png" alt="Ask: a question goes into NEAR AI's secure hardware with your records, the answer's signature is checked" width="720"></p>
-
-<p align="center"><img src="docs/images/ask.png" alt="The Ask screen with suggested questions" width="720"></p>
 
 ### Where the data comes from
 
@@ -236,7 +263,16 @@ Tools: `get_limits`, `request_payment`, `find_paid_apis`, `pay_x402`, `list_paym
 
 **Updates (webhooks).** Set an `https://` address under **Connect** and Scrim calls it when a request is created, stopped, approved, being paid, paid, failed or cancelled. Each call carries `Scrim-Signature: t=<unix seconds>,v1=<hex>`, where `v1` is the HMAC-SHA256 of `"<t>.<raw body>"` with the signing secret (`whsec_…`, shown once). Reject calls with a wrong signature or a timestamp older than five minutes. Only public addresses are allowed.
 
-<p align="center"><img src="docs/images/connect.png" alt="Connect an agent: its key, updates, its own wallet, and how to plug it in, including paid APIs" width="720"></p>
+<table>
+  <tr>
+    <td><img src="docs/images/agents.png" alt="Mainnet agent: limits in USDC, 24-hour budget, allowed recipients including a paid API" width="430"></td>
+    <td><img src="docs/images/connect.png" alt="Connect an agent: its key, updates, its own wallet, and how to plug it in, including paid APIs" width="430"></td>
+  </tr>
+  <tr>
+    <td align="center">An agent on mainnet: limits in USDC</td>
+    <td align="center"><b>Connect</b>: key, updates, its own wallet, setup</td>
+  </tr>
+</table>
 
 <p align="center"><img src="docs/images/x402.png" alt="x402: an agent asks a paid API, gets 402, Scrim checks the limits and pays privately, the API answers" width="720"></p>
 

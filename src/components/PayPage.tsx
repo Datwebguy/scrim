@@ -10,7 +10,7 @@ type LinkView = { code: string; to: string; symbol: string; chainName: string; d
 type Payment = { id: string; status: string; amountIn: string; fromAsset: { symbol: string; chainName: string; decimals: number }; deposit: { address: string; memo: string | null; network: string; minimum: string | null; evm?: { chainId: number; token: `0x${string}` | null } | null } | null };
 
 // What a buyer receives once their payment is confirmed: the seller's text or link, or their API's answer.
-function Bought({ delivered }: { delivered: { status: number; contentType: string; body: string } | null }) {
+function Bought({ delivered, retry }: { delivered: { status: number; contentType: string; body: string } | null; retry: () => void }) {
   if (!delivered) return <div className="notice info"><Spinner /> Paid. Getting what you bought…</div>;
   let text = delivered.body;
   try {
@@ -19,7 +19,8 @@ function Bought({ delivered }: { delivered: { status: number; contentType: strin
   } catch { /* not JSON: show as sent */ }
   return (
     <div className="form-grid">
-      <div className={`notice ${delivered.status === 200 ? "good" : "danger"}`}>{delivered.status === 200 ? "Paid. Here is what you bought. Keep a copy: this page shows it only now." : "Paid, but the seller's service didn't answer. Ask the seller for help."}</div>
+      <div className={`notice ${delivered.status === 200 ? "good" : "danger"}`}>{delivered.status === 200 ? "Paid. Here is what you bought. Keep a copy." : (() => { try { return (JSON.parse(delivered.body) as { error?: string }).error ?? "Paid, but the seller's service didn't answer."; } catch { return "Paid, but the seller's service didn't answer."; } })()}</div>
+      {delivered.status !== 200 && <button type="button" className="btn btn-ghost" style={{ justifySelf: "start" }} onClick={retry}>Try again</button>}
       {delivered.status === 200 && <div className="code"><pre style={{ whiteSpace: "pre-wrap" }}>{text}</pre></div>}
     </div>
   );
@@ -106,7 +107,7 @@ export function PayPage({ code }: { code: string }) {
             )}
             {payment.status === "processing" && <div className="notice info"><Spinner /> We see your payment. It's being delivered.</div>}
             {payment.status === "success" && !product && <div className="notice good">Paid. {link.to} has received {link.display} {link.symbol}. You can close this page.</div>}
-            {payment.status === "success" && product && <Bought delivered={delivered} />}
+            {payment.status === "success" && product && <Bought delivered={delivered} retry={() => void api<{ delivered: typeof delivered }>(`/pay/${code}/status/${payment.id}`).then((r) => setDelivered(r.delivered)).catch(() => {})} />}
             {["refunded", "failed", "expired"].includes(payment.status) && <div className="notice danger">This payment didn't complete. Anything you sent is returned to the address you gave.</div>}
           </div>
         )}

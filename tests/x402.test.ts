@@ -170,7 +170,7 @@ describe("selling with x402", () => {
     expect((await listProducts(session)).map((p) => p.code)).toContain(product.code);
     expect((await listPayLinks(session)).map((l) => l.code)).not.toContain(product.code);
     expect(await productInfo(product.code)).toEqual({ name: "Weekly report", description: "PDF link" });
-    expect(JSON.parse((await deliver(product.code))!.body)).toEqual({ product: "Weekly report", content: "https://files.example.com/report.pdf" });
+    expect(JSON.parse((await deliver(product.code, "test-purchase"))!.body)).toEqual({ product: "Weekly report", content: "https://files.example.com/report.pdf" });
     await stopSelling(session, product.code);
     expect((await listProducts(session)).find((p) => p.code === product.code)?.open).toBe(false);
   });

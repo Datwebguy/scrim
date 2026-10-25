@@ -425,7 +425,9 @@ export async function createLinkPayment(link: { id: string; accountId: string; n
   const to = await assetById(link.assetId);
   const refundTo = checkAddress(from, String(input.refundAddress ?? ""));
   const [{ open: openAttempts }] = await sql<{ open: number }[]>`SELECT count(*)::int AS open FROM transfers WHERE pay_link_id = ${link.id} AND status = 'awaiting_deposit' AND expires_at > now()`;
-  if (openAttempts >= 10) throw conflict("This link has too many unfinished payments. Try again in a few minutes.");
+  // A product is bought by many people at once; a one-off link has one payer.
+  const [{ product }] = await sql<{ product: boolean }[]>`SELECT product_sealed IS NOT NULL AS product FROM pay_links WHERE id = ${link.id}`;
+  if (openAttempts >= (product ? 200 : 10)) throw conflict("This link has too many unfinished payments. Try again in a few minutes.");
 
   const deadline = new Date(Math.min(link.expiresAt.getTime(), Date.now() + 60 * 60_000));
   const q = await oneclick.quote({

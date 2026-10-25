@@ -17,7 +17,7 @@ async function handle(request: NextRequest, { params }: { params: Promise<{ code
     }
     if (result.kind === "paid") {
       const paidHeaders = { ...headers, "payment-response": encodeHeader(result.receipt) };
-      if (result.raw) return new NextResponse(result.raw.body, { status: result.raw.status, headers: { ...paidHeaders, "content-type": result.raw.contentType } });
+      if (result.raw) return new NextResponse(result.raw.body, { status: result.raw.status, headers: { ...paidHeaders, "content-type": result.raw.contentType, "x-content-type-options": "nosniff", "content-security-policy": "default-src 'none'; sandbox" } });
       return NextResponse.json(result.body, { status: 200, headers: paidHeaders });
     }
     const extra: Record<string, string> = result.receipt ? { "payment-response": encodeHeader(result.receipt) } : {};

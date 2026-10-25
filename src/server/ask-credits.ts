@@ -1,0 +1,72 @@
+// Paying for Ask. Every account gets one free question. After that, people pay from their own private
+// balance, never the site owner's: they top up Ask credits with one private USDC transfer to the site
+// owner's account (one wallet signature for many questions), and each question takes its price.
+import type { Session } from "./auth";
+import { catalog } from "./assets";
+import { sql } from "./db";
+import { badRequest, HttpError } from "./errors";
+import { createTransfer, getTransfer, type Transfer } from "./transfers";
+
+// What one question costs, in US dollars; and where top-ups go (the site owner's NEAR account).
+const PRICE_MICROS = () => BigInt(Math.round(Math.max(0, Number(process.env.ASK_PRICE_USD ?? 0.02) || 0) * 1e6));
+const FEE_ACCOUNT = () => process.env.ASK_FEE_ACCOUNT?.trim() || null;
+const TOP_UPS = [1, 5, 20]; // dollars; credits never expire
+
+export type AskAccount = { freeLeft: number; creditUsd: number; priceUsd: number; questionsLeft: number; canTopUp: boolean };
+
+const usd = (micros: bigint) => Number(micros) / 1e6;
+
+export async function askAccount(session: Session): Promise<AskAccount> {
+  await creditFinishedTopUps(session);
+  const [row] = await sql<{ free_used: boolean; balance_micros: string }[]>`SELECT free_used, balance_micros::text FROM ask_credits WHERE account_id = ${session.accountId}`;
+  const balance = BigInt(row?.balance_micros ?? "0");
+  const price = PRICE_MICROS();
+  const freeLeft = row?.free_used ? 0 : 1;
+  return {
+    freeLeft, creditUsd: usd(balance), priceUsd: usd(price),
+    questionsLeft: freeLeft + (price > 0n ? Number(balance / price) : 0),
+    canTopUp: session.network === "mainnet" && FEE_ACCOUNT() !== null,
+  };
+}
+
+// Takes the free question, or one question's price from the credits, atomically. Returns how to give it back.
+export async function chargeQuestion(session: Session): Promise<() => Promise<void>> {
+  await creditFinishedTopUps(session);
+  const free = await sql`INSERT INTO ask_credits (account_id, free_used) VALUES (${session.accountId}, true)
+    ON CONFLICT (account_id) DO UPDATE SET free_used = true, updated_at = now() WHERE ask_credits.free_used = false RETURNING account_id`;
+  if (free.length === 1) return async () => { await sql`UPDATE ask_credits SET free_used = false WHERE account_id = ${session.accountId}`; };
+  const price = PRICE_MICROS().toString();
+  const paid = await sql`UPDATE ask_credits SET balance_micros = balance_micros - ${price}::bigint, updated_at = now()
+    WHERE account_id = ${session.accountId} AND balance_micros >= ${price}::bigint RETURNING account_id`;
+  if (paid.length === 1) return async () => { await sql`UPDATE ask_credits SET balance_micros = balance_micros + ${price}::bigint WHERE account_id = ${session.accountId}`; };
+  throw new HttpError(402, "credits_needed", session.network === "mainnet" ? "You've used your free question. Top up Ask credits from your private balance to keep asking." : "You've used your free question. Ask with credits on mainnet.");
+}
+
+// Starts a top-up: a private USDC transfer from the person's balance to the site owner. Their wallet signs it.
+export async function startTopUp(session: Session, dollars: number): Promise<Transfer> {
+  if (session.network !== "mainnet") throw badRequest("Ask credits are bought on mainnet, from your private balance.");
+  const to = FEE_ACCOUNT();
+  if (!to) throw new HttpError(503, "not_enabled", "Buying Ask credits isn't switched on for this site yet.");
+  if (!TOP_UPS.includes(dollars)) throw badRequest(`Choose ${TOP_UPS.map((d) => `$${d}`).join(" or ")}.`);
+  const usdc = (await catalog()).find((a) => a.symbol === "USDC" && a.chain === "near");
+  if (!usdc) throw new HttpError(503, "upstream", "USDC isn't available right now.");
+  const transfer = await createTransfer(session, { kind: "send", fromAssetId: usdc.assetId, amount: String(dollars), recipient: to, note: "Ask credits" });
+  await sql`INSERT INTO ask_topups (transfer_id, account_id, usd_micros) VALUES (${transfer.id}, ${session.accountId}, ${dollars * 1_000_000})`;
+  return transfer;
+}
+
+// Credits each top-up once its private transfer has been delivered. Safe to call repeatedly.
+async function creditFinishedTopUps(session: Session) {
+  const pending = await sql<{ transfer_id: string; usd_micros: string }[]>`
+    SELECT transfer_id, usd_micros::text FROM ask_topups WHERE account_id = ${session.accountId} AND credited_at IS NULL AND created_at > now() - interval '2 days'`;
+  for (const t of pending) {
+    const transfer = await getTransfer(session, t.transfer_id).catch(() => null);
+    if (transfer?.status !== "success") continue;
+    await sql.begin(async (tx) => {
+      const marked = await tx`UPDATE ask_topups SET credited_at = now() WHERE transfer_id = ${t.transfer_id} AND credited_at IS NULL RETURNING transfer_id`;
+      if (marked.length !== 1) return;
+      await tx`INSERT INTO ask_credits (account_id, balance_micros) VALUES (${session.accountId}, ${t.usd_micros}::bigint)
+        ON CONFLICT (account_id) DO UPDATE SET balance_micros = ask_credits.balance_micros + ${t.usd_micros}::bigint, updated_at = now()`;
+    });
+  }
+}

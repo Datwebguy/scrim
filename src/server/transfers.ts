@@ -12,7 +12,7 @@ import { normalizeNearAccount } from "@/protocol/identifiers";
 import { verifyNep413 } from "@/protocol/nep413";
 import { audit } from "./audit";
 import type { Session } from "./auth";
-import { assetById, checkAddress, usdValue, type Asset } from "./assets";
+import { assetById, catalog, checkAddress, usdValue, type Asset } from "./assets";
 import { PRIVATE_MONEY_MAINNET_ONLY, type Network } from "@/protocol/networks";
 import { config } from "./config";
 import { sql } from "./db";
@@ -34,6 +34,8 @@ export type TransferInput = {
   recipient?: string; // send: a NEAR account; withdraw: an address on the destination network
   note?: string;
   teamRequestId?: string;
+  // "public": paid straight from the person's NEAR wallet, visible on the chain like any wallet payment.
+  privacy?: "private" | "public";
 };
 
 export type Preview = {
@@ -63,6 +65,7 @@ type Details = {
   trackMemo: string | null;
   etaSeconds?: number | null;
   resultHashes: string[];
+  public?: boolean; // paid from the wallet: the wallet sends to the deposit address
 };
 
 // For deposits on an EVM chain: the chain id and the token contract (null for the chain's own coin),
@@ -101,6 +104,7 @@ export type Transfer = {
   resultHashes: string[];
   etaSeconds: number | null;
   teamRequestId: string | null;
+  fromWallet: boolean;
 };
 
 const aad = (id: string, account: string) => `transfer:${id}:${account}`;
@@ -121,6 +125,7 @@ type Plan = {
   recipient: string | null;
   needsUserToken: boolean;
   deadlineMinutes: number;
+  public: boolean;
 };
 
 async function plan(session: Session, input: TransferInput): Promise<Plan> {
@@ -138,11 +143,45 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
   };
   const base = { slippageTolerance: 100 };
 
+  // From the wallet: the wallet sends a coin it holds on NEAR to a one-time NEAR Intents address, and the
+  // result goes straight to the recipient's chain (or back to the wallet, for a swap). Public end to end.
+  if (input.privacy === "public" && input.kind !== "add") {
+    const from = await assetById(String(input.fromAssetId ?? ""));
+    if (from.chain !== "near") throw badRequest("Your wallet can pay with coins it holds on NEAR.");
+    const to = await assetById(String(input.toAssetId ?? input.fromAssetId ?? ""));
+    const out = { ...base, originAsset: from.assetId, depositType: "ORIGIN_CHAIN" as const, destinationAsset: to.assetId, refundTo: account, refundType: "ORIGIN_CHAIN" as const, recipientType: "DESTINATION_CHAIN" as const };
+    if (input.kind === "swap") {
+      if (from.assetId === to.assetId) throw badRequest("Choose two different assets to swap.");
+      if (to.chain !== "near") throw badRequest("Swaps from your wallet come back to your wallet, so choose a coin on NEAR.");
+      return { from, to, amountAsset: from, recipient: account, needsUserToken: false, deadlineMinutes: 30, public: true,
+        request: { ...out, swapType: "EXACT_INPUT", amount: toMinor(from).toString(), recipient: account } };
+    }
+    if (input.kind === "send") throw badRequest("Your wallet sends to a NEAR account directly.");
+    const recipient = checkAddress(to, String(input.recipient ?? ""));
+    return { from, to, amountAsset: to, recipient, needsUserToken: false, deadlineMinutes: 30, public: true,
+      request: { ...out, swapType: "EXACT_OUTPUT", amount: toMinor(to).toString(), recipient } };
+  }
+
+  // Into the wallet: the coin is sent on its own chain to a one-time NEAR Intents address and arrives in the
+  // person's NEAR wallet as the same coin on NEAR. A coin already on NEAR needs no route: it goes straight to the wallet.
+  if (input.kind === "add" && input.privacy === "public") {
+    const from = await assetById(String(input.fromAssetId ?? ""));
+    if (from.chain === "near") throw badRequest("Coins on NEAR go straight to your wallet's address.");
+    const to = (await catalog()).find((a) => a.chain === "near" && a.symbol === from.symbol);
+    if (!to) throw badRequest(`${from.symbol} can't arrive in a NEAR wallet. Add it to your private balance instead.`);
+    return {
+      from, to, amountAsset: from, recipient: account, needsUserToken: false, deadlineMinutes: 24 * 60, public: true,
+      request: { ...base, swapType: "FLEX_INPUT", originAsset: from.assetId, depositType: "ORIGIN_CHAIN", destinationAsset: to.assetId,
+        amount: quoteAmountFor(from), refundTo: account, refundType: "CONFIDENTIAL_INTENTS", recipient: account,
+        recipientType: "DESTINATION_CHAIN", quoteWaitingTimeMs: 5000 },
+    };
+  }
+
   if (input.kind === "add") {
     const asset = await assetById(String(input.fromAssetId ?? ""));
     if (!asset.depositChain) throw badRequest("You can't add money from this network yet.");
     return {
-      from: asset, to: asset, amountAsset: asset, recipient: null, needsUserToken: false, deadlineMinutes: 24 * 60,
+      from: asset, to: asset, amountAsset: asset, recipient: null, needsUserToken: false, deadlineMinutes: 24 * 60, public: false,
       request: { ...base, swapType: "FLEX_INPUT", originAsset: asset.assetId, depositType: "INTENTS", destinationAsset: asset.assetId,
         amount: quoteAmountFor(asset), refundTo: account, refundType: "CONFIDENTIAL_INTENTS", recipient: account,
         recipientType: "CONFIDENTIAL_INTENTS", quoteWaitingTimeMs: 5000 },
@@ -154,7 +193,7 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
     const to = await assetById(String(input.toAssetId ?? ""));
     if (from.assetId === to.assetId) throw badRequest("Choose two different assets to swap.");
     return {
-      from, to, amountAsset: from, recipient: null, needsUserToken: true, deadlineMinutes: 15,
+      from, to, amountAsset: from, recipient: null, needsUserToken: true, deadlineMinutes: 15, public: false,
       request: { ...base, swapType: "EXACT_INPUT", originAsset: from.assetId, depositType: "CONFIDENTIAL_INTENTS", destinationAsset: to.assetId,
         amount: toMinor(from).toString(), refundTo: account, refundType: "CONFIDENTIAL_INTENTS", recipient: account, recipientType: "CONFIDENTIAL_INTENTS" },
     };
@@ -166,7 +205,7 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
     if (!recipient) throw badRequest("Enter the recipient's NEAR account, ending in .near.");
     if (recipient === account) throw badRequest("That's your own account.");
     return {
-      from: asset, to: asset, amountAsset: asset, recipient, needsUserToken: true, deadlineMinutes: 15,
+      from: asset, to: asset, amountAsset: asset, recipient, needsUserToken: true, deadlineMinutes: 15, public: false,
       request: { ...base, swapType: "EXACT_OUTPUT", originAsset: asset.assetId, depositType: "CONFIDENTIAL_INTENTS", destinationAsset: asset.assetId,
         amount: toMinor(asset).toString(), refundTo: account, refundType: "CONFIDENTIAL_INTENTS", recipient, recipientType: "CONFIDENTIAL_INTENTS" },
     };
@@ -176,7 +215,7 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
   const to = await assetById(String(input.toAssetId ?? input.fromAssetId ?? ""));
   const recipient = checkAddress(to, String(input.recipient ?? ""));
   return {
-    from, to, amountAsset: to, recipient, needsUserToken: true, deadlineMinutes: 15,
+    from, to, amountAsset: to, recipient, needsUserToken: true, deadlineMinutes: 15, public: false,
     request: { ...base, swapType: "EXACT_OUTPUT", originAsset: from.assetId, depositType: "CONFIDENTIAL_INTENTS", destinationAsset: to.assetId,
       amount: toMinor(to).toString(), refundTo: account, refundType: "CONFIDENTIAL_INTENTS", recipient, recipientType: "DESTINATION_CHAIN" },
   };
@@ -198,7 +237,7 @@ export async function preview(session: Session, input: TransferInput): Promise<P
   const q = await oneclick.quote({ ...p.request, dry: true, deadline: new Date(Date.now() + p.deadlineMinutes * 60_000).toISOString() }, token);
   const paid = BigInt(q.quote.amountIn);
   const got = BigInt(q.quote.amountOut);
-  const balance = input.kind === "add" ? null : await ownBalance(session, p.from.assetId);
+  const balance = input.kind === "add" || p.public ? null : await ownBalance(session, p.from.assetId);
   const payUsd = usdValue(p.from, paid);
   const getUsd = usdValue(p.to, got);
   return {
@@ -220,10 +259,10 @@ async function toTransfer(row: Row): Promise<Transfer> {
   return {
     id: row.id, kind: row.kind, status: row.status, createdAt: row.created_at, expiresAt: row.expires_at,
     fromAsset: light(from), toAsset: light(to), amountIn: d.amountIn, amountOut: d.amountOut, recipient: d.recipient, note: d.note,
-    deposit: (row.kind === "add" || row.kind === "link_payment") && row.deposit_address
+    deposit: (row.kind === "add" || row.kind === "link_payment" || d.public) && row.deposit_address
       ? { address: row.deposit_address, memo: row.deposit_memo, chainName: from.chainName, minimum: d.depositMinimum, evm: row.deposit_memo ? null : await evmDeposit(from) } : null,
     intentToSign: row.status === "awaiting_signature" ? d.intent : null,
-    resultHashes: d.resultHashes, etaSeconds: d.etaSeconds ?? null, teamRequestId: row.team_request_id,
+    resultHashes: d.resultHashes, etaSeconds: d.etaSeconds ?? null, teamRequestId: row.team_request_id, fromWallet: d.public === true,
   };
 }
 
@@ -247,15 +286,18 @@ export async function createTransfer(session: Session, input: TransferInput): Pr
     minAmountOut: q.quote.minAmountOut, recipient: p.recipient, note: (input.note ?? "").trim(), quoteSignature: q.signature,
     intent: null, depositChain: p.from.depositChain, depositMinimum: q.quote.minAmountIn ?? null,
     trackAddress: depositAddress, trackMemo: q.quote.depositMemo ?? null, etaSeconds: q.quote.timeEstimate ?? null, resultHashes: [],
+    ...(p.public ? { public: true } : {}),
   };
   let status: TransferStatus;
   let address = depositAddress;
   let memo: string | null = q.quote.depositMemo ?? null;
 
-  if (input.kind === "add") {
+  if (input.kind === "add" && !p.public) {
     const bridge = await oneclick.bridgeDepositAddress(depositAddress, p.from.depositChain!);
     address = bridge.address;
     memo = bridge.memo ?? memo;
+    status = "awaiting_deposit";
+  } else if (p.public) {
     status = "awaiting_deposit";
   } else {
     const { intent } = await oneclick.generateIntent(depositAddress, session.accountId);
@@ -278,7 +320,7 @@ export async function createTransfer(session: Session, input: TransferInput): Pr
       if (request?.status !== "approved") throw conflict("This request is not approved, or it was already paid.");
       const open = await tx`
         SELECT 1 FROM transfers WHERE team_request_id = ${teamRequestId}
-          AND (status IN ('processing', 'success') OR (status = 'awaiting_signature' AND expires_at > now()))`;
+          AND (status IN ('processing', 'success') OR (status IN ('awaiting_signature', 'awaiting_deposit') AND expires_at > now()))`;
       if (open.length) throw conflict("This request is already being paid.");
     }
     await tx`INSERT INTO transfers (id, account_id, network, kind, status, deposit_address, deposit_memo, details_sealed, team_request_id, expires_at)
@@ -357,6 +399,7 @@ async function refreshRow(row: Row): Promise<Transfer> {
       const details = open<Details>(row.details_sealed, aad(row.id, row.account_id));
       const s = await oneclick.status(details.trackAddress, details.trackMemo);
       const ended = END_STATE[s.status];
+      if (ended && row.team_request_id && details.public) await walletPayoutSent(row);
       if (ended) {
         details.resultHashes = s.swapDetails?.destinationChainTxHashes?.map((h) => h.hash) ?? details.resultHashes;
         await save(row.id, row.account_id, ended, details);
@@ -374,6 +417,7 @@ async function refreshRow(row: Row): Promise<Transfer> {
         if (row.pay_link_id && ended === "success") await sql`UPDATE pay_links SET status = 'paid' WHERE id = ${row.pay_link_id} AND status = 'open' AND product_sealed IS NULL`;
       } else if (s.status === "PROCESSING" && row.status === "awaiting_deposit") {
         await save(row.id, row.account_id, "processing", details);
+        await walletPayoutSent(row);
       }
     } catch {
       // The network is briefly unreachable: keep the last known state.
@@ -390,6 +434,24 @@ async function refreshRow(row: Row): Promise<Transfer> {
 
 export const getTransfer = refreshOne;
 
+// A payout paid from the owner's wallet: once the money is on its way, the request is being paid.
+async function walletPayoutSent(row: Row) {
+  if (!row.team_request_id || !open<Details>(row.details_sealed, aad(row.id, row.account_id)).public) return;
+  const moved = await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "submitting", { type: "human", id: row.account_id }, ["approved"]));
+  if (moved) emitPaymentEvent(row.team_request_id, "payment.submitting");
+}
+
+// The wallet sent its coins to a public transfer's deposit address: tell NEAR Intents so it's picked up
+// sooner, and follow it from there.
+export async function depositSent(session: Session, id: string, txHash: string): Promise<Transfer> {
+  const row = await mine(session, id);
+  if (row.status !== "awaiting_deposit") return refreshRow(row);
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(txHash)) throw badRequest("That transaction hash doesn't look right.");
+  await oneclick.submitDeposit(txHash, row.deposit_address!, row.deposit_memo).catch(() => null);
+  await walletPayoutSent(row);
+  return refreshRow(row);
+}
+
 export async function listTransfers(session: Session): Promise<Transfer[]> {
   const rows = await sql<Row[]>`SELECT * FROM transfers WHERE account_id = ${session.accountId} AND network = ${session.network} ORDER BY created_at DESC LIMIT 100`;
   return Promise.all(rows.map(toTransfer));
@@ -402,8 +464,9 @@ export async function cancelTransfer(session: Session, id: string): Promise<Tran
   return toTransfer(await mine(session, id));
 }
 
-// Pay an approved team request from the owner's private balance, out to the destination on Base (mainnet).
-export async function payTeamRequest(session: Session, requestId: string): Promise<Transfer> {
+// Pay an approved request out to the destination on Base (mainnet): from the owner's private balance, or
+// from their NEAR wallet in public, as they choose.
+export async function payTeamRequest(session: Session, requestId: string, privacy: "private" | "public" = "private"): Promise<Transfer> {
   if (session.network !== "mainnet") throw new HttpError(400, "wrong_network", "On testnet, pay with your wallet: it sends real test NEAR straight to the recipient.");
   const request = await approvedTeamRequest(session, requestId);
   const corridor = corridorFor("mainnet");
@@ -415,6 +478,7 @@ export async function payTeamRequest(session: Session, requestId: string): Promi
     recipient: request.recipient,
     note: request.memo,
     teamRequestId: request.id,
+    privacy,
   });
 }
 

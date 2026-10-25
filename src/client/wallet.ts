@@ -142,6 +142,25 @@ export async function sendNear(network: Network, receiverId: string, yocto: stri
   return transactionHash(outcome);
 }
 
+// A plain token transfer on NEAR, signed by the wallet. Registers the receiver with the token first
+// (a tiny one-off storage deposit) so the transfer can't fail for an account the token hasn't seen.
+const register = (account: string) =>
+  ({ type: "FunctionCall" as const, params: { methodName: "storage_deposit", args: { account_id: account, registration_only: true }, gas: "30000000000000", deposit: "1250000000000000000000" } });
+
+export async function sendToken(network: Network, contract: string, receiverId: string, amount: string): Promise<string> {
+  const { wallet, accountId } = await connectedWallet(network);
+  const outcome = await wallet.signAndSendTransaction({
+    network, signerId: accountId, receiverId: contract,
+    actions: [
+      // NEAR held in the wallet is wrapped first, since NEAR Intents takes wrapped NEAR.
+      ...(contract === "wrap.near" ? [register(accountId), { type: "FunctionCall" as const, params: { methodName: "near_deposit", args: {}, gas: "10000000000000", deposit: amount } }] : []),
+      register(receiverId),
+      { type: "FunctionCall", params: { methodName: "ft_transfer", args: { receiver_id: receiverId, amount }, gas: "30000000000000", deposit: "1" } },
+    ],
+  });
+  return transactionHash(outcome);
+}
+
 export async function signOutWallet(network: Network) {
   try {
     await api("/auth/logout", { method: "POST" });

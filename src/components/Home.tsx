@@ -25,7 +25,7 @@ export function Home() {
   const [view, setView] = useState<"you" | "public">("you");
   const [busy, setBusy] = useState(false);
   const needsSetup = data?.status === "needs_setup";
-  const { data: wallet, reload: recheck } = useApi<{ holdings: { id: string; amount: string; display: string }[] }>(needsSetup ? "/wallet" : null, { every: 15_000 });
+  const { data: wallet, reload: recheck } = useApi<{ holdings: { id: string; symbol: string; amount: string; display: string; icon: string | null }[] }>("/wallet", { every: needsSetup ? 15_000 : 60_000 });
   const near = wallet?.holdings.find((h) => h.id === "near");
   const nativeBalance = near ? BigInt(near.amount) : null;
   const tooLow = nativeBalance !== null && nativeBalance < SETUP_MIN_NEAR;
@@ -82,8 +82,8 @@ export function Home() {
         <div className="card card-pad gate-card">
           {data.status === "needs_setup" ? (
             <>
-              <h2>One quick step to turn on your private balance</h2>
-              <p className="muted">Your wallet is registered once so it can hold private money. You approve one transaction in your wallet. The small fee goes to the NEAR network, not to Scrim, and you only pay it this once.</p>
+              <h2>Turn on a private balance</h2>
+              <p className="muted">Optional: your wallet below works as it is. A private balance lets you hold, send and receive without anyone seeing amounts or who you pay. Your wallet is registered once so it can hold private money. You approve one transaction in your wallet. The small fee goes to the NEAR network, not to Scrim, and you only pay it this once.</p>
               {near && <p className="muted">{accountId} has <b>{near.display} NEAR</b>.</p>}
               {tooLow && (
                 <div className="notice info">
@@ -179,6 +179,25 @@ export function Home() {
             </section>
           </div>
         </>
+      )}
+
+      {wallet && (
+        <section className="card" style={{ marginTop: 16 }}>
+          <div className="card-title"><h3>Your wallet</h3><span className="muted">{accountId} · public on the blockchain</span></div>
+          {wallet.holdings.length === 0 ? (
+            <div className="empty small"><p>Your NEAR wallet is empty. <Link href="/app/add">Add money</Link> and choose your wallet.</p></div>
+          ) : (
+            <ul className="rows">
+              {wallet.holdings.map((h) => (
+                <li key={h.id}>
+                  <TokenLogo icon={h.icon} symbol={h.symbol} chainIcon={null} />
+                  <span><b>{h.symbol}</b><small>NEAR</small></span>
+                  <span className="right"><b>{h.display}</b></span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       )}
     </>
   );

@@ -25,8 +25,14 @@ beforeAll(async () => {
 afterAll(() => sql.end());
 
 describe("sign-in on mainnet", () => {
-  it("signs in with one signature that also unlocks the private balance", async () => {
+  it("signs in with a plain message that names Scrim and the site, and unlocks the private balance as a separate step", async () => {
     const again = mainnetImplicitWallet();
+    const challenge = await createSignInChallenge(again.accountId, "mainnet");
+    expect(challenge.message).toContain("Sign in to Scrim");
+    expect(challenge.message).toContain(`Site: ${challenge.recipient}`);
+    expect(challenge.recipient).not.toBe("intents.near");
+    const first = await signIn(again.sign(challenge));
+    expect(first.privateStatus).toBe("none");
     const { privateStatus, session: s } = await signInAs(again);
     expect(s.network).toBe("mainnet");
     expect(privateStatus).toBe("active");

@@ -21,6 +21,7 @@ NEAR Intents, NEAR AI Cloud, OutLayer and wallets are run by others; report issu
 - **Keys stay with people.** Scrim never holds a wallet key. Every move of money is a signature from the person's own wallet over the exact payload, checked before it is used and accepted once.
 - **What is signed matches what was quoted.** A transfer handed out for signing must name the quoted coin, no more than the quoted amount, only the quote's deposit address, and expire in time; otherwise nobody is asked to sign it.
 - **Sign-in** uses single-use challenges that expire in five minutes; the signing key is checked on chain as a full-access key of the account. Network errors fail closed.
+- **Joining an account needs a yes.** Adding someone as an approver only sends them an invitation. Until they accept, they can't see the account or approve for it, and they can decline.
 - **Approvals** are bound to one request: the signed message shows the amount and recipient first, and a person-chosen name can't add lines to it.
 - **Each payout has one owner.** A payment request records the transfer paying it; only that transfer can settle, fail or reopen it, so an earlier or stray attempt can't cause a second payment.
 - **Agent limits** (per payment, per time window, allowed recipients, expiry) are enforced on the server under a lock per agent. A payment that may have moved money keeps counting against the limit even if it later fails.
@@ -39,8 +40,9 @@ Known limits, stated plainly:
 - Proofs are statements Scrim signs after checking the balance, not zero-knowledge proofs.
 - Approvals and limits are enforced by Scrim's service, not by a NEAR contract (planned).
 - Ask checks that the answer is signed by the key NEAR AI's attestation report names; it does not yet verify the hardware evidence inside that report itself.
-- The sealing key has no rotation mechanism yet.
 
 ## For operators
 
 Production refuses to start without `SCRIM_SECRET_KEY`, `SCRIM_PROOF_KEY` and `SCRIM_AUTH_RECIPIENT`. Generate the keys with `npm run keys`, store them as sensitive variables, and never reuse development keys.
+
+**Changing the sealing key.** Every sealed value carries the ID of the key that sealed it. To change keys: make a new one with `npm run keys`; set `SCRIM_SECRET_KEY` to the new key and `SCRIM_SECRET_KEY_PREVIOUS` to the old one (comma-separated if there is more than one) and deploy; run `npm run rotate` (add `--dry-run` to preview) to seal everything again with the new key; when it reports nothing left, remove `SCRIM_SECRET_KEY_PREVIOUS`. Nothing is lost at any step, and it is safe to run again.

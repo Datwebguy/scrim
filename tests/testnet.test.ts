@@ -5,7 +5,7 @@ import { createSignInChallenge, signIn, type Session } from "@/server/auth";
 import { overview } from "@/server/balances";
 import { sql } from "@/server/db";
 import { accountExists, publicHoldings } from "@/server/holdings";
-import { createTreasury, listTreasuries } from "@/server/treasuries";
+import { answerInvitation, createTreasury, listTreasuries } from "@/server/treasuries";
 import { createTransfer } from "@/server/transfers";
 import { createPayLink } from "@/server/paylinks";
 import { createProof } from "@/server/proofs";
@@ -68,7 +68,9 @@ describe("real testnet data", () => {
 
 describe("team accounts on testnet", () => {
   async function team() {
-    return createTreasury(ownerSession, { name: "Ops", kind: "team", signers: [cosigner.accountId], threshold: 2 });
+    const created = await createTreasury(ownerSession, { name: "Ops", kind: "team", signers: [cosigner.accountId], threshold: 2 });
+    await answerInvitation(cosignerSession, created.id, true); // the co-signer says yes, as a person would
+    return created;
   }
 
   it("shows team accounts only to the network they were made on", async () => {

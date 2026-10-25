@@ -16,6 +16,7 @@
     "check": "npm run typecheck && npm run unused && npm test",
     "vercel-build": "tsx scripts/migrate.ts --if-configured && next build",
     "keys": "tsx scripts/generate-keys.ts",
+    "rotate": "tsx scripts/rotate-secrets.ts",
     "unused": "knip"
   },
   "dependencies": {

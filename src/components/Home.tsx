@@ -105,7 +105,7 @@ export function Home() {
           ) : (
             <>
               <h2>Unlock your private balance</h2>
-              <p className="muted">Optional: your wallet works without it. Approve one message in your wallet to open your private balance. It proves it's you and can't move any money.</p>
+              <p className="muted">Optional. Approve one message in your wallet. It can't move money.</p>
               <button className="btn btn-signal btn-lg" onClick={() => unlock()} disabled={busy}>{busy && <Spinner />} Unlock</button>
             </>
           )}

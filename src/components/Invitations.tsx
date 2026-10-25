@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
+import { short } from "@/client/format";
 import type { Invitation } from "@/server/treasuries";
 import { Spinner, useToast } from "./ui";
 
@@ -33,10 +34,8 @@ export function Invitations() {
     <div style={{ display: "grid", gap: 12, marginBottom: 24 }}>
       {invitations.map((i) => (
         <div key={i.treasuryId} className="card card-pad" role="group" aria-label={`Invitation to ${i.name}`}>
-          <h3 style={{ marginBottom: 6 }}>{i.invitedBy} added you to “{i.name}”</h3>
-          <p className="muted" style={{ marginBottom: 14 }}>
-            If you join, you can see this account and approve its payments with your wallet. It needs {i.thresholdRequired} of {i.people} approvals. You can decline, and nothing changes for you.
-          </p>
+          <h3 style={{ marginBottom: 6 }}>{short(i.invitedBy, 8, 4)} invited you to “{i.name}”</h3>
+          <p className="muted" style={{ marginBottom: 14 }}>Join to approve its payments. You can say no.</p>
           <div className="gate-actions">
             <button className="btn btn-primary" onClick={() => answer(i.treasuryId, true)} disabled={busy !== null}>{busy === i.treasuryId && <Spinner />} Join</button>
             <button className="btn btn-ghost" onClick={() => answer(i.treasuryId, false)} disabled={busy !== null}>Decline</button>

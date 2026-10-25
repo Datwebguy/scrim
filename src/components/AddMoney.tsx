@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/client/api";
 import { AssetPicker, CopyField, fmt, Heading, StateChip, useAssets, type TransferView } from "./money";
+import { PayFromWallet } from "./PayFromWallet";
 import { Spinner } from "./ui";
 
 export function AddMoney() {
@@ -55,6 +56,10 @@ export function AddMoney() {
                 <li>Use this address once. Create a new one for your next deposit.</li>
                 <li>It stays open for 24 hours.</li>
               </ul>
+              {transfer.status === "awaiting_deposit" && transfer.deposit.evm && (
+                <PayFromWallet to={transfer.deposit.address} chainId={transfer.deposit.evm.chainId} token={transfer.deposit.evm.token}
+                  symbol={transfer.fromAsset.symbol} decimals={transfer.fromAsset.decimals} minimum={transfer.deposit.minimum} />
+              )}
             </>
           )}
           {transfer.status === "success" && <div className="notice good">Your money arrived in your private balance.</div>}

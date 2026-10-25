@@ -133,7 +133,7 @@ export type TransferView = {
   id: string; kind: string; status: string; createdAt: string; expiresAt: string;
   fromAsset: Leg; toAsset: Leg;
   amountIn: string; amountOut: string; recipient: string | null; note: string;
-  deposit: { address: string; memo: string | null; chainName: string; minimum: string | null } | null;
+  deposit: { address: string; memo: string | null; chainName: string; minimum: string | null; evm: { chainId: number; token: `0x${string}` | null } | null } | null; // evm: lets a browser wallet pay it in one tap
   intentToSign: { message: string; nonce: string; recipient: string } | null;
   resultHashes: string[]; etaSeconds: number | null; teamRequestId: string | null;
 };

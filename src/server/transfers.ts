@@ -65,6 +65,16 @@ type Details = {
   resultHashes: string[];
 };
 
+// For deposits on an EVM chain: the chain id and the token contract (null for the chain's own coin),
+// so a connected browser wallet can send the deposit itself.
+async function evmDeposit(asset: Asset): Promise<{ chainId: number; token: `0x${string}` | null } | null> {
+  const id = asset.depositChain?.startsWith("eth:") ? Number(asset.depositChain.slice(4)) : NaN;
+  if (!Number.isInteger(id)) return null;
+  const token = (await oneclick.tokens()).find((t) => t.assetId === asset.assetId)?.contractAddress ?? null;
+  if (token && !/^0x[0-9a-fA-F]{40}$/.test(token)) return null;
+  return { chainId: id, token: token as `0x${string}` | null };
+}
+
 // FLEX_INPUT deposits still need a quote amount the route accepts; the minimum shown follows from it.
 // Use the bridge's published minimum, except where it is missing or a single unit (which the route
 // refuses): then ask for about one dollar's worth, or one whole coin when there's no price.
@@ -86,7 +96,7 @@ export type Transfer = {
   amountOut: string;
   recipient: string | null;
   note: string;
-  deposit: { address: string; memo: string | null; chainName: string; minimum: string | null } | null;
+  deposit: { address: string; memo: string | null; chainName: string; minimum: string | null; evm: { chainId: number; token: `0x${string}` | null } | null } | null; // evm: lets a browser wallet pay it in one tap
   intentToSign: { message: string; nonce: string; recipient: string } | null;
   resultHashes: string[];
   etaSeconds: number | null;
@@ -211,7 +221,7 @@ async function toTransfer(row: Row): Promise<Transfer> {
     id: row.id, kind: row.kind, status: row.status, createdAt: row.created_at, expiresAt: row.expires_at,
     fromAsset: light(from), toAsset: light(to), amountIn: d.amountIn, amountOut: d.amountOut, recipient: d.recipient, note: d.note,
     deposit: (row.kind === "add" || row.kind === "link_payment") && row.deposit_address
-      ? { address: row.deposit_address, memo: row.deposit_memo, chainName: from.chainName, minimum: d.depositMinimum } : null,
+      ? { address: row.deposit_address, memo: row.deposit_memo, chainName: from.chainName, minimum: d.depositMinimum, evm: row.deposit_memo ? null : await evmDeposit(from) } : null,
     intentToSign: row.status === "awaiting_signature" ? d.intent : null,
     resultHashes: d.resultHashes, etaSeconds: d.etaSeconds ?? null, teamRequestId: row.team_request_id,
   };

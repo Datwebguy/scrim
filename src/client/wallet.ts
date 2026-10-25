@@ -133,13 +133,22 @@ function transactionHash(outcome: unknown): string {
   return typeof hash === "string" ? hash : "";
 }
 
+// The hash of a transaction the wallet sent, or an error if it failed or the wallet didn't say which it was.
+function sentHash(outcome: unknown): string {
+  const first = (Array.isArray(outcome) ? outcome[0] : outcome) as { status?: { Failure?: unknown } } | undefined;
+  if (first?.status && "Failure" in first.status) throw new Error("Your wallet sent it, but the network refused it. Nothing was moved.");
+  const hash = transactionHash(outcome);
+  if (!hash) throw new Error("Your wallet sent it but didn't share its receipt. Check your wallet's history before trying again.");
+  return hash;
+}
+
 // A plain on-chain NEAR transfer, signed and sent by the wallet.
 export async function sendNear(network: Network, receiverId: string, yocto: string): Promise<string> {
   const { wallet, accountId } = await connectedWallet(network);
   const outcome = await wallet.signAndSendTransaction({
     network, signerId: accountId, receiverId, actions: [{ type: "Transfer", params: { deposit: yocto } }],
   });
-  return transactionHash(outcome);
+  return sentHash(outcome);
 }
 
 // A plain token transfer on NEAR, signed by the wallet. Registers the receiver with the token first
@@ -147,18 +156,18 @@ export async function sendNear(network: Network, receiverId: string, yocto: stri
 const register = (account: string) =>
   ({ type: "FunctionCall" as const, params: { methodName: "storage_deposit", args: { account_id: account, registration_only: true }, gas: "30000000000000", deposit: "1250000000000000000000" } });
 
-export async function sendToken(network: Network, contract: string, receiverId: string, amount: string): Promise<string> {
+// wrapNative: pay with the wallet's own NEAR, wrapped first (NEAR Intents takes wrapped NEAR).
+export async function sendToken(network: Network, contract: string, receiverId: string, amount: string, wrapNative = false): Promise<string> {
   const { wallet, accountId } = await connectedWallet(network);
   const outcome = await wallet.signAndSendTransaction({
     network, signerId: accountId, receiverId: contract,
     actions: [
-      // NEAR held in the wallet is wrapped first, since NEAR Intents takes wrapped NEAR.
-      ...(contract === "wrap.near" ? [register(accountId), { type: "FunctionCall" as const, params: { methodName: "near_deposit", args: {}, gas: "10000000000000", deposit: amount } }] : []),
+      ...(wrapNative ? [register(accountId), { type: "FunctionCall" as const, params: { methodName: "near_deposit", args: {}, gas: "10000000000000", deposit: amount } }] : []),
       register(receiverId),
       { type: "FunctionCall", params: { methodName: "ft_transfer", args: { receiver_id: receiverId, amount }, gas: "30000000000000", deposit: "1" } },
     ],
   });
-  return transactionHash(outcome);
+  return sentHash(outcome);
 }
 
 export async function signOutWallet(network: Network) {

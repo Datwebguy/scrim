@@ -50,10 +50,10 @@ export function AddMoney() {
           <div className="field">
             <span className="picker-label">Where it lands</span>
             <div className="segmented" role="radiogroup" aria-label="Where it lands">
-              <button type="button" role="radio" aria-checked={!toWallet} onClick={() => setInto("private")}>Private balance</button>
-              <button type="button" role="radio" aria-checked={toWallet} onClick={() => setInto("wallet")}>My wallet</button>
+              <button type="button" role="radio" aria-checked={!toWallet} onClick={() => { setInto("private"); setAssetId(""); }}>Private balance</button>
+              <button type="button" role="radio" aria-checked={toWallet} onClick={() => { setInto("wallet"); setAssetId(""); }}>My wallet</button>
             </div>
-            <small className="muted">{toWallet ? "Lands in your NEAR wallet, like any transfer: it shows on the blockchain." : "Lands in your private balance: nobody can link what you add to what you send later."}</small>
+            <small className="muted">{toWallet ? "Lands in your NEAR wallet, like any transfer: it shows on the blockchain. If it can't be delivered, it comes back to you in Scrim." : "Lands in your private balance: nobody can link what you add to what you send later."}</small>
           </div>
           <AssetPicker label="What are you sending?" assets={assets} value={assetId} onChange={setAssetId} />
           {direct ? (

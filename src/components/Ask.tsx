@@ -33,6 +33,22 @@ export function Ask() {
   const left = account?.questionsLeft;
   const [paying, setPaying] = useState(0);
   const [payFrom, setPayFrom] = useState<"private" | "wallet">("private");
+  // A wallet payment that is sent but not yet credited, so it can be claimed again without paying twice.
+  const [unclaimed, setUnclaimed] = useState("");
+
+  async function claim(txHash: string) {
+    for (let i = 0; ; i++) {
+      try {
+        await api<{ account: Account }>("/ask/top-up/wallet", { body: { txHash } });
+        setUnclaimed("");
+        return;
+      } catch (e) {
+        // Only "not on the chain yet" is worth waiting for; anything else is shown as it is.
+        if (i >= 9 || !/isn't on the chain yet/.test((e as Error).message)) throw e;
+        await new Promise((r) => setTimeout(r, 3000));
+      }
+    }
+  }
 
   // Buying more questions: one transfer, from the private balance or straight from the wallet, approved once.
   async function topUp(dollars: number) {
@@ -41,11 +57,8 @@ export function Ask() {
     try {
       if (payFrom === "wallet" && account?.walletPay) {
         const txHash = await sendToken(network, account.walletPay.token, account.walletPay.to, String(dollars * 1_000_000));
-        let credited: Account | null = null;
-        for (let i = 0; i < 10 && !credited; i++) {
-          try { credited = (await api<{ account: Account }>("/ask/top-up/wallet", { body: { txHash } })).account; }
-          catch (e) { if (i === 9) throw e; await new Promise((r) => setTimeout(r, 3000)); }
-        }
+        setUnclaimed(txHash);
+        await claim(txHash);
         setResult(null);
         reload();
         return;
@@ -122,6 +135,12 @@ export function Ask() {
           </div>
         )}
         {error && <div className="notice danger">{error}</div>}
+        {unclaimed && paying === 0 && (
+          <div className="notice info">
+            Your wallet payment was sent. <span className="mono">{unclaimed.slice(0, 10)}…</span>{" "}
+            <button type="button" className="linklike" onClick={() => { setError(""); claim(unclaimed).then(() => { setResult(null); reload(); }, (e) => setError((e as Error).message)); }}>Add it to my questions</button>
+          </div>
+        )}
       </form>
 
       {result && v && (

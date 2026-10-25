@@ -380,11 +380,24 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
         toast("Paid. The transfer is confirmed on testnet.");
       } else if (kind === "payWallet") {
         // Public payout from the owner's NEAR wallet: USDC on NEAR to a one-time address that delivers on Base.
-        const { transfer } = await api<{ transfer: { id: string; amountIn: string; fromAsset: { assetId: string }; deposit: { address: string } | null } }>(`/payments/${payment.id}/pay`, { body: { from: "wallet" } });
-        if (!transfer.deposit) throw new Error("No payment address came back. Try again.");
-        const txHash = await sendToken(network, transfer.fromAsset.assetId.replace(/^nep141:/, ""), transfer.deposit.address, transfer.amountIn);
-        await api(`/transfers/${transfer.id}/sent`, { body: { txHash } });
-        toast("Payment sent from your wallet");
+        // Remembered once the wallet has paid, so trying again only reports it and never pays twice.
+        const saved = `scrim:wallet-payout:${payment.id}`;
+        let paid: { transferId: string; txHash: string } | null = null;
+        try { paid = JSON.parse(sessionStorage.getItem(saved) ?? "null"); } catch { /* optional */ }
+        if (!paid) {
+          const { transfer } = await api<{ transfer: { id: string; amountIn: string; fromAsset: { assetId: string }; deposit: { address: string } | null } }>(`/payments/${payment.id}/pay`, { body: { from: "wallet" } });
+          if (!transfer.deposit) throw new Error("No payment address came back. Try again.");
+          paid = { transferId: transfer.id, txHash: await sendToken(network, transfer.fromAsset.assetId.replace(/^nep141:/, ""), transfer.deposit.address, transfer.amountIn) };
+          try { sessionStorage.setItem(saved, JSON.stringify(paid)); } catch { /* optional */ }
+        }
+        let status = (await api<{ transfer: { status: string } }>(`/transfers/${paid.transferId}/sent`, { body: { txHash: paid.txHash } })).transfer.status;
+        // Wait until NEAR Intents has picked it up, so the request shows as being paid.
+        for (let i = 0; i < 20 && status === "awaiting_deposit"; i++) {
+          await new Promise((r) => setTimeout(r, 3000));
+          status = (await api<{ transfer: { status: string } }>(`/transfers/${paid.transferId}`)).transfer.status;
+        }
+        if (status !== "awaiting_deposit") try { sessionStorage.removeItem(saved); } catch { /* optional */ }
+        toast(status === "awaiting_deposit" ? "Sent from your wallet. It shows here once it's picked up." : "Payment sent from your wallet");
       } else if (kind === "pay") {
         const { transfer } = await api<{ transfer: { id: string; intentToSign: { message: string; nonce: string; recipient: string } } }>(`/payments/${payment.id}/pay`, { method: "POST" });
         const signed = await signTransfer(network, transfer.intentToSign, accountId);

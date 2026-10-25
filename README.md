@@ -91,7 +91,7 @@ Scrim lets you choose private whenever you want it, and public when you prefer, 
 | **Get paid** | Share a payment link. The payer needs no account and can pay from any coin on any chain. |
 | **Sell** | Sell a file, a code, a report or your API to agents (over x402) and people (on a pay page), from any coin on any chain. Each sale lands where you choose, your private balance or your wallet; buyers get what you sell once the payment is confirmed. A sales list shows every sale. |
 | **Proofs** | Show that you hold at least an amount, or that a payment was made, to one named reader. The proof expires (1, 7 or 30 days), can be taken back, and is checked in the reader's browser without revealing your balance or history. |
-| **Accounts with rules** | Approve payments yourself, or share an account where M of N people approve each one. Spending limits for people and agents, and a full history. |
+| **Accounts with rules** | Approve payments yourself, or share an account where M of N people approve each one. People are invited and join only when they say yes. Spending limits for people and agents, a full history, and a Receipts tab with a spreadsheet download. A small bell shows what is waiting for you. |
 | **Ask** | Ask about your own money in plain words ("what did we pay suppliers last week?"). Answered by AI running in NEAR AI Cloud's secure hardware; each answer's signature is checked against the key NEAR AI's attestation report names. |
 | **Activity** | Everything you did, in plain words. Private payments are listed only for you; your connected wallet's own transactions (public) are read from the chain. |
 | **Agents** | Give software its own key and limits. It asks to pay and people approve, or, with a wallet of its own, it pays by itself within those limits. Agents can pay your links and buy from paid APIs over x402. See [Agents](#agents). |
@@ -302,12 +302,15 @@ Tools: `get_limits`, `request_payment`, `find_paid_apis`, `pay_x402`, `list_paym
 - **Your keys stay in your wallet.** Scrim never holds a key or your money. Every move is a signature from your own wallet over the exact payload, checked and accepted once.
 - **What you sign is what you were quoted.** A transfer must name the quoted coin, no more than the quoted amount and only the quoted deposit address, or nobody is asked to sign it.
 - **Wallet sign-in, not passwords.** Challenges are single-use and expire in five minutes; the key is checked on-chain as a full-access key of the account.
+- **Sign-in names Scrim.** The message you sign says "Sign in to Scrim" and names the site, so a look-alike site stands out. Opening your private balance is a separate, optional step.
+- **Joining an account needs your yes.** Being added as an approver is an invitation; until you accept you can't see the account or approve for it.
 - **Approvals are bound to one request**, showing the amount and recipient first.
 - **One payout per request.** Each request records the transfer paying it; nothing else can settle or reopen it.
 - **Agent limits are enforced on the server**, under a lock per agent. A payment that may have moved money keeps counting against the limit.
 - **Agent wallets sign only the exact price Scrim checked**, at most once per purchase. Their keys stay in OutLayer's enclave.
 - **Outgoing requests reach only public https addresses**, pinned after one lookup, never following redirects. Seller text reaches agents marked as data.
-- **Private data is sealed** (AES-256-GCM, bound to its record). Session and agent keys are stored only as hashes.
+- **Private data is sealed** (AES-256-GCM, bound to its record), and the sealing key can be changed without losing anything. Session and agent keys are stored only as hashes.
+- **One person never sees another's data.** A test has a stranger and an invited person try to read or change someone else's accounts, payments, agents, links, transfers and proofs; every attempt is refused.
 - **The web layer** accepts JSON only from the same origin, rate-limits every route, never caches API responses, and sends HSTS.
 
 The code was reviewed in October 2026 across sign-in, every money flow, agents and x402, and the cryptography; each confirmed issue was fixed with a regression test in `tests/security.test.ts`. To report a bug privately, see [SECURITY.md](SECURITY.md).
@@ -323,7 +326,7 @@ src/components/   screens
 db/migrations/    database schema, applied in order
 tests/            protocol tests, security regression tests and live tests against real networks
 docs/             product, architecture and backend notes, brand files, screenshots
-scripts/          migrations and key generation
+scripts/          migrations, key generation and key changes
 ```
 
 ## Development
@@ -344,12 +347,15 @@ GitHub Actions runs type check, unused-code check, tests and build on every push
 ## Roadmap
 
 - Proofs generated on your own device
-- Payroll batches and accountant exports
+- Payroll batches
 - Account rules enforced on-chain
 - Contract-wallet sign-in
 - A shielded pool of its own
 - Buying from x402 sellers that take a request body (POST)
 - Ask that can draft a payment for you to approve
+- Agents that swap coins within their limits
+- Selling to standard x402 buyers, not only through NEAR Intents
+- Ask that checks the secure hardware's own proof, not only the signature
 
 ## Contributing
 

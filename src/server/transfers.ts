@@ -65,12 +65,13 @@ type Details = {
   resultHashes: string[];
 };
 
-// FLEX_INPUT deposits still need a quote amount the route accepts. Without a published minimum, ask for
-// about one dollar's worth (or one whole coin when there's no price): what is actually sent is what lands.
-function oneDollarOf(asset: Asset): string {
-  if (!asset.priceUsd) return (10n ** BigInt(asset.decimals)).toString();
-  const minor = Math.ceil((10 ** asset.decimals) / asset.priceUsd);
-  return BigInt(Math.max(1, minor)).toString();
+// FLEX_INPUT deposits still need a quote amount the route accepts; the minimum shown follows from it.
+// Use the bridge's published minimum, except where it is missing or a single unit (which the route
+// refuses): then ask for about one dollar's worth, or one whole coin when there's no price.
+function quoteAmountFor(asset: Asset): string {
+  const dollar = asset.priceUsd ? BigInt(Math.max(1, Math.ceil(10 ** asset.decimals / asset.priceUsd))) : 10n ** BigInt(asset.decimals);
+  const published = asset.minDeposit ? BigInt(asset.minDeposit) : 0n;
+  return (published > 1n ? published : dollar).toString();
 }
 
 export type Transfer = {
@@ -133,7 +134,7 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
     return {
       from: asset, to: asset, amountAsset: asset, recipient: null, needsUserToken: false, deadlineMinutes: 24 * 60,
       request: { ...base, swapType: "FLEX_INPUT", originAsset: asset.assetId, depositType: "INTENTS", destinationAsset: asset.assetId,
-        amount: (asset.minDeposit ?? oneDollarOf(asset)).toString(), refundTo: account, refundType: "CONFIDENTIAL_INTENTS", recipient: account,
+        amount: quoteAmountFor(asset), refundTo: account, refundType: "CONFIDENTIAL_INTENTS", recipient: account,
         recipientType: "CONFIDENTIAL_INTENTS", quoteWaitingTimeMs: 5000 },
     };
   }

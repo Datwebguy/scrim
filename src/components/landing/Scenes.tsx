@@ -162,10 +162,10 @@ export function AgentScene() {
 /* x402: an agent calls a paid API, gets "402 Payment Required", Scrim checks its limits, pays privately, and the API answers. */
 export function X402Scene() {
   const steps = [
-    { from: "agent", text: "Asks a paid API for data" },
+    { from: "agent", text: "Finds a paid API and asks for data" },
     { from: "api", text: "402 · Payment required" },
     { from: "scrim", text: "Within the agent's limits" },
-    { from: "scrim", text: "Paid from a private balance" },
+    { from: "scrim", text: "Paid on Base, Solana or another chain" },
     { from: "api", text: "200 · Here is your data" },
   ];
   const { ref, step } = useLoop(steps.length + 2, 1000);
@@ -180,6 +180,25 @@ export function X402Scene() {
         ))}
       </ol>
       <div className={`sc-x402-foot ${step >= steps.length - 1 ? "on" : ""}`}>The API never sees whose money paid it.</div>
+    </div>
+  );
+}
+
+/* Ask: a question goes into secure hardware with your records, an answer comes out, its signature is checked. */
+export function AskScene() {
+  const steps = ["Your records, sealed", "Answered inside secure hardware", "Signature checked"];
+  const { ref, step } = useLoop(steps.length + 3, 1000);
+  return (
+    <div ref={ref} className="sc-card sc-ask">
+      <div className={`sc-ask-q ${step >= 0 ? "on" : ""}`}>What did we pay suppliers this month?</div>
+      <div className={`sc-ask-box ${step >= 1 && step <= 2 ? "busy" : ""}`} aria-hidden="true">
+        <span className="sc-ask-lock">⬡</span>
+        <b>NEAR AI · secure hardware</b>
+      </div>
+      <ol>
+        {steps.map((s, i) => <li key={s} className={step > i ? "on" : ""}><span>✓</span>{s}</li>)}
+      </ol>
+      <div className={`sc-stamp ${step > steps.length ? "on" : ""}`}>Verified</div>
     </div>
   );
 }

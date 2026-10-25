@@ -49,7 +49,7 @@ You need a NEAR testnet account. Any NEAR wallet can create one for free, for ex
     curl -i https://scrim-alpha.vercel.app/api/x402/pay/<link code>
     ```
     → `402 Payment Required` with a `PAYMENT-REQUIRED` header listing USDC and USDT routes on eight chains, all delivered where the link owner chose: their private balance or their wallet.
-11. **Ask about your money.** Open **Ask** and tap "What do I hold right now?". → A plain answer from your own records, with **Verified private answer**: the answer was signed inside NEAR AI's secure hardware, by the key its attestation report names.
+11. **Ask about your money.** Open **Ask** and tap "What do I hold right now?". → A plain answer from your own records, with **Signed by the attested key**: the answer was signed over exactly this question and answer, by the key NEAR AI's attestation report names for the model.
 12. **An agent that pays by itself (mainnet).** In **Agents → Connect**, choose **Create wallet**, keep **Private**, use **Add funds privately**, then **Let it pay by itself**. → Requests inside the agent's limits go straight to *Paid*, from the agent's wallet (its private balance when set to Private), with no approval step.
 
 ---
@@ -91,7 +91,7 @@ Scrim lets you choose private whenever you want it, and public when you prefer, 
 | **Sell** | Sell a file, a code, a report or your API to agents (over x402) and people (on a pay page), from any coin on any chain. Each sale lands where you choose, your private balance or your wallet; buyers get what you sell once the payment is confirmed. A sales list shows every sale. |
 | **Proofs** | Show that you hold at least an amount, or that a payment was made, to one named reader. The proof expires (1, 7 or 30 days), can be taken back, and is checked in the reader's browser without revealing your balance or history. |
 | **Accounts with rules** | Approve payments yourself, or share an account where M of N people approve each one. Spending limits for people and agents, and a full history. |
-| **Ask** | Ask about your own money in plain words ("what did we pay suppliers last week?"). Answered by AI running in NEAR AI Cloud's secure hardware; each answer's signature is checked against the hardware's attestation. |
+| **Ask** | Ask about your own money in plain words ("what did we pay suppliers last week?"). Answered by AI running in NEAR AI Cloud's secure hardware; each answer's signature is checked against the key NEAR AI's attestation report names. |
 | **Activity** | Everything you did, in plain words. Private payments are listed only for you; your connected wallet's own transactions (public) are read from the chain. |
 | **Agents** | Give software its own key and limits. It asks to pay and people approve, or, with a wallet of its own, it pays by itself within those limits. Agents can pay your links and buy from paid APIs over x402. See [Agents](#agents). |
 

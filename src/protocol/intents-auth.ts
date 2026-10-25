@@ -36,6 +36,37 @@ export function parseIntentMessage(message: string): IntentMessage | null {
   }
 }
 
+// Checks a transfer intent handed out by NEAR Intents before anyone is asked to sign it. Whatever the
+// exact shape, every receiver it names must be the quote's one-time deposit address, every token amount
+// must be the quoted coin at no more than the quoted amount, and it must expire in time. Anything that
+// contradicts the quote is refused, so a wrong or hostile intent is never put in front of a wallet.
+export function intentMatchesQuote(
+  payload: { message: string; nonce: string },
+  expect: { signerId: string; depositAddress: string; assetId: string; maxAmount: bigint; notAfter: Date },
+): boolean {
+  const parsed = parseIntentMessage(payload.message);
+  if (!parsed || parsed.signer_id !== expect.signerId) return false;
+  const deadline = Date.parse(parsed.deadline);
+  if (!Number.isFinite(deadline) || deadline > expect.notAfter.getTime() + 5 * 60_000) return false;
+  if (Buffer.from(payload.nonce, "base64").length !== 32) return false;
+  let ok = true;
+  const walk = (value: unknown): void => {
+    if (!ok || value === null || typeof value !== "object") return;
+    if (Array.isArray(value)) return value.forEach(walk);
+    for (const [key, v] of Object.entries(value as Record<string, unknown>)) {
+      if ((key === "receiver_id" || key === "recipient" || key === "receiverId") && typeof v === "string" && v !== expect.depositAddress) ok = false;
+      else if ((key === "tokens" || key === "diff") && v && typeof v === "object" && !Array.isArray(v)) {
+        for (const [token, amount] of Object.entries(v as Record<string, unknown>)) {
+          const n = typeof amount === "string" && /^-?\d+$/.test(amount) ? BigInt(amount) : null;
+          if (token !== expect.assetId || n === null || (n < 0n ? -n : n) > expect.maxAmount) ok = false;
+        }
+      } else walk(v);
+    }
+  };
+  walk(parsed.intents);
+  return ok;
+}
+
 // An implicit NEAR account is the hex encoding of its ed25519 public key.
 export function isImplicitAccount(accountId: string): boolean {
   return /^[0-9a-f]{64}$/.test(accountId);

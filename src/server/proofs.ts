@@ -52,7 +52,7 @@ export async function createProof(session: Session, input: ProofInput): Promise<
     };
     if (input.unit === "usd") {
       const wanted = parse(2);
-      if (o.totalUsd * 100 < Number(wanted)) throw conflict("Your private balance is below that amount, so it can't be proven.");
+      if (BigInt(Math.floor(o.totalUsd * 100)) < wanted) throw conflict("Your private balance is below that amount, so it can't be proven.");
       claim = { type: "balance_at_least", unit: "usd", symbol: null, amount: formatAmount(wanted, 2, 0) };
     } else {
       const asset = await assetById(String(input.assetId ?? ""));
@@ -68,6 +68,7 @@ export async function createProof(session: Session, input: ProofInput): Promise<
     claim = {
       type: "payment", amount: formatAmount(BigInt(transfer.amountOut), transfer.toAsset.decimals, 2), symbol: transfer.toAsset.symbol,
       chainName: transfer.toAsset.chainName, exact: input.revealExact !== false, paidAt: transfer.createdAt.toISOString(),
+      ...(transfer.recipient ? { to: transfer.recipient } : {}),
     };
   } else {
     throw badRequest("Choose what to prove.");
@@ -76,7 +77,7 @@ export async function createProof(session: Session, input: ProofInput): Promise<
   const id = randomUUID();
   const issuedAt = new Date();
   const expiresAt = new Date(issuedAt.getTime() + input.days * 86_400_000);
-  const payload: ProofPayload = { v: 1, id, reader, holder, issuedAt: issuedAt.toISOString(), expiresAt: expiresAt.toISOString(), claim };
+  const payload: ProofPayload = { v: 1, id, reader, account: session.accountId, holder, issuedAt: issuedAt.toISOString(), expiresAt: expiresAt.toISOString(), claim };
   const token = signProof(payload, proofSigningKey().secret);
   await sql.begin(async (tx) => {
     await tx`INSERT INTO proofs (id, account_id, network, kind, details_sealed, expires_at) VALUES (${id}, ${session.accountId}, ${session.network}, ${input.kind}, ${seal({ payload, token }, aad(id, session.accountId))}, ${expiresAt})`;

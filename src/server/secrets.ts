@@ -1,6 +1,6 @@
 // Encryption at rest and Scrim's proof-signing key.
 // Production must set SCRIM_SECRET_KEY and SCRIM_PROOF_KEY (32 random bytes each, base64).
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } from "node:crypto";
 import { ed25519 } from "@noble/curves/ed25519.js";
 
 function keyFrom(name: string): Buffer {
@@ -13,6 +13,11 @@ function keyFrom(name: string): Buffer {
   if (process.env.NODE_ENV === "production") throw new Error(`${name} is not set.`);
   // Development only: a fixed, clearly-labelled key so local data survives restarts.
   return createHash("sha256").update(`scrim-development-only:${name}`).digest();
+}
+
+// A separate key for one purpose, derived from SCRIM_SECRET_KEY (never a fixed string in production).
+export function derivedKey(purpose: string): Buffer {
+  return Buffer.from(hkdfSync("sha256", keyFrom("SCRIM_SECRET_KEY"), Buffer.alloc(0), `scrim:${purpose}`, 32));
 }
 
 // AES-256-GCM. The associated data binds a ciphertext to the record it belongs to,

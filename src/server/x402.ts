@@ -10,6 +10,7 @@ import * as oneclick from "./oneclick";
 import { linkRow } from "./paylinks";
 import { deliver, productInfo } from "./products";
 import { createLinkPayment, linkPaymentStatus } from "./transfers";
+import { derivedKey } from "./secrets";
 
 const X402_VERSION = 2;
 const MAX_TIMEOUT_SECONDS = 3600; // matches the link payment deposit window
@@ -98,7 +99,7 @@ async function origins(link: Awaited<ReturnType<typeof linkRow>>): Promise<Origi
 
 // ── Operation token: <keyId>.<expiry>.<mac>, no storage needed ──
 function tokenKey() {
-  return createHmac("sha256", process.env.SCRIM_SECRET_KEY ?? "scrim-development-only").update("x402-operation-token").digest();
+  return derivedKey("x402-operation-token");
 }
 
 function mac(network: string, depositAddress: string, memo: string | undefined, resource: string, destination: Entry["extra"]["destination"], expiry: number) {

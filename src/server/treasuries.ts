@@ -47,6 +47,8 @@ export type CreateTreasuryInput = { name: string; kind: "individual" | "team"; s
 export async function createTreasury(session: Session, input: CreateTreasuryInput): Promise<Treasury> {
   const name = input.name.trim();
   if (!name || name.length > 80) throw badRequest("Name your account (up to 80 characters).");
+  // One plain line: a name can never add lines to what an approver's wallet shows.
+  if (/[\u0000-\u001f\u007f\u2028\u2029]/.test(name)) throw badRequest("Use letters, numbers and spaces in the account name.");
   const others = new Set<string>();
   for (const raw of input.kind === "team" ? input.signers : []) {
     const id = normalizeNearAccount(raw);

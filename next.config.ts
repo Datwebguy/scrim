@@ -11,6 +11,13 @@ const config: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   serverExternalPackages: ["postgres"],
+  // The Team screen is now Accounts; old links keep working.
+  async redirects() {
+    return [
+      { source: "/app/team", destination: "/app/accounts", permanent: true },
+      { source: "/app/team/:path*", destination: "/app/accounts/:path*", permanent: true },
+    ];
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

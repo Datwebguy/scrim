@@ -102,7 +102,7 @@ describe("team accounts on testnet", () => {
     const wrongPerson = await owner.send(owner.accountId === cosigner.accountId ? "x" : (await createTestnetWallet("scrim-t-other")).accountId, amount);
     await expect(recordTestnetPayout(ownerSession, p.id, wrongPerson)).rejects.toThrow(/different account/);
     // Only the owner may record the payout.
-    await expect(recordTestnetPayout(cosignerSession, p.id, wrongAmount)).rejects.toThrow(/Only the treasury owner/);
+    await expect(recordTestnetPayout(cosignerSession, p.id, wrongAmount)).rejects.toThrow(/Only the account owner/);
 
     const before = BigInt((await publicHoldings("testnet", cosigner.accountId)).find((h) => h.id === "near")!.amount);
     const hash = await owner.send(cosigner.accountId, amount);

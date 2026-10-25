@@ -23,7 +23,7 @@ export function TestnetHome() {
         </div>
         <div className="quick">
           <Link href="/app/send" className="btn btn-signal">Send</Link>
-          <Link href="/app/team" className="btn btn-light">Team</Link>
+          <Link href="/app/accounts" className="btn btn-light">Accounts</Link>
           <Link href="/app/activity" className="btn btn-light">Activity</Link>
         </div>
       </section>

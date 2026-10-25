@@ -6,7 +6,7 @@
 
 **Private money for people and businesses, on NEAR.**
 
-Hold, send, swap and get paid, and only you see it. Scrim gives you a private balance on top of [NEAR Intents](https://near-intents.org). Add money from almost any chain, pay anyone on any chain, and prove a single fact to a single person when someone asks. Teams get approvals and spending limits. Software agents can ask to pay within rules people control, or pay by themselves from a wallet of their own, including for paid APIs over x402. And you can ask about your money in plain words, answered by private AI on NEAR AI Cloud.
+Hold, send, swap and get paid, and only you see it. Scrim gives you a private balance on top of [NEAR Intents](https://near-intents.org). Add money from almost any chain, pay anyone on any chain, and prove a single fact to a single person when someone asks. Set spending limits and approvals, alone or with others. Software agents can ask to pay within rules people control, or pay by themselves from a wallet of their own, including for paid APIs over x402. And you can ask about your money in plain words, answered by private AI on NEAR AI Cloud.
 
 Scrim never holds your keys or your money. You sign in with your own NEAR wallet and approve every move yourself.
 
@@ -32,8 +32,8 @@ You need a NEAR testnet account. Any NEAR wallet can create one for free, for ex
 1. **Sign in.** Open `/app`, choose **Testnet**, pick your wallet and approve the sign-in message. → You see your account name and its real testnet NEAR balance. The message cannot move funds.
 2. **Read your activity.** Open **Activity**. → Your wallet's own transactions, read from the chain, in plain words (Sent, Received, Got test NEAR…). Tap one to see who it was with, the time and the transaction ID.
 3. **Send.** Open **Send** and send `0.1` NEAR to another testnet account. → Your wallet asks you to approve; then the transfer appears at the top of **Activity** as *Sent*, *Done*.
-4. **Make a team.** Open **Team**, choose *Team*, add a second NEAR account as an approver, require 2 approvals and tap **Create account**. → The team shows "Payments need 2 of 2 approvals".
-5. **Add an agent.** In the team, open **Agents → Add agent**. Set *1* per payment, *1.5* per day, and allow one recipient. → Scrim shows the agent's key once (`scrim_sk_…`).
+4. **Set up an account with rules.** Open **Accounts**, choose *Shared*, add a second NEAR account as an approver, require 2 approvals and tap **Create account**. → The account shows "Payments need 2 of 2 approvals". (Choose *Just me* to approve alone.)
+5. **Add an agent.** In the account, open **Agents → Add agent**. Set *1* per payment, *1.5* per day, and allow one recipient. → Scrim shows the agent's key once (`scrim_sk_…`).
 6. **The agent asks to pay.** From any terminal:
    ```sh
    curl -X POST https://scrim-alpha.vercel.app/api/v1/agent/payments \
@@ -41,7 +41,7 @@ You need a NEAR testnet account. Any NEAR wallet can create one for free, for ex
      -d '{"recipient":"<the allowed account>","amount":"0.5","memo":"first try"}'
    ```
    → `"status": "awaiting_approval"`. Repeat with `"amount":"2"` and a new key: → `"status": "policy_rejected"`, stopped before anyone sees it.
-7. **People approve.** In the team, open the request and tap **Approve with wallet** from each account, then **Pay with my wallet**. → Status moves to *Paid* only after Scrim reads the transfer back from the chain.
+7. **People approve.** In the account, open the request and tap **Approve with wallet** from each account, then **Pay with my wallet**. → Status moves to *Paid* only after Scrim reads the transfer back from the chain.
 8. **Use it from an AI assistant.** Add Scrim as an MCP server (see [Agents](#agents)) and ask the assistant "what can you still spend?". → It calls `get_limits` and answers with the agent's limits and what is left.
 9. **Private balance (mainnet).** Sign in on **Mainnet** and open **Add money**. Pick a coin and a network. → A one-time deposit address. What you send there lands in your private balance, and the public chain shows nothing about what you hold.
 10. **Get paid by an agent (mainnet).** Make a payment link, then request its agent address:
@@ -89,7 +89,7 @@ Scrim keeps your money private, works across 30+ networks, and lets you show exa
 | **Swap** | Trade one coin for another inside your private balance. |
 | **Get paid** | Share a payment link. The payer needs no account and can pay from any coin on any chain. |
 | **Proofs** | Show that you hold at least an amount, or that a payment was made, to one named reader. The proof expires (1, 7 or 30 days), can be taken back, and is checked in the reader's browser without revealing your balance or history. |
-| **Teams** | Shared accounts where M of N people approve each payment, with spending limits and a history your accountant can read. |
+| **Accounts with rules** | Approve payments yourself, or share an account where M of N people approve each one. Spending limits for people and agents, and a full history. |
 | **Ask** | Ask about your own money in plain words ("what did we pay suppliers last week?"). Answered by AI running in NEAR AI Cloud's secure hardware; each answer's signature is checked against the hardware's attestation. |
 | **Activity** | Everything you did, in plain words. Private payments are listed only for you; your connected wallet's own transactions are read from the chain. |
 | **Agents** | Give software its own key and limits. It asks to pay and people approve, or, with a wallet of its own, it pays by itself within those limits. Agents can pay your links and buy from paid APIs over x402. See [Agents](#agents). |
@@ -130,7 +130,7 @@ Choose a network when you sign in. Everything shown is real data from the networ
 | | Testnet | Mainnet |
 | --- | --- | --- |
 | Money | Free test coins, worth nothing | Real money |
-| Sign-in and team approvals | ✅ | ✅ |
+| Sign-in and approvals | ✅ | ✅ |
 | Spending limits and agents | ✅ | ✅ |
 | Agents that pay by themselves (own wallet) | ✅ NEAR | ✅ USDC |
 | Real NEAR transfers, checked on-chain | ✅ | ✅ |
@@ -143,11 +143,11 @@ Choose a network when you sign in. Everything shown is real data from the networ
 
 The private features need NEAR Intents, which only exists on mainnet. On testnet those screens say so plainly. The recommended path is to try Scrim on testnet first, then move to mainnet with a separate account and small amounts.
 
-On testnet, a team with an agent's requests (one waiting, one paid on-chain, one stopped by its limits), and Activity read from the chain:
+On testnet, an account with an agent's requests (one waiting, one paid on-chain, one stopped by its limits), and Activity read from the chain:
 
 <table>
   <tr>
-    <td><img src="docs/images/team.png" alt="Testnet team account: one agent request waiting for approval, one paid, one stopped by its limits" width="430"></td>
+    <td><img src="docs/images/account.png" alt="Testnet account: one agent request waiting for approval, one paid, one stopped by its limits" width="430"></td>
     <td><img src="docs/images/activity.png" alt="Testnet Activity: the wallet's own transactions in plain words, with details for one transfer" width="430"></td>
   </tr>
 </table>
@@ -171,9 +171,9 @@ flowchart LR
 
 **Prove a fact.** A proof is a short statement ("holds at least…" or "paid…") made for one reader, signed by Scrim, with an expiry. The reader opens a link and the check runs in their browser, without an account. Proving on your own device is on the [roadmap](#roadmap).
 
-**Run a team.** A request (from a person or an agent) is first checked against the rules. Anything outside them is stopped before anyone sees it. The rest waits for the number of approvals you chose, each given by a wallet signature tied to that exact amount and recipient. Approved requests are paid from the owner's private balance on mainnet, or with a real NEAR transfer on testnet that Scrim reads back from the chain before marking it paid. An agent with its own wallet can skip the approval step, within the same limits.
+**Set rules.** A request (from a person or an agent) is first checked against the rules. Anything outside them is stopped before anyone sees it. The rest waits for the number of approvals you chose, each given by a wallet signature tied to that exact amount and recipient. Approved requests are paid from the owner's private balance on mainnet, or with a real NEAR transfer on testnet that Scrim reads back from the chain before marking it paid. An agent with its own wallet can skip the approval step, within the same limits.
 
-**Ask your money (NEAR AI Cloud).** The Ask screen sends your question and your own records (balances, payments, team requests, wallet transactions) to a model running in NEAR AI Cloud's confidential hardware (Intel TDX and NVIDIA confidential GPUs). Before asking, Scrim fetches the model's attestation report with a fresh nonce. After, it checks the answer's signature over the exact request and response bytes, and that the signing key is the one the report names. Scrim keeps no copy of the question or the answer. Set `NEARAI_API_KEY` (and optionally `NEARAI_MODEL`) to switch it on.
+**Ask your money (NEAR AI Cloud).** The Ask screen sends your question and your own records (balances, payments, requests in your accounts, wallet transactions) to a model running in NEAR AI Cloud's confidential hardware (Intel TDX and NVIDIA confidential GPUs). Before asking, Scrim fetches the model's attestation report with a fresh nonce. After, it checks the answer's signature over the exact request and response bytes, and that the signing key is the one the report names. Scrim keeps no copy of the question or the answer. Set `NEARAI_API_KEY` (and optionally `NEARAI_MODEL`) to switch it on.
 
 <p align="center"><img src="docs/images/ask-scene.png" alt="Ask: a question goes into NEAR AI's secure hardware with your records, the answer's signature is checked" width="720"></p>
 
@@ -236,11 +236,11 @@ Environment changes apply on the next deployment.
 
 ## Agents
 
-An **agent** is software that pays on your behalf: an AI assistant, a payroll script, a billing job. It works on personal and team accounts. By default an agent *asks* to pay and people approve. With a wallet of its own, the owner can let it pay by itself within its limits.
+An **agent** is software that pays on your behalf: an AI assistant, a payroll script, a billing job. It works on personal and shared accounts. By default an agent *asks* to pay and people approve. With a wallet of its own, the owner can let it pay by itself within its limits.
 
-**The agent's key.** When an owner adds an agent (Team → Agents), Scrim shows a key once, starting with `scrim_sk_`. The software sends it as `Authorization: Bearer scrim_sk_…`. The key can ask to pay within the agent's limits. It cannot approve, change limits or move money, and it is not a wallet key. Scrim stores only a hash. If it is lost or leaked, **Connect → Make a new key** replaces it and the old one stops at once.
+**The agent's key.** When an owner adds an agent (Accounts → Agents), Scrim shows a key once, starting with `scrim_sk_`. The software sends it as `Authorization: Bearer scrim_sk_…`. The key can ask to pay within the agent's limits. It cannot approve, change limits or move money, and it is not a wallet key. Scrim stores only a hash. If it is lost or leaked, **Connect → Make a new key** replaces it and the old one stops at once.
 
-**Limits.** Per payment, per time window (for example per day), a list of allowed recipients, and an optional expiry. Every change creates a new version with a fingerprint, so there is a record of what applied when. Requests outside the limits are stopped before any person sees them. Any team member can pause an agent; only the owner can resume it.
+**Limits.** Per payment, per time window (for example per day), a list of allowed recipients, and an optional expiry. Every change creates a new version with a fingerprint, so there is a record of what applied when. Requests outside the limits are stopped before any person sees them. Anyone who approves on the account can pause an agent; only the owner can resume it.
 
 **Connect an AI assistant (MCP).** Scrim is an MCP server at `/api/mcp`:
 
@@ -278,7 +278,7 @@ Tools: `get_limits`, `request_payment`, `find_paid_apis`, `pay_x402`, `list_paym
 
 **Get paid by agents (x402).** Every payment link also has an agent address, `/api/x402/pay/<code>`, that speaks [x402](https://x402.org) with the `exact` scheme and the `near-intents` upfront method (as proposed in x402-foundation/x402#3370). An agent gets a `402 Payment Required` listing USDC and USDT on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche and Solana, asks for a quote, pays the one-time deposit address, and presents the transaction. NEAR Intents delivers the money into the link owner's private balance, so the payer never sees where it went. Scrim acts as the facilitator: operation tokens are HMAC-bound to the deposit, the resource and the destination, each operation settles once, and refunds go straight back to the payer.
 
-**Buy from x402 sellers (agents).** An agent can also *pay* an x402 address, such as a paid API: `POST /api/v1/agent/x402` with `{ "url": "https://…" }`, or the MCP tool `pay_x402`. Scrim reads the seller's `402`, picks a NEAR Intents route (USDC on Base preferred), prices it in USD, and files a team payment request named after the seller's web address. The agent's limits apply (the seller's `https://` address must be one of its allowed recipients) and people approve as usual; an agent with its own wallet pays the seller by itself instead, from its private balance by default. When the owner pays, Scrim gets a fresh quote from the seller, never above what was approved, and pays the quoted deposit address with a private withdrawal the owner's wallet signs. Refunds go to the owner's own deposit address, so they return to the private balance. Once NEAR Intents delivers, Scrim presents the payment to the seller and keeps the response for the agent (`GET /api/v1/agent/payments/:id` or `get_payment`). The seller never sees the team's wallet.
+**Buy from x402 sellers (agents).** An agent can also *pay* an x402 address, such as a paid API: `POST /api/v1/agent/x402` with `{ "url": "https://…" }`, or the MCP tool `pay_x402`. Scrim reads the seller's `402`, picks a NEAR Intents route (USDC on Base preferred), prices it in USD, and files a payment request named after the seller's web address. The agent's limits apply (the seller's `https://` address must be one of its allowed recipients) and people approve as usual; an agent with its own wallet pays the seller by itself instead, from its private balance by default. When the owner pays, Scrim gets a fresh quote from the seller, never above what was approved, and pays the quoted deposit address with a private withdrawal the owner's wallet signs. Refunds go to the owner's own deposit address, so they return to the private balance. Once NEAR Intents delivers, Scrim presents the payment to the seller and keeps the response for the agent (`GET /api/v1/agent/payments/:id` or `get_payment`). The seller never sees your wallet.
 
 **Agents that pay by themselves.** The owner can give an agent its own wallet: **Connect → Create wallet**. The wallet is an [OutLayer](https://outlayer.ai) agent wallet: its key is created and kept inside a secure enclave (Intel TDX) and never reaches Scrim, which stores only the wallet's access key, sealed. The owner funds it and sets its spending rules on OutLayer with their own NEAR wallet, so the wallet enforces a second, independent set of limits. With **Let it pay by itself** on, a request that passes the agent's Scrim limits is paid at once from the agent's wallet; anything outside them is stopped as before. On testnet it sends NEAR and Scrim checks the transfer on-chain. On mainnet it sends USDC, x402 purchases included, and the owner chooses per agent:
 
@@ -290,13 +290,13 @@ Tools: `get_limits`, `request_payment`, `find_paid_apis`, `pay_x402`, `list_paym
 
 **Buy from any x402 seller (agents with their own wallet).** Most x402 sellers take a standard payment: a signed USDC authorization on an EVM chain, or a Solana transfer. An agent with its own wallet pays these too, on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche and Solana, with the `exact` scheme or, on EVM chains, `upto` (pay for what was used, up to the price shown). Scrim builds the payment with the x402 reference client ([`@x402/evm`](https://www.npmjs.com/package/@x402/evm), [`@x402/svm`](https://www.npmjs.com/package/@x402/svm)) and the wallet signs it inside OutLayer's enclave; the seller's payment service pays the fee. If the wallet's address on that chain is short, Scrim first tops it up from the agent's private balance, so the seller never sees where the money came from. `find_paid_apis` (or `GET /api/v1/agent/x402/search?q=`) searches the public catalog and marks what the agent can pay.
 
-**Alerts for people.** Approvers can tap **Connect Telegram** on the Team screen to get a message when a payment needs them.
+**Alerts for people.** Approvers can tap **Connect Telegram** on the Accounts screen to get a message when a payment needs them.
 
 ## Security
 
 - **Wallet signatures, not passwords.** Sign-in challenges are single-use and expire in five minutes. The signing key is checked on-chain as a full-access key of the account.
 - **Every transfer is bound to a signature** over the exact payload and accepted once.
-- **Team approvals are bound to one request.** The signed message names amount, recipient and a reference, so a signature cannot be reused.
+- **Approvals are bound to one request.** The signed message names amount, recipient and a reference, so a signature cannot be reused.
 - **Limits are enforced on the server**, with a lock per agent so concurrent requests cannot both slip under a cap.
 - **Private data is sealed** (AES-256-GCM, bound to its record). Session and agent keys are stored only as hashes.
 - **Webhooks** are signed, public-address-only (checked again at send time), and never follow redirects.
@@ -311,7 +311,7 @@ Tools: `get_limits`, `request_payment`, `find_paid_apis`, `pay_x402`, `list_paym
 ```
 app/              pages and API routes (home, /app, /pay, /verify, /api)
 src/protocol/     logic shared by server and browser: amounts, signatures, proofs, spending limits
-src/server/       sign-in, private access, transfers, links, proofs, teams, agents, alerts
+src/server/       sign-in, private access, transfers, links, proofs, accounts, agents, alerts
 src/client/       browser wallet bridge and API helpers
 src/components/   screens
 db/migrations/    database schema, applied in order
@@ -338,7 +338,7 @@ GitHub Actions runs type check, unused-code check, tests and build on every push
 
 - Proofs generated on your own device
 - Payroll batches and accountant exports
-- Team rules enforced on-chain
+- Account rules enforced on-chain
 - Contract-wallet sign-in
 - A shielded pool of its own
 - Buying from x402 sellers that take a request body (POST)

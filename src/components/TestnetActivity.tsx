@@ -64,7 +64,7 @@ export function TestnetActivity() {
     <div className="narrow wide">
       <Heading eyebrow="Activity" title="Everything you've done" text="Testnet transfers are public: anyone can look them up. On mainnet, money you send from your private balance stays private." />
       <WalletActivityList />
-      <p className="muted small-print">Team payments you approve and pay also appear under Team → History.</p>
+      <p className="muted small-print">Payments you approve and pay also appear under Accounts → History.</p>
     </div>
   );
 }

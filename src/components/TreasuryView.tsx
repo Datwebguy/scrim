@@ -39,7 +39,7 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
       setData(await api<Data>(`/treasuries/${treasuryId}`));
       setError("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not load this team account.");
+      setError(e instanceof Error ? e.message : "Could not load this account.");
     }
   }, [treasuryId]);
 
@@ -67,7 +67,7 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
     <>
       <div className="page-head">
         <div>
-          <span className="eyebrow">{treasury.kind === "team" ? "Team account" : "Personal account"}</span>
+          <span className="eyebrow">{treasury.kind === "team" ? "Shared account" : "Personal account"}</span>
           <h1>{treasury.name}</h1>
           <div className="meta">
             <span className="pill pill-dark plain">
@@ -1131,7 +1131,7 @@ function AgentWalletBlock({ agent, owner, onChanged }: { agent: Agent; owner: bo
           <p className="muted">
             {wallet.autonomous
               ? `${agent.name} pays by itself from this wallet, within its limits here and its spending rules on OutLayer.`
-              : `${agent.name} asks and people approve. Payments come from the team.`}
+              : `${agent.name} asks and you approve. Payments come from your account.`}
           </p>
         </>
       )}

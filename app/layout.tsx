@@ -8,7 +8,7 @@ const mono = DM_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--
 export const metadata: Metadata = {
   title: { default: "Scrim — Private money on NEAR", template: "%s · Scrim" },
   description:
-    "Hold, send, swap and get paid privately on NEAR. Teams approve together, and agents pay within limits you set.",
+    "Hold, send, swap and get paid privately on NEAR. Set limits, share approvals, and let agents pay within rules you set.",
 };
 
 export const viewport: Viewport = { themeColor: "#151512" };

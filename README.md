@@ -12,7 +12,7 @@
 <p align="center">
   <a href="https://scrimfinance.vercel.app">Live site</a> ·
   <a href="docs/TRY_IT.md">Try it</a> ·
-  <a href="docs/AGENTS_GUIDE.md">Agents</a> ·
+  <a href="docs/DEVELOPERS.md">Developers</a> ·
   <a href="docs/SELF_HOSTING.md">Run it yourself</a> ·
   <a href="SECURITY.md">Security</a>
 </p>
@@ -140,7 +140,8 @@ An agent is a helper that spends for you, only inside the rules you set. It can 
 | --- | --- |
 | [Try it](docs/TRY_IT.md) | A twelve step walkthrough with what you should see at each step |
 | [How it works](docs/HOW_IT_WORKS.md) | Sign in, moving money, proofs, rules and Ask |
-| [Agents and x402](docs/AGENTS_GUIDE.md) | Connect software that pays within limits |
+| [Developers](docs/DEVELOPERS.md) | Keys, every call, MCP, webhooks and x402, with examples |
+| [Agents and x402](docs/AGENTS_GUIDE.md) | What agents are and how to set one up |
 | [Run it yourself](docs/SELF_HOSTING.md) | Setup, configuration and deploying to Vercel |
 | [Architecture](docs/ARCHITECTURE.md) | The layers and what each part can see |
 | [Product](docs/PRODUCT.md) | What Scrim is for and the principles behind it |

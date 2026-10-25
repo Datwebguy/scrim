@@ -972,12 +972,12 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 [data-theme="dark"] {
   --paper: #0c0c0b;
   --paper-2: #1c1c19;
-  --card: #141412;
-  --ink: #f1efe8;
-  --ink-2: #e2e0d8;
-  --ink-3: #c4c2b8;
-  --muted: #9a988e;
-  --faint: #6c6b63;
+  --card: rgba(22, 22, 20, 0.88);
+  --ink: #f7f5ef;
+  --ink-2: #eeece5;
+  --ink-3: #dddbd2;
+  --muted: #bab8ae;
+  --faint: #8f8d84;
   --line: #262622;
   --line-2: #34332e;
   --orange-deep: #ff8a65;
@@ -1012,43 +1012,61 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 [data-theme="dark"] .ws-side { border-right: 1px solid var(--line); }
 [data-theme="dark"] .l-footer .brand img, [data-theme="dark"] .ws-side .brand img { box-shadow: 0 0 0 1px #3a3a33; }
 
-/* The engraving and the orbit's glow, where they mean something: behind the hero, the app, the sign-in
-   art, the balance and the closing call. Never behind text people have to read closely. */
-[data-theme="dark"] .l-bg::before,
-[data-theme="dark"] .closing::before,
-[data-theme="dark"] .ws-main::before,
-[data-theme="dark"] .public-main::before,
-[data-theme="dark"] .gate-art::before,
-[data-theme="dark"] .balance-hero::before {
-  content: ""; position: absolute; pointer-events: none; background: url("/brand/flammarion.webp") no-repeat; background-size: cover;
+/* Dark mode backgrounds: Scrim's own colours, orange, the warm cream of light mode and a deep ember, as slow
+   moving light. The engraving appears only where it tells the story: the hero, the sign-in art and the footer. */
+[data-theme="dark"] body { isolation: isolate; }
+[data-theme="dark"] body::before, [data-theme="dark"] body::after { content: ""; position: fixed; inset: -20%; z-index: -1; pointer-events: none; }
+[data-theme="dark"] body::before {
+  background:
+    radial-gradient(38% 34% at 82% 12%, rgba(255, 91, 45, 0.26), transparent 70%),
+    radial-gradient(30% 30% at 18% 78%, rgba(245, 244, 239, 0.09), transparent 70%),
+    radial-gradient(34% 30% at 60% 92%, rgba(122, 42, 18, 0.36), transparent 70%);
 }
-[data-theme="dark"] .l-bg::before { inset: 0 0 0 30%; background-position: 30% 35%; opacity: 0.2;
-  -webkit-mask-image: radial-gradient(ellipse at 70% 40%, #000 20%, transparent 70%); mask-image: radial-gradient(ellipse at 70% 40%, #000 20%, transparent 70%); }
-[data-theme="dark"] .l-bg .orb { opacity: 0.22; }
+[data-theme="dark"] body::after {
+  background:
+    radial-gradient(26% 24% at 10% 22%, rgba(255, 138, 101, 0.14), transparent 70%),
+    radial-gradient(28% 26% at 88% 70%, rgba(255, 217, 201, 0.06), transparent 70%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  [data-theme="dark"] body::before { animation: aurora 38s ease-in-out infinite alternate; }
+  [data-theme="dark"] body::after { animation: aurora 52s ease-in-out infinite alternate-reverse; }
+}
+@keyframes aurora { 0% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(4%, -3%, 0) scale(1.06); } 100% { transform: translate3d(-3%, 4%, 0) scale(1); } }
+
+[data-theme="dark"] .l-bg::before { content: ""; position: absolute; inset: 0 0 0 35%; pointer-events: none; background: url("/brand/flammarion.webp") no-repeat 30% 35% / cover; opacity: 0.1;
+  -webkit-mask-image: radial-gradient(ellipse at 70% 40%, #000 15%, transparent 65%); mask-image: radial-gradient(ellipse at 70% 40%, #000 15%, transparent 65%); }
+[data-theme="dark"] .l-bg .orb { opacity: 0.34; }
 [data-theme="dark"] .l-bg .o1 { background: #ff5b2d; }
-[data-theme="dark"] .l-bg .o2 { background: #7a2a12; }
-[data-theme="dark"] .l-bg .o3 { background: #ff5b2d; opacity: 0.12; }
-[data-theme="dark"] .l-bg .grid { opacity: 0.5; }
+[data-theme="dark"] .l-bg .o2 { background: #ffd9c9; opacity: 0.12; }
+[data-theme="dark"] .l-bg .o3 { background: #ff8a65; opacity: 0.18; }
+[data-theme="dark"] .l-bg .grid { opacity: 0.45; }
 /* A slow orbit turning behind the hero. */
-[data-theme="dark"] .l-bg::after { content: ""; position: absolute; right: 6%; top: 50%; width: min(620px, 70vw); aspect-ratio: 1; translate: 0 -50%; border-radius: 50%;
-  border: 1px dashed rgba(239, 236, 227, 0.12); box-shadow: inset 0 0 0 60px rgba(0, 0, 0, 0), 0 0 0 1px rgba(239, 236, 227, 0.04); }
+[data-theme="dark"] .l-bg::after { content: ""; position: absolute; right: 6%; top: 50%; width: min(620px, 70vw); aspect-ratio: 1; translate: 0 -50%; border-radius: 50%; pointer-events: none;
+  border: 1px dashed rgba(255, 138, 101, 0.22); box-shadow: 0 0 0 70px rgba(255, 91, 45, 0.02), 0 0 0 1px rgba(239, 236, 227, 0.05); }
 [data-theme="dark"] .closing { position: relative; overflow: hidden; }
 [data-theme="dark"] .closing > * { position: relative; }
-[data-theme="dark"] .closing::before { inset: 0; background-position: center 40%; opacity: 0.16;
-  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, #000 15%, transparent 65%); mask-image: radial-gradient(ellipse at 50% 50%, #000 15%, transparent 65%); }
-[data-theme="dark"] .closing::after { content: ""; position: absolute; left: 50%; top: 50%; width: 520px; height: 520px; translate: -50% -50%; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(circle, rgba(255, 91, 45, 0.16), transparent 62%); }
-[data-theme="dark"] .ws-main, [data-theme="dark"] .public-main { position: relative; isolation: isolate; }
-[data-theme="dark"] .ws-main::before, [data-theme="dark"] .public-main::before { position: fixed; z-index: -1; top: 0; right: 0; width: min(900px, 75vw); height: 100vh; background-position: 20% 30%; opacity: 0.08;
-  -webkit-mask-image: radial-gradient(ellipse at 85% 10%, #000 10%, transparent 70%); mask-image: radial-gradient(ellipse at 85% 10%, #000 10%, transparent 70%); }
-[data-theme="dark"] .ws-main::after, [data-theme="dark"] .public-main::after { content: ""; position: fixed; z-index: -1; top: -200px; right: -200px; width: 600px; height: 600px; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(circle, rgba(255, 91, 45, 0.07), transparent 65%); }
-[data-theme="dark"] .gate-art::before { inset: 0; background-position: 30% 40%; opacity: 0.14;
-  -webkit-mask-image: linear-gradient(#000 30%, transparent 95%); mask-image: linear-gradient(#000 30%, transparent 95%); }
-[data-theme="dark"] .gate-art > * { position: relative; }
-[data-theme="dark"] .balance-hero::before { inset: 0; background-position: 70% 30%; opacity: 0.12;
-  -webkit-mask-image: linear-gradient(90deg, transparent 20%, #000 90%); mask-image: linear-gradient(90deg, transparent 20%, #000 90%); }
-[data-theme="dark"] .balance-hero > * { position: relative; z-index: 1; }
+[data-theme="dark"] .closing::before { content: ""; position: absolute; left: 50%; top: 50%; width: 760px; height: 420px; translate: -50% -50%; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255, 91, 45, 0.24), rgba(255, 217, 201, 0.05) 60%, transparent); }
+[data-theme="dark"] .gate-art::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: url("/brand/flammarion.webp") no-repeat 30% 40% / cover; opacity: 0.06;
+  -webkit-mask-image: linear-gradient(#000 25%, transparent 80%); mask-image: linear-gradient(#000 25%, transparent 80%); }
+[data-theme="dark"] .gate-art::after { content: ""; position: absolute; right: -120px; bottom: -120px; width: 420px; height: 420px; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, rgba(255, 91, 45, 0.28), transparent 65%); }
+[data-theme="dark"] .gate-art > * { position: relative; z-index: 1; }
+/* Dark panels pick up the warm light instead of a texture. */
+[data-theme="dark"] .balance-hero { background: radial-gradient(120% 140% at 100% 0%, rgba(255, 91, 45, 0.22), transparent 55%), radial-gradient(90% 120% at 0% 100%, rgba(255, 217, 201, 0.06), transparent 60%), var(--dark); }
+[data-theme="dark"] .dark-section, [data-theme="dark"] .flow-demo { background: radial-gradient(80% 90% at 90% 10%, rgba(255, 91, 45, 0.14), transparent 60%), var(--dark); }
+[data-theme="dark"] .ws-side { background: linear-gradient(180deg, rgba(255, 91, 45, 0.07), transparent 40%), var(--dark); }
+/* Each feature gets its own warm light behind its preview: orange at the heart, cream at the edge. */
+[data-theme="dark"] .l-row { position: relative; }
+[data-theme="dark"] .l-row > * { position: relative; z-index: 1; }
+[data-theme="dark"] .l-row::before { content: ""; position: absolute; z-index: 0; top: 50%; right: -4%; width: 62%; aspect-ratio: 1.6; translate: 0 -50%; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255, 91, 45, 0.28), rgba(255, 217, 201, 0.08) 55%, transparent); }
+[data-theme="dark"] .l-row.flip::before { right: auto; left: -4%; }
+@media (prefers-reduced-motion: no-preference) { [data-theme="dark"] .l-row::before { animation: glow-breathe 9s ease-in-out infinite alternate; } }
+@keyframes glow-breathe { from { opacity: 0.7; transform: scale(0.96); } to { opacity: 1; transform: scale(1.04); } }
+/* Steps waiting their turn in the animations stay readable. */
+[data-theme="dark"] .sc-check:not(.on), [data-theme="dark"] .sc-x402 li:not(.on), [data-theme="dark"] .sc-ask li:not(.on) { opacity: 0.62; }
+[data-theme="dark"] .sc-ask-q:not(.on) { opacity: 0.6; }
+[data-theme="dark"] .lead, [data-theme="dark"] .l-row p.lead { color: var(--ink-3); }
 @media (prefers-reduced-motion: no-preference) {
   [data-theme="dark"] .l-bg::after { animation: ob-spin 160s linear infinite; }
 }
@@ -1075,8 +1093,5 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 .gate-form > .gate-theme { position: fixed; z-index: 5; top: 20px; right: 20px; width: auto; display: block; }
 [data-theme="dark"] .sc-btn { background: var(--primary); color: var(--on-primary); }
 [data-theme="dark"] .sc-btn.press { background: var(--primary-hover); }
-/* The homepage between hero and footer: the engraving held still behind the page, with a warm glow. */
-[data-theme="dark"] body:has(.l-hero)::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: url("/brand/flammarion.webp") no-repeat 85% 20% / min(1100px, 90vw) auto; opacity: 0.06; }
-[data-theme="dark"] body:has(.l-hero)::after { content: ""; position: fixed; z-index: -1; left: -15vw; bottom: -30vh; width: 70vw; height: 70vw; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, rgba(255, 91, 45, 0.06), transparent 60%); }
-[data-theme="dark"] body:has(.l-hero) { isolation: isolate; }
 .ws-top-actions .theme-toggle { width: 34px; height: 34px; padding: 0; border-radius: 50%; }
+[data-theme="dark"] .l-foot-engraving { opacity: 0.15; }

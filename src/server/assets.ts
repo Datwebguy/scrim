@@ -136,11 +136,15 @@ const SHAPES: Record<string, RegExp> = {
   sol: /^[1-9A-HJ-NP-Za-km-z]{32,44}$/,
   tron: /^T[1-9A-HJ-NP-Za-km-z]{33}$/,
   near: /^(([a-z\d]+[-_])*[a-z\d]+\.)*([a-z\d]+[-_])*[a-z\d]+$/,
+  // Zcash: a transparent address (t1, t3), a shielded Sapling address (zs1), or a unified address (u1), which can
+  // hold a shielded Orchard receiver and runs to a couple of hundred characters.
+  zec: /^(t[13][1-9A-HJ-NP-Za-km-z]{33}|zs1[02-9ac-hj-np-z]{75}|u1[02-9ac-hj-np-z]{80,500})$/,
 };
+const LONG_ADDRESS_CHAINS = new Set(["zec"]);
 
 export function checkAddress(asset: Pick<Asset, "chain" | "chainName" | "depositChain">, address: string): string {
   const value = address.trim();
-  if (!value || value.length > 128 || /\s/.test(value)) throw badRequest("Enter a valid address.");
+  if (!value || value.length > (LONG_ADDRESS_CHAINS.has(asset.chain) ? 512 : 128) || /\s/.test(value)) throw badRequest("Enter a valid address.");
   const isEvm = asset.depositChain?.startsWith("eth:") ?? false;
   const shape = isEvm ? /^0x[0-9a-fA-F]{40}$/ : SHAPES[asset.chain];
   if (shape && !shape.test(value)) throw badRequest(`That doesn't look like a ${asset.chainName} address.`);

@@ -65,3 +65,10 @@ Any NEAR wallet, through NEAR Connect. The wallet signs (a) a one-time ownership
 3. ⏭ Payroll batches and payroll-total proofs; accountant exports.
 4. ⏭ Device-side proofs; on-chain team rules.
 5. 🔬 Own shielded pool and private inference for software that pays for you.
+
+## Planned
+
+Nothing here is deployed yet. Scrim needs no contract of its own to hold money: private balances live on NEAR Intents' private ledger, and the one on-chain action people take is registering a wallet key on `intents.near` (`add_public_key`).
+
+- **Approval rules on chain.** Move approval thresholds and spending limits from Scrim's service into a NEAR contract, so they bind even if the service is compromised. Before any mainnet use: state-transition tests for every approval path, role and threshold tests, upgrade and recovery tests, and an independent audit.
+- **Proofs made on the person's device.** Today Scrim signs proofs after checking the private balance. The proof format is versioned so proving can move to the device later.

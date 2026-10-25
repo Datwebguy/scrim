@@ -69,6 +69,7 @@ You need a NEAR testnet account. Any NEAR wallet can create one for free, for ex
 - [Project layout](#project-layout)
 - [Development](#development)
 - [Roadmap](#roadmap)
+- [Contributing](#contributing)
 - [License](#license)
 
 ---
@@ -297,17 +298,18 @@ Tools: `get_limits`, `request_payment`, `find_paid_apis`, `pay_x402`, `list_paym
 
 ## Security
 
-- **Wallet signatures, not passwords.** Sign-in challenges are single-use and expire in five minutes. The signing key is checked on-chain as a full-access key of the account.
-- **Every transfer is bound to a signature** over the exact payload and accepted once.
-- **Approvals are bound to one request.** The signed message names amount, recipient and a reference, so a signature cannot be reused.
-- **Limits are enforced on the server**, with a lock per agent so concurrent requests cannot both slip under a cap.
+- **Your keys stay in your wallet.** Scrim never holds a key or your money. Every move is a signature from your own wallet over the exact payload, checked and accepted once.
+- **What you sign is what you were quoted.** A transfer must name the quoted coin, no more than the quoted amount and only the quoted deposit address, or nobody is asked to sign it.
+- **Wallet sign-in, not passwords.** Challenges are single-use and expire in five minutes; the key is checked on-chain as a full-access key of the account.
+- **Approvals are bound to one request**, showing the amount and recipient first.
+- **One payout per request.** Each request records the transfer paying it; nothing else can settle or reopen it.
+- **Agent limits are enforced on the server**, under a lock per agent. A payment that may have moved money keeps counting against the limit.
+- **Agent wallets sign only the exact price Scrim checked**, at most once per purchase. Their keys stay in OutLayer's enclave.
+- **Outgoing requests reach only public https addresses**, pinned after one lookup, never following redirects. Seller text reaches agents marked as data.
 - **Private data is sealed** (AES-256-GCM, bound to its record). Session and agent keys are stored only as hashes.
-- **Webhooks** are signed, public-address-only (checked again at send time), and never follow redirects.
-- **Rate limits** apply per client on every route, with stricter limits on sign-in, payment links and agent keys.
-- **Responses are never cached**, and browser-originated changes must come from the same origin.
-- **Private AI answers are checked.** Before asking, Scrim fetches NEAR AI's attestation report with a fresh nonce; after, it verifies the answer's signature over the exact bytes and that the key is the attested one. Questions and answers are not stored.
-- **Agent wallet keys never reach Scrim.** They are created and kept in OutLayer's secure enclave (Intel TDX); Scrim keeps only a sealed access key, and the owner's on-chain spending rules apply on top of Scrim's limits.
-- **Your keys stay in your wallet.** Scrim never sees them, and the private ledger is run by NEAR Intents.
+- **The web layer** accepts JSON only from the same origin, rate-limits every route, never caches API responses, and sends HSTS.
+
+The code was reviewed in October 2026 across sign-in, every money flow, agents and x402, and the cryptography; each confirmed issue was fixed with a regression test in `tests/security.test.ts`. To report a bug privately, see [SECURITY.md](SECURITY.md).
 
 ## Project layout
 
@@ -318,7 +320,8 @@ src/server/       sign-in, private access, transfers, links, proofs, accounts, a
 src/client/       browser wallet bridge and API helpers
 src/components/   screens
 db/migrations/    database schema, applied in order
-tests/            protocol tests and live tests against real networks
+tests/            protocol tests, security regression tests and live tests against real networks
+docs/             product, architecture and backend notes, brand files, screenshots
 scripts/          migrations and key generation
 ```
 
@@ -349,7 +352,7 @@ GitHub Actions runs type check, unused-code check, tests and build on every push
 
 ## Contributing
 
-Issues and pull requests are welcome. Run `npm run check` before you open one; it runs the same checks as CI.
+Issues and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) first, and run `npm run check` before you open one; it runs the same checks as CI. More detail: [product](docs/PRODUCT.md), [architecture](docs/ARCHITECTURE.md), [backend](docs/BACKEND_SPEC.md), [NEAR services used](docs/NEAR_TOOLS.md).
 
 ## License
 

@@ -45,8 +45,8 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+html { -webkit-text-size-adjust: 100%; background: var(--paper); }
+body { margin: 0; min-height: 100vh; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
 h1, h2, h3, h4, p { margin: 0; }
 a { color: inherit; }
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -461,6 +461,9 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 .card-title { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 6px; }
 .card-title h3 { font-size: 16px; letter-spacing: -0.02em; }
+.card-title { gap: 12px; min-width: 0; }
+.card-title > :not(h3) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-title h3 { flex: none; }
 .rows { list-style: none; margin: 0; padding: 6px 8px 10px; }
 .rows li { display: grid; grid-template-columns: 38px 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 10px; }
 .rows li + li { border-top: 1px solid var(--line); border-radius: 0; }
@@ -1095,3 +1098,5 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 [data-theme="dark"] .sc-btn.press { background: var(--primary-hover); }
 .ws-top-actions .theme-toggle { width: 34px; height: 34px; padding: 0; border-radius: 50%; }
 [data-theme="dark"] .l-foot-engraving { opacity: 0.15; }
+/* Text links in the header and footer get a finger-sized tap area without changing how they look. */
+.site-nav nav a, .l-footer nav a, .site-footer nav a, .card-title > a { display: inline-block; padding-block: 6px; }

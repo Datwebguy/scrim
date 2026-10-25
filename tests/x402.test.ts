@@ -157,3 +157,31 @@ describe("standard x402 sellers", () => {
     await expect(requestPurchase(agent, seller.url, "std-0001-nowallet")).rejects.toThrow(/own wallet/);
   }, 60_000);
 });
+
+describe("selling with x402", () => {
+  it("sells something any number of times, keeps it out of one-off links, and delivers only what was set", async () => {
+    const { createProduct, listProducts, productInfo, deliver, stopSelling } = await import("@/server/products");
+    const { listPayLinks } = await import("@/server/paylinks");
+    const usdc = (await catalog()).find((a) => a.symbol === "USDC" && a.chain === "near")!;
+    await expect(createProduct(session, { name: "", assetId: usdc.assetId, amount: "1", deliver: { kind: "text", text: "x" } })).rejects.toThrow(/Name what/);
+    await expect(createProduct(session, { name: "Report", assetId: usdc.assetId, amount: "1", deliver: { kind: "api", url: "http://localhost/x" } })).rejects.toThrow(/https/);
+    const product = await createProduct(session, { name: "Weekly report", description: "PDF link", assetId: usdc.assetId, amount: "2.5", deliver: { kind: "text", text: "https://files.example.com/report.pdf" } });
+    expect(product).toMatchObject({ name: "Weekly report", display: "2.50", delivers: "text", open: true, sales: 0 });
+    expect((await listProducts(session)).map((p) => p.code)).toContain(product.code);
+    expect((await listPayLinks(session)).map((l) => l.code)).not.toContain(product.code);
+    expect(await productInfo(product.code)).toEqual({ name: "Weekly report", description: "PDF link" });
+    expect(JSON.parse((await deliver(product.code))!.body)).toEqual({ product: "Weekly report", content: "https://files.example.com/report.pdf" });
+    await stopSelling(session, product.code);
+    expect((await listProducts(session)).find((p) => p.code === product.code)?.open).toBe(false);
+  });
+});
+
+describe.skipIf(!hasKey)("selling with x402 (needs the partner key)", () => {
+  it("describes the product in its 402 answer", async () => {
+    const { createProduct } = await import("@/server/products");
+    const usdc = (await catalog()).find((a) => a.symbol === "USDC" && a.chain === "near")!;
+    const p = await createProduct(session, { name: "Price feed", description: "Latest prices", assetId: usdc.assetId, amount: "1", deliver: { kind: "text", text: "ok" } });
+    const r = await handleX402(p.code, RES(p.code), null);
+    expect(r.kind === "required" && r.body.resource.description).toMatch(/^Price feed: Latest prices/);
+  }, 60_000);
+});

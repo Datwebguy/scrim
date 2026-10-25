@@ -8,6 +8,7 @@ import { sql } from "./db";
 import { HttpError } from "./errors";
 import * as oneclick from "./oneclick";
 import { linkRow } from "./paylinks";
+import { deliver, productInfo } from "./products";
 import { createLinkPayment, linkPaymentStatus } from "./transfers";
 
 const X402_VERSION = 2;
@@ -134,11 +135,20 @@ export function decodeHeader(value: string | null): Payload | null {
 
 export type X402Result =
   | { kind: "required"; body: PaymentRequired }
-  | { kind: "paid"; body: unknown; receipt: Settlement }
+  | { kind: "paid"; body: unknown; receipt: Settlement; raw?: { status: number; contentType: string; body: string } }
   | { kind: "failed"; status: number; body: PaymentRequired | { error: string }; receipt?: Settlement };
 
+const LINK_DESCRIPTION = "Pay this Scrim payment link. The money arrives privately.";
+// The resource description is carried with the resource URL, so concurrent requests never mix them.
+const descriptions = new Map<string, string>();
 function required(resource: string, accepts: Entry[], error?: string): PaymentRequired {
-  return { x402Version: X402_VERSION, resource: { url: resource, description: "Pay this Scrim payment link. The money arrives privately.", mimeType: "application/json" }, accepts, ...(error ? { error } : {}) };
+  return { x402Version: X402_VERSION, resource: { url: resource, description: descriptions.get(resource) ?? LINK_DESCRIPTION, mimeType: "application/json" }, accepts, ...(error ? { error } : {}) };
+}
+
+// A paid result: a product hands over what it sells; a plain link just confirms the payment.
+async function paidResult(linkId: string, receipt: Settlement, fallback: unknown): Promise<X402Result> {
+  const delivered = await deliver(linkId);
+  return delivered ? { kind: "paid", receipt, body: null, raw: delivered } : { kind: "paid", receipt, body: fallback };
 }
 
 // The one entry point: what to answer for a request to a link's x402 address.
@@ -147,6 +157,9 @@ export async function handleX402(code: string, resource: string, header: string 
   // A deposit for an operation quoted earlier is still settled (or answered) after the link is paid.
   const link = payment?.payload?.type === "deposit" ? await anyLink(code) : await linkRow(code);
   if (link.network !== "mainnet") throw new HttpError(404, "not_found", "This payment link doesn't exist.");
+  const product = await productInfo(link.id);
+  if (product) descriptions.set(resource, `${product.name}${product.description ? `: ${product.description}` : ""}. Paid privately through Scrim.`.slice(0, 400));
+  else descriptions.delete(resource);
   const offers = await origins(link);
   if (offers.length === 0) throw new HttpError(503, "upstream", "No payment routes are available right now.");
   if (!payment) return { kind: "required", body: required(resource, offers.map((o) => o.entry)) };
@@ -212,6 +225,8 @@ async function depositStep(link: Awaited<ReturnType<typeof linkRow>>, resource: 
     SELECT link_id, transfer_id, result, executed_at FROM x402_operations WHERE instrument = ${key}`;
   if (!op) return fail(400, "invalid_exact_near_intents_token_invalid");
   if (op.result) {
+    // A product's buyer who lost the answer gets it again for the same paid deposit.
+    if (op.result.success && op.executed_at && (await productInfo(op.link_id))) return paidResult(op.link_id, op.result, null);
     if (op.result.success && op.executed_at) return { kind: "failed", status: 409, body: { error: "exact_near_intents_operation_executed" }, receipt: op.result };
     if (!op.result.success) return { kind: "failed", status: 402, body: { error: op.result.errorReason ?? "exact_near_intents_payment_failed" }, receipt: op.result };
   }
@@ -246,7 +261,7 @@ async function depositStep(link: Awaited<ReturnType<typeof linkRow>>, resource: 
         WHERE instrument = ${key} AND result IS NULL RETURNING instrument`;
       if (recorded.length === 0) return fail(409, "exact_near_intents_operation_executed");
       await linkPaymentStatus(op.link_id, op.transfer_id).catch(() => null); // marks the link paid
-      return { kind: "paid", receipt, body: { paid: true, link: link.id, amount: offer.entry.extra.destination.amount, asset: offer.entry.extra.destination.asset } };
+      return paidResult(link.id, receipt, { paid: true, link: link.id, amount: offer.entry.extra.destination.amount, asset: offer.entry.extra.destination.asset });
     }
     if (status.status === "REFUNDED" || status.status === "FAILED") {
       const partial = /partial|incomplete|insufficient/i.test(status.swapDetails?.refundReason ?? "");

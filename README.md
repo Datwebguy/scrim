@@ -85,8 +85,8 @@ Scrim lets you choose private whenever you want it, and public when you prefer, 
 | | |
 | --- | --- |
 | **Private balance** | Turn it on and your holdings and history live on a private ledger, so the public sees nothing. |
-| **Add money** | Pick a coin and a network. You get a one-time address; send from any wallet or exchange and it lands in your private balance (or your wallet). 30+ networks. On EVM chains, **Pay from my wallet** sends it from MetaMask, Rabby or a wallet app's browser in one tap. |
-| **Send** | Pay another NEAR account, or any address on any supported chain. Send from your private balance and it cannot be traced back to you, or send from your wallet (public). |
+| **Add money** | Pick a coin and a network. You get a one-time address; send from any wallet or exchange and it lands in your private balance (or your wallet). 30+ networks. On EVM chains, **Pay from my wallet** sends it from MetaMask, Rabby or a wallet app's browser in one tap; on Solana, from Phantom, Solflare or Backpack. |
+| **Send** | Pay another NEAR account, or any address on any supported chain. Send from your private balance and it cannot be traced back to you, or send from your wallet (public). Zcash payments can go to a shielded (`u1…` or `zs1…`) address. |
 | **Swap** | Trade one coin for another, in public or inside your private balance. |
 | **Get paid** | Share a payment link. The payer needs no account and can pay from any coin on any chain. |
 | **Sell** | Sell a file, a code, a report or your API to agents (over x402) and people (on a pay page), from any coin on any chain. Each sale lands where you choose, your private balance or your wallet; buyers get what you sell once the payment is confirmed. A sales list shows every sale. |
@@ -167,7 +167,7 @@ flowchart LR
   O --> I
 ```
 
-**Sign in.** You approve one message in any NEAR wallet. On mainnet it is the NEAR Intents ownership message, a signed empty intent that cannot move funds. That single signature both signs you in and opens your private session. Scrim checks on-chain that the key really belongs to your account.
+**Sign in.** You approve one plain message in any NEAR wallet. It names Scrim and the site you opened, and it cannot move money, so a look-alike site asking for a signature stands out. Scrim checks on-chain that the key really belongs to your account. Opening your private balance is a separate, optional step: a second message, the NEAR Intents ownership message (a signed empty intent that cannot move funds), approved only when you choose to use private money.
 
 **Move money.** Scrim asks NEAR Intents for a price, then your wallet signs the exact transfer. Scrim checks the signature against the exact payload before submitting, and it can be used once. Scrim then follows the transfer to the end and shows you each stage.
 
@@ -208,6 +208,7 @@ Copy `.env.example` to `.env.local`. Required:
 | --- | --- |
 | `DATABASE_URL` | Postgres connection string |
 | `SCRIM_SECRET_KEY` | Seals private records at rest (32 random bytes, base64) |
+| `SCRIM_SECRET_KEY_PREVIOUS` | Only while changing keys: the old key(s), comma-separated. See [SECURITY.md](SECURITY.md) |
 | `SCRIM_PROOF_KEY` | Signs proofs (32 random bytes, base64). Keep it safe: anyone holding it can forge proofs |
 
 `npm run keys` generates both.

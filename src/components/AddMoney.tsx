@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/client/api";
 import { AssetPicker, CopyField, fmt, Heading, StateChip, useAssets, type TransferView } from "./money";
+import { PayFromSolanaWallet } from "./PayFromSolanaWallet";
 import { PayFromWallet } from "./PayFromWallet";
 import { useSession } from "./session";
 import { Spinner } from "./ui";
@@ -83,6 +84,10 @@ export function AddMoney() {
               </ul>
               {transfer.status === "awaiting_deposit" && transfer.deposit.evm && (
                 <PayFromWallet to={transfer.deposit.address} chainId={transfer.deposit.evm.chainId} token={transfer.deposit.evm.token}
+                  symbol={transfer.fromAsset.symbol} decimals={transfer.fromAsset.decimals} minimum={transfer.deposit.minimum} />
+              )}
+              {transfer.status === "awaiting_deposit" && transfer.deposit.solana && (
+                <PayFromSolanaWallet to={transfer.deposit.address} mint={transfer.deposit.solana.mint}
                   symbol={transfer.fromAsset.symbol} decimals={transfer.fromAsset.decimals} minimum={transfer.deposit.minimum} />
               )}
             </>

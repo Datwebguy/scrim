@@ -33,7 +33,6 @@ export function AccountMenu() {
       <button className="acct-chip" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-label="Open wallet">
         <span className={`dot ${network}`} aria-hidden="true" />
         <Initials name={accountId} className="avatar" />
-        <b>{middle(accountId)}</b>
       </button>
       {open && createPortal(<Panel onClose={() => setOpen(false)} />, document.body)}
     </>

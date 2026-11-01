@@ -14,6 +14,7 @@ import { sql } from "@/server/db";
 import { endpoints } from "@/server/config";
 import { migrate } from "../scripts/migrate";
 import { inject } from "vitest";
+import { Near } from "near-kit";
 
 declare module "vitest" {
   export interface ProvidedContext { sandbox: { rpcUrl: string } | null }
@@ -37,13 +38,18 @@ export type Wallet = {
   signPayload(payload: { message: string; nonce: string; recipient: string }): { publicKey: string; signature: string };
   /** A real on-chain NEAR transfer signed by this wallet. Returns the transaction hash. */
   send(receiverId: string, yocto: bigint): Promise<string>;
+  /** The key in the `ed25519:…` form NEAR tools take. */
+  privateKey: `ed25519:${string}`;
 };
 
 export function walletFor(accountId: string, network: Network, secret: Uint8Array): Wallet {
   const publicKey = encodePublicKey(ed25519.getPublicKey(secret));
   const signDigest = (digest: Uint8Array) => Buffer.from(ed25519.sign(digest, secret)).toString("base64");
+  const full = new Uint8Array(64);
+  full.set(secret, 0);
+  full.set(ed25519.getPublicKey(secret), 32);
   return {
-    accountId, network, publicKey,
+    accountId, network, publicKey, privateKey: `ed25519:${bs58.encode(full)}`,
     sign(challenge) {
       const digest = nep413Digest({ message: challenge.message, nonce: Buffer.from(challenge.nonce, "base64"), recipient: challenge.recipient });
       return { challengeId: challenge.challengeId, accountId, publicKey, signature: signDigest(digest) };
@@ -142,6 +148,38 @@ export async function sandboxWallet(prefix: string, network: Network, near = 100
   ]);
   await waitForKey(network, accountId, publicKey, sandbox.rpcUrl);
   return walletFor(accountId, network, secret);
+}
+
+/**
+ * A NEP-141 token on the local chain at `accountId` (for example the real USDC contract's ID), so wallet
+ * token payments can be tested without real money. Its code is NEAR's wrapped-NEAR token, copied from
+ * mainnet: units are minted by depositing NEAR (`near_deposit`) and moved with the standard `ft_transfer`.
+ */
+export async function sandboxToken(accountId: string): Promise<Wallet> {
+  const read = await fetch("https://rpc.mainnet.fastnear.com", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "query", params: { request_type: "view_code", finality: "final", account_id: "wrap.near" } }),
+  });
+  const code = Buffer.from(((await read.json()) as { result: { code_base64: string } }).result.code_base64, "base64");
+  const secret = ed25519.utils.randomSecretKey();
+  const token = walletFor(accountId, "mainnet", secret);
+  await patchState([
+    { Account: { account_id: accountId, account: { amount: NEAR(50).toString(), locked: "0", code_hash: "11111111111111111111111111111111", storage_usage: 182 } } },
+    { AccessKey: { account_id: accountId, public_key: token.publicKey, access_key: { nonce: 0, permission: "FullAccess" } } },
+  ]);
+  await waitForKey("mainnet", accountId, token.publicKey, sandbox!.rpcUrl);
+  await kit(token).transaction(accountId).deployContract(accountId, new Uint8Array(code)).functionCall(accountId, "new", {}, { gas: "100 Tgas" }).send();
+  return token;
+}
+
+/** Calls a contract on the local chain as `wallet`. Returns the transaction hash. */
+export async function sandboxCall(wallet: Wallet, contractId: string, method: string, args: object, depositYocto = 0n): Promise<string> {
+  const outcome = await kit(wallet).transaction(wallet.accountId).functionCall(contractId, method, args, { gas: "100 Tgas", attachedDeposit: depositYocto }).send();
+  return (outcome as unknown as { transaction: { hash: string } }).transaction.hash;
+}
+
+function kit(wallet: Wallet) {
+  return new Near({ network: { rpcUrl: sandbox!.rpcUrl, networkId: "localnet" }, privateKey: wallet.privateKey, defaultSignerId: wallet.accountId, defaultWaitUntil: "FINAL" });
 }
 
 /** Adds a key to an account on the local chain: full access, or a function-call key for one contract. */

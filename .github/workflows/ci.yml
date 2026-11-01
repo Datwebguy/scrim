@@ -27,6 +27,11 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # The local NEAR chain the tests run on (near-kit's sandbox) downloads its node once; keep it between runs.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.near-kit
+          key: near-sandbox-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npm run typecheck
       - run: npm run unused
       - run: npm test

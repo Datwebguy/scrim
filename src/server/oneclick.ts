@@ -86,6 +86,8 @@ export type QuoteRequest = {
   deadline: string;
   quoteWaitingTimeMs?: number;
   referral?: string;
+  // Basis points of the coin sent, paid to an account; NEAR Intents keeps half. 50 is 0.5%.
+  appFees?: { recipient: string; fee: number }[];
 };
 
 export type QuoteResponse = {

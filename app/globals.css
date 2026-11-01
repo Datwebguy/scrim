@@ -134,6 +134,7 @@ img { display: block; max-width: 100%; }
 .hero-proof span::before { content: "✓"; color: var(--green); font-weight: 600; }
 
 .demo-stage { position: relative; }
+.demo-stage::before { content: ""; position: absolute; inset: 8% -6% -6% 10%; background: radial-gradient(60% 60% at 70% 40%, rgba(255, 91, 45, 0.22), transparent 70%); filter: blur(10px); z-index: 0; }
 .demo-card { position: relative; z-index: 1; background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-lg); overflow: hidden; }
 .demo-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--field); }
 .demo-head .who { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 600; }
@@ -448,6 +449,7 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 .chips { margin: 6px 0; }
 
 .balance-hero { display: grid; gap: 22px; padding: 26px; margin-bottom: 20px; border-radius: 16px; background: var(--dark); color: #fff; position: relative; overflow: hidden; }
+.balance-hero::after { content: ""; position: absolute; right: -60px; top: -60px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 91, 45, 0.35), transparent); pointer-events: none; }
 .balance-tabs { display: inline-flex; gap: 4px; padding: 4px; border-radius: 10px; background: rgba(255,255,255,0.08); justify-self: start; position: relative; z-index: 1; }
 .balance-tabs button { padding: 7px 12px; border: 0; border-radius: 7px; background: none; color: #bdbcb2; font-size: 13px; font-weight: 600; cursor: pointer; }
 .balance-tabs button[aria-selected="true"] { background: var(--field); color: #151512; }
@@ -600,6 +602,8 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 .l-head h2 { font-size: clamp(28px, 3.6vw, 44px); letter-spacing: -0.045em; line-height: 1.05; }
 
 .flow-demo { display: grid; gap: 18px; padding: 20px; border-radius: 20px; background: var(--dark); color: #fff; box-shadow: var(--shadow-lg); position: relative; overflow: hidden; }
+.flow-demo::after { content: ""; position: absolute; right: -80px; top: -80px; width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(closest-side, rgba(255,91,45,.3), transparent); pointer-events: none; animation: glow 6s ease-in-out infinite alternate; }
+@keyframes glow { to { transform: translate(-40px, 30px) scale(1.2); } }
 .fd-tabs { display: flex; gap: 4px; padding: 4px; border-radius: 12px; background: rgba(255,255,255,.07); overflow-x: auto; position: relative; z-index: 1; }
 .fd-tabs button { position: relative; flex: 1; padding: 9px 12px; border: 0; border-radius: 9px; background: none; color: #bdbcb2; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; overflow: hidden; transition: background .2s, color .2s; }
 .fd-tabs button:hover { color: #fff; }
@@ -760,16 +764,13 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 .l-hero { position: relative; overflow: hidden; }
 .l-hero .wrap { position: relative; z-index: 1; }
 .l-bg { position: absolute; inset: 0; pointer-events: none; }
-.l-bg .cut { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--ink); overflow: hidden; }
-.l-bg .cut-tip { fill: var(--orange); }
-@media (prefers-reduced-motion: no-preference) {
-  .l-bg .cut-line { animation: cut-draw 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) 0.2s backwards; }
-  .l-bg .cut-tip { animation: cut-tip 0.5s 1.3s ease-out backwards; }
-}
-@keyframes cut-draw { from { clip-path: inset(0 100% 0 0); } }
-@keyframes cut-tip { from { opacity: 0; } }
 .l-bg .grid { position: absolute; inset: 0; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 56px 56px; mask-image: radial-gradient(ellipse at 60% 40%, #000 10%, transparent 70%); opacity: .55; animation: gridmove 24s linear infinite; }
 @keyframes gridmove { to { background-position: 56px 56px; } }
+.l-bg .orb { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .5; }
+.l-bg .o1 { width: 420px; height: 420px; right: 4%; top: -120px; background: #ffb59e; animation: drift 14s ease-in-out infinite alternate; }
+.l-bg .o2 { width: 300px; height: 300px; left: -80px; bottom: -120px; background: #ffd9c9; animation: drift 18s ease-in-out infinite alternate-reverse; }
+.l-bg .o3 { width: 220px; height: 220px; left: 45%; top: 30%; background: #ffe7dc; animation: drift 11s ease-in-out infinite alternate; }
+@keyframes drift { to { transform: translate(60px, 40px) scale(1.15); } }
 .l-head.center { margin-inline: auto; text-align: center; justify-items: center; }
 .l-demo-wrap { max-width: 640px; margin: 0 auto; }
 
@@ -820,7 +821,6 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 .sc-paid { gap: 12px; }
 .sc-link { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 12px; border: 1px dashed var(--line-2); background: var(--field); }
 .sc-link b { flex: 1; }
-.sc-link .ico, .tg-icon svg { width: 16px; height: 16px; flex: none; }
 .sc-link em { font-style: normal; font: 500 12px var(--mono); padding: 4px 8px; border-radius: 6px; background: var(--paper-2); transition: background .3s, color .3s; }
 .sc-link.copied em { background: var(--dark); color: #fff; }
 .sc-payer, .sc-arrive { display: flex; align-items: center; gap: 10px; padding: 14px; border-radius: 12px; background: var(--paper); opacity: 0; transform: translateY(10px); transition: opacity .4s, transform .4s; }
@@ -850,6 +850,7 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
   .l-row { grid-template-columns: 1fr; }
   .l-row.flip > :first-child { order: 0; }
   .sc-team { grid-template-columns: 1fr 1fr; }
+  .l-bg .o1 { width: 260px; height: 260px; }
 }
 @media (max-width: 480px) { .sc-team { grid-template-columns: 1fr; } .sc-card { padding: 16px; } }
 @media (prefers-reduced-motion: reduce) { .l-bg *, .sc-hero, .sc-hero * { animation: none !important; } }
@@ -1037,9 +1038,18 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 
 [data-theme="dark"] .l-bg::before { content: ""; position: absolute; inset: 0 0 0 35%; pointer-events: none; background: url("/brand/flammarion.webp") no-repeat 30% 35% / cover; opacity: 0.1;
   -webkit-mask-image: radial-gradient(ellipse at 70% 40%, #000 15%, transparent 65%); mask-image: radial-gradient(ellipse at 70% 40%, #000 15%, transparent 65%); }
+[data-theme="dark"] .l-bg .orb { opacity: 0.34; }
+[data-theme="dark"] .l-bg .o1 { background: #ff5b2d; }
+[data-theme="dark"] .l-bg .o2 { background: #ffd9c9; opacity: 0.12; }
+[data-theme="dark"] .l-bg .o3 { background: #ff8a65; opacity: 0.18; }
 [data-theme="dark"] .l-bg .grid { opacity: 0.45; }
+/* A slow orbit turning behind the hero. */
+[data-theme="dark"] .l-bg::after { content: ""; position: absolute; right: 6%; top: 50%; width: min(620px, 70vw); aspect-ratio: 1; translate: 0 -50%; border-radius: 50%; pointer-events: none;
+  border: 1px dashed rgba(255, 138, 101, 0.22); box-shadow: 0 0 0 70px rgba(255, 91, 45, 0.02), 0 0 0 1px rgba(239, 236, 227, 0.05); }
 [data-theme="dark"] .closing { position: relative; overflow: hidden; }
 [data-theme="dark"] .closing > * { position: relative; }
+[data-theme="dark"] .closing::before { content: ""; position: absolute; left: 50%; top: 50%; width: 760px; height: 420px; translate: -50% -50%; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255, 91, 45, 0.24), rgba(255, 217, 201, 0.05) 60%, transparent); }
 [data-theme="dark"] .gate-art::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: url("/brand/flammarion.webp") no-repeat 30% 40% / cover; opacity: 0.06;
   -webkit-mask-image: linear-gradient(#000 25%, transparent 80%); mask-image: linear-gradient(#000 25%, transparent 80%); }
 [data-theme="dark"] .gate-art::after { content: ""; position: absolute; right: -120px; bottom: -120px; width: 420px; height: 420px; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, rgba(255, 91, 45, 0.28), transparent 65%); }
@@ -1048,12 +1058,21 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 [data-theme="dark"] .balance-hero { background: radial-gradient(120% 140% at 100% 0%, rgba(255, 91, 45, 0.22), transparent 55%), radial-gradient(90% 120% at 0% 100%, rgba(255, 217, 201, 0.06), transparent 60%), var(--dark); }
 [data-theme="dark"] .dark-section, [data-theme="dark"] .flow-demo { background: radial-gradient(80% 90% at 90% 10%, rgba(255, 91, 45, 0.14), transparent 60%), var(--dark); }
 [data-theme="dark"] .ws-side { background: linear-gradient(180deg, rgba(255, 91, 45, 0.07), transparent 40%), var(--dark); }
+/* Each feature gets its own warm light behind its preview: orange at the heart, cream at the edge. */
 [data-theme="dark"] .l-row { position: relative; }
 [data-theme="dark"] .l-row > * { position: relative; z-index: 1; }
+[data-theme="dark"] .l-row::before { content: ""; position: absolute; z-index: 0; top: 50%; right: -4%; width: 62%; aspect-ratio: 1.6; translate: 0 -50%; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255, 91, 45, 0.28), rgba(255, 217, 201, 0.08) 55%, transparent); }
+[data-theme="dark"] .l-row.flip::before { right: auto; left: -4%; }
+@media (prefers-reduced-motion: no-preference) { [data-theme="dark"] .l-row::before { animation: glow-breathe 9s ease-in-out infinite alternate; } }
+@keyframes glow-breathe { from { opacity: 0.7; transform: scale(0.96); } to { opacity: 1; transform: scale(1.04); } }
 /* Steps waiting their turn in the animations stay readable. */
 [data-theme="dark"] .sc-check:not(.on), [data-theme="dark"] .sc-x402 li:not(.on), [data-theme="dark"] .sc-ask li:not(.on) { opacity: 0.62; }
 [data-theme="dark"] .sc-ask-q:not(.on) { opacity: 0.6; }
 [data-theme="dark"] .lead, [data-theme="dark"] .l-row p.lead { color: var(--ink-3); }
+@media (prefers-reduced-motion: no-preference) {
+  [data-theme="dark"] .l-bg::after { animation: ob-spin 160s linear infinite; }
+}
 
 /* The theme switch: a small round button. The sun's rays fold in and a shadow slides over it to make the moon. */
 .theme-toggle { display: grid; place-items: center; width: 34px; height: 34px; flex: none; padding: 0; border-radius: 50%; border: 1px solid var(--line-2); background: var(--card); color: var(--ink); cursor: pointer;
@@ -1168,11 +1187,14 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 .status-line .text { min-width: 0; }
 .status-line b { display: block; font-weight: 500; }
 
-/* The whole landing page sits on paper: a faint ruled grid that fades towards the edges. */
-.l-page { position: relative; }
-.l-page::before { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
-  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
-  background-size: 56px 56px; opacity: 0.45;
-  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); }
-.l-page > * { position: relative; z-index: 1; }
-[data-theme="dark"] .l-page::before { opacity: 0.2; }
+.sc-link .ico, .tg-icon svg { width: 16px; height: 16px; flex: none; }
+/* The cut, large, across the hero: it draws in once, then a light keeps travelling along it. */
+.l-bg .cut { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--ink); overflow: hidden; }
+.l-bg .cut-tip { fill: var(--orange); }
+@media (prefers-reduced-motion: no-preference) {
+  .l-bg .cut-line { animation: cut-draw 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) 0.2s backwards; }
+  .l-bg .cut-tip { animation: cut-tip 0.5s 1.3s ease-out backwards; }
+}
+@media (prefers-reduced-motion: reduce) { .l-bg .cut-flow { display: none; } }
+@keyframes cut-draw { from { clip-path: inset(0 100% 0 0); } }
+@keyframes cut-tip { from { opacity: 0; } }

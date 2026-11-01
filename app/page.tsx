@@ -32,9 +32,19 @@ export default async function Home() {
         <span className="nav-actions"><ThemeToggle /><Link href="/app" className="btn btn-primary">Open app <span className="arrow">↗</span></Link></span>
       </header>
 
-      <main>
+      <main className="l-page">
         <section className="l-hero">
-          <div className="l-bg" aria-hidden="true"><span className="orb o1" /><span className="orb o2" /><span className="orb o3" /><span className="grid" /></div>
+          <div className="l-bg" aria-hidden="true">
+            <span className="grid" />
+            {/* The cut from the mark, large: it crosses the page and leaves at the edge in orange. */}
+            <svg className="cut" viewBox="0 0 1440 700" preserveAspectRatio="xMaxYMin slice">
+              <defs>
+                <linearGradient id="cut-ink" x1="0" x2="1"><stop offset="0" stopColor="currentColor" stopOpacity="0" /><stop offset=".6" stopColor="currentColor" stopOpacity=".5" /><stop offset="1" stopColor="currentColor" stopOpacity=".85" /></linearGradient>
+              </defs>
+              <path className="cut-line" d="M-10 704Q700 640 1180 128Q720 612 -10 704Z" fill="url(#cut-ink)" />
+              <path className="cut-tip" d="M1096 172Q1250 86 1440 -52L1440 -4Q1262 112 1096 172Z" />
+            </svg>
+          </div>
           <div className="wrap l-hero-grid">
             <Reveal>
               <span className="eyebrow">Money on NEAR</span>

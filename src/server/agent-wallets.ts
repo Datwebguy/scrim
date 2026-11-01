@@ -6,12 +6,14 @@
 // A request Scrim's limits refuse is stopped as before; OutLayer's policy is a second, independent guard.
 import { after } from "next/server";
 import { formatAmount } from "@/protocol/amount";
+import { USDC_NEAR_TO_BASE } from "@/protocol/corridor";
 import type { Network } from "@/protocol/networks";
 import { audit } from "./audit";
 import type { Session } from "./auth";
 import { sql } from "./db";
 import { badRequest, conflict, HttpError, notFound } from "./errors";
 import { finalTransaction } from "./near-rpc";
+import * as oneclick from "./oneclick";
 import { emitPaymentEvent } from "./notify";
 import * as outlayer from "./outlayer";
 import { markTeamRequest } from "./payments";
@@ -185,7 +187,7 @@ async function autoPay(requestId: string) {
     } else {
       // Mainnet team payouts go to an address on Base, in USDC, gasless from the agent's private (or public) balance.
       const send = isPrivate(wallet) ? outlayer.privateWithdraw : outlayer.withdraw;
-      const sent = await send("mainnet", wallet.secret.apiKey, { to: req.recipient, amount: req.amount, token: `nep141:${outlayer.USDC.mainnet}`, chain: "base" }, `scrim-${requestId}`);
+      const sent = await send("mainnet", wallet.secret.apiKey, { to: req.recipient, amount: await amountToDeliver(req.recipient, req.amount, wallet.account_id), token: `nep141:${outlayer.USDC.mainnet}`, chain: "base" }, `scrim-${requestId}`);
       await recordSent(requestId, sent);
     }
     await syncAgentPayout(requestId);
@@ -195,6 +197,24 @@ async function autoPay(requestId: string) {
     // checks it, and it keeps counting against the agent's limits meanwhile.
     const refused = error instanceof HttpError && error.status < 500;
     await finish(requestId, refused ? "failed" : "needs_review", (error as Error).message);
+  }
+}
+
+// The wallet takes the network fee out of what it sends, so a payout of $0.05 would arrive about half a cent short.
+// Ask NEAR Intents what must be sent for the recipient to get the full amount, and send that. If the price can't be
+// had right now, send the plain amount, as before.
+async function amountToDeliver(recipient: string, amount: string, walletAccount: string): Promise<string> {
+  try {
+    const q = await oneclick.quote({
+      dry: true, swapType: "EXACT_OUTPUT", slippageTolerance: 100,
+      originAsset: USDC_NEAR_TO_BASE.assetId, depositType: "INTENTS", destinationAsset: USDC_NEAR_TO_BASE.destinationAssetId,
+      amount, refundTo: walletAccount, refundType: "INTENTS", recipient, recipientType: "DESTINATION_CHAIN",
+      deadline: new Date(Date.now() + 15 * 60_000).toISOString(),
+    });
+    const needed = BigInt(q.quote.amountIn);
+    return (needed > BigInt(amount) ? needed : BigInt(amount)).toString();
+  } catch {
+    return amount;
   }
 }
 

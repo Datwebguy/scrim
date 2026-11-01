@@ -1195,7 +1195,8 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 
 /* Korean and Chinese: break between words, not inside them, and relax the tight tracking meant for Latin display type. */
 html:lang(ko) body { word-break: keep-all; overflow-wrap: break-word; }
-html:lang(ko) h1, html:lang(ko) h2, html:lang(zh) h1, html:lang(zh) h2 { letter-spacing: -0.01em; }
+html:lang(ko) h1, html:lang(ko) h2, html:lang(zh) h1, html:lang(zh) h2, html:lang(ja) h1, html:lang(ja) h2 { letter-spacing: -0.01em; }
+html:lang(ja) body { line-break: strict; overflow-wrap: break-word; }
 
 /* On a phone the picker is a round globe button, the size of the theme button beside it. */
 .lang-menu { position: relative; }
@@ -1206,3 +1207,10 @@ html:lang(ko) h1, html:lang(ko) h2, html:lang(zh) h1, html:lang(zh) h2 { letter-
   .lang-menu select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border-radius: 50%; }
   .on-dark-toggle .lang-menu { background: transparent; border-color: #34342d; color: #e9e8e0; }
 }
+
+/* Longer languages: keep the navigation on one line and size the big headline to fit its column. */
+.site-nav nav a { white-space: nowrap; }
+html:lang(ru) .site-nav nav, html:lang(vi) .site-nav nav, html:lang(tr) .site-nav nav, html:lang(pt) .site-nav nav, html:lang(es) .site-nav nav { gap: 18px; font-size: 13px; }
+html:lang(ru) .l-hero h1, html:lang(ru) .hero h1 { font-size: clamp(36px, 4.6vw, 62px); }
+html:lang(ja) .l-hero h1, html:lang(ja) .hero h1 { font-size: clamp(30px, 3.7vw, 50px); line-height: 1.12; text-wrap: balance; }
+html:lang(ja) .section-head h2, html:lang(ja) .l-row h2 { text-wrap: balance; }

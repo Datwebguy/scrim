@@ -5,6 +5,12 @@ export const LOCALES = [
   { code: "zh", name: "简体中文", dir: "ltr" },
   { code: "id", name: "Bahasa Indonesia", dir: "ltr" },
   { code: "ko", name: "한국어", dir: "ltr" },
+  { code: "es", name: "Español", dir: "ltr" },
+  { code: "pt", name: "Português (Brasil)", dir: "ltr" },
+  { code: "ru", name: "Русский", dir: "ltr" },
+  { code: "tr", name: "Türkçe", dir: "ltr" },
+  { code: "vi", name: "Tiếng Việt", dir: "ltr" },
+  { code: "ja", name: "日本語", dir: "ltr" },
 ] as const;
 
 export type Locale = (typeof LOCALES)[number]["code"];

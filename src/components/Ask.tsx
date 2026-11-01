@@ -7,6 +7,7 @@ import type { TransferView } from "./money";
 import { useSession } from "./session";
 import { Heading } from "./money";
 import { Spinner } from "./ui";
+import { useT } from "@/i18n/I18n";
 
 type Account = { freeLeft: number; creditUsd: number; priceUsd: number; questionsLeft: number; canTopUp: boolean; walletPay: { to: string; token: string } | null };
 const TOP_UPS = [1, 5, 20];
@@ -23,6 +24,7 @@ const SUGGESTIONS = ["How much did I send this month?", "Which payments are wait
 
 // Questions about your own money, answered privately inside NEAR AI's secure hardware.
 export function Ask() {
+  const t = useT();
   const [question, setQuestion] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -97,11 +99,11 @@ export function Ask() {
   const v = result?.answer.verification;
   return (
     <div className="narrow">
-      <Heading eyebrow="Ask" title="Ask about your money" text="Answered by AI running inside NEAR AI's secure hardware. Your records go only there, for this answer, and Scrim keeps no copy." />
+      <Heading eyebrow="Ask" title={t("Ask about your money")} text="Answered by AI running inside NEAR AI's secure hardware. Your records go only there, for this answer, and Scrim keeps no copy." />
       <form className="card card-pad form-grid" onSubmit={(e) => { e.preventDefault(); void submit(question); }}>
         <label className="field">
-          Your question
-          <input className="input" value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="How much did we pay suppliers last week?" maxLength={500} disabled={busy} />
+          {t("Your question")}
+          <input className="input" value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={t("How much did we pay suppliers last week?")} maxLength={500} disabled={busy} />
         </label>
         <div className="chips">
           {SUGGESTIONS.map((s) => (
@@ -109,7 +111,7 @@ export function Ask() {
           ))}
         </div>
         <div className="between">
-          <button className="btn btn-primary" disabled={busy || !question.trim() || left === 0}>{busy ? <><Spinner /> Thinking privately…</> : "Ask"}</button>
+          <button className="btn btn-primary" disabled={busy || !question.trim() || left === 0}>{busy ? <><Spinner /> {t("Thinking privately…")}</> : "Ask"}</button>
           {account && <small className="muted">{account.freeLeft ? "Your first question is free." : `${left} question${left === 1 ? "" : "s"} left${account.creditUsd ? ` ($${account.creditUsd.toFixed(2)})` : ""}`}</small>}
         </div>
         {account && account.freeLeft === 0 && (
@@ -152,13 +154,13 @@ export function Ask() {
             <span style={{ display: "block" }}>{v.detail}</span>
           </div>
           <details>
-            <summary className="muted">Verification details</summary>
+            <summary className="muted">{t("Verification details")}</summary>
             <dl className="details">
-              <dt>Model</dt><dd className="mono">{result.answer.model}</dd>
-              <dt>Answer ID</dt><dd className="mono" style={{ wordBreak: "break-all" }}>{v.chatId}</dd>
-              {v.signingAddress && <><dt>Signed by</dt><dd className="mono" style={{ wordBreak: "break-all" }}>{v.signingAddress}</dd></>}
+              <dt>{t("Model")}</dt><dd className="mono">{result.answer.model}</dd>
+              <dt>{t("Answer ID")}</dt><dd className="mono" style={{ wordBreak: "break-all" }}>{v.chatId}</dd>
+              {v.signingAddress && <><dt>{t("Signed by")}</dt><dd className="mono" style={{ wordBreak: "break-all" }}>{v.signingAddress}</dd></>}
             </dl>
-            <a className="btn btn-ghost btn-sm" href="https://docs.near.ai/cloud/verification" target="_blank" rel="noreferrer">How NEAR AI verification works ↗</a>
+            <a className="btn btn-ghost btn-sm" href="https://docs.near.ai/cloud/verification" target="_blank" rel="noreferrer">{t("How NEAR AI verification works ↗")}</a>
           </details>
         </div>
       )}

@@ -6,13 +6,15 @@ import { AssetPicker, CopyField, fmt, StateChip, type AssetInfo } from "./money"
 import { PayFromSolanaWallet } from "./PayFromSolanaWallet";
 import { PayFromWallet } from "./PayFromWallet";
 import { Spinner } from "./ui";
+import { useT } from "@/i18n/I18n";
 
 type LinkView = { code: string; to: string; symbol: string; chainName: string; display: string; note: string; status: string; receive?: "private" | "wallet" };
 type Payment = { id: string; status: string; amountIn: string; fromAsset: { symbol: string; chainName: string; decimals: number }; deposit: { address: string; memo: string | null; network: string; minimum: string | null; evm?: { chainId: number; token: `0x${string}` | null } | null; solana?: { mint: string | null } | null } | null };
 
 // What a buyer receives once their payment is confirmed: the seller's text or link, or their API's answer.
 function Bought({ delivered, retry }: { delivered: { status: number; contentType: string; body: string } | null; retry: () => void }) {
-  if (!delivered) return <div className="notice info"><Spinner /> Paid. Getting what you bought…</div>;
+  const t = useT();
+  if (!delivered) return <div className="notice info"><Spinner /> {t("Paid. Getting what you bought…")}</div>;
   let text = delivered.body;
   try {
     const j = JSON.parse(delivered.body) as { content?: string };
@@ -21,13 +23,14 @@ function Bought({ delivered, retry }: { delivered: { status: number; contentType
   return (
     <div className="form-grid">
       <div className={`notice ${delivered.status === 200 ? "good" : "danger"}`}>{delivered.status === 200 ? "Paid. Here is what you bought. Keep a copy." : (() => { try { return (JSON.parse(delivered.body) as { error?: string }).error ?? "Paid, but the seller's service didn't answer."; } catch { return "Paid, but the seller's service didn't answer."; } })()}</div>
-      {delivered.status !== 200 && <button type="button" className="btn btn-ghost" style={{ justifySelf: "start" }} onClick={retry}>Try again</button>}
+      {delivered.status !== 200 && <button type="button" className="btn btn-ghost" style={{ justifySelf: "start" }} onClick={retry}>{t("Try again")}</button>}
       {delivered.status === 200 && <div className="code"><pre style={{ whiteSpace: "pre-wrap" }}>{text}</pre></div>}
     </div>
   );
 }
 
 export function PayPage({ code }: { code: string }) {
+  const t = useT();
   const { data, error: loadError } = useApi<{ link: LinkView; product: { name: string; description: string } | null }>(`/pay/${code}`);
   const [delivered, setDelivered] = useState<{ status: number; contentType: string; body: string } | null>(null);
   const { data: list } = useApi<{ assets: AssetInfo[] }>("/assets/public");
@@ -64,7 +67,7 @@ export function PayPage({ code }: { code: string }) {
     }
   }
 
-  if (loadError) return <div className="narrow"><div className="card empty"><span className="icon">?</span><h3>This link doesn't work</h3><p>{loadError}</p></div></div>;
+  if (loadError) return <div className="narrow"><div className="card empty"><span className="icon">?</span><h3>{t("This link doesn't work")}</h3><p>{loadError}</p></div></div>;
   if (!data) return <div className="narrow"><div className="skeleton" /></div>;
   const link = data.link;
   const product = data.product;
@@ -81,10 +84,10 @@ export function PayPage({ code }: { code: string }) {
           <div className={`notice ${link.status === "paid" ? "good" : ""}`}>{link.status === "paid" ? "This request has been paid. Thank you." : "This link is closed."}</div>
         ) : !payment ? (
           <form className="form-grid" onSubmit={start}>
-            <AssetPicker label="Pay with" assets={assets} value={assetId} onChange={setAssetId} hint="Any coin, on any network. No account needed." />
-            <label className="field">Where should we return your money if something goes wrong?
+            <AssetPicker label={t("Pay with")} assets={assets} value={assetId} onChange={setAssetId} hint={t("Any coin, on any network. No account needed.")} />
+            <label className="field">{t("Where should we return your money if something goes wrong?")}
               <small>An address of yours on {picked?.chainName ?? "that network"}.</small>
-              <input className="input mono" value={refund} onChange={(e) => setRefund(e.target.value)} placeholder="Paste your address" autoComplete="off" spellCheck={false} required /></label>
+              <input className="input mono" value={refund} onChange={(e) => setRefund(e.target.value)} placeholder={t("Paste your address")} autoComplete="off" spellCheck={false} required /></label>
             {error && <p className="form-error" role="alert">{error}</p>}
             <button className="btn btn-primary btn-lg" disabled={busy || !assetId}>{busy && <Spinner />} Get payment address</button>
           </form>
@@ -96,9 +99,9 @@ export function PayPage({ code }: { code: string }) {
                 <CopyField label={`Address on ${payment.deposit.network}`} value={payment.deposit.address} />
                 {payment.deposit.memo && <CopyField label="Memo (required)" value={payment.deposit.memo} />}
                 <ul className="checklist">
-                  <li>Send exactly <b>{fmt(payment.amountIn, payment.fromAsset.decimals)} {payment.fromAsset.symbol}</b> on <b>{payment.fromAsset.chainName}</b>.</li>
-                  <li>Use this address once. It's made for this payment.</li>
-                  <li>This page updates by itself when your payment arrives.</li>
+                  <li>{t("Send exactly")} <b>{fmt(payment.amountIn, payment.fromAsset.decimals)} {payment.fromAsset.symbol}</b> on <b>{payment.fromAsset.chainName}</b>.</li>
+                  <li>{t("Use this address once. It's made for this payment.")}</li>
+                  <li>{t("This page updates by itself when your payment arrives.")}</li>
                 </ul>
                 {payment.deposit.evm && (
                   <PayFromWallet to={payment.deposit.address} chainId={payment.deposit.evm.chainId} token={payment.deposit.evm.token}
@@ -110,10 +113,10 @@ export function PayPage({ code }: { code: string }) {
                 )}
               </>
             )}
-            {payment.status === "processing" && <div className="notice info"><Spinner /> We see your payment. It's being delivered.</div>}
+            {payment.status === "processing" && <div className="notice info"><Spinner /> {t("We see your payment. It's being delivered.")}</div>}
             {payment.status === "success" && !product && <div className="notice good">Paid. {link.to} has received {link.display} {link.symbol}. You can close this page.</div>}
             {payment.status === "success" && product && <Bought delivered={delivered} retry={() => void api<{ delivered: typeof delivered }>(`/pay/${code}/status/${payment.id}`).then((r) => setDelivered(r.delivered)).catch(() => {})} />}
-            {["refunded", "failed", "expired"].includes(payment.status) && <div className="notice danger">This payment didn't complete. Anything you sent is returned to the address you gave.</div>}
+            {["refunded", "failed", "expired"].includes(payment.status) && <div className="notice danger">{t("This payment didn't complete. Anything you sent is returned to the address you gave.")}</div>}
           </div>
         )}
       </div>

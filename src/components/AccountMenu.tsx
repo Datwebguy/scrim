@@ -27,6 +27,7 @@ const PowerIcon = () => (
 // Your account at a glance, as a side panel: short address with copy and disconnect, the network,
 // and what the wallet holds.
 export function AccountMenu() {
+  const t = useT();
   const { accountId, network } = useSession();
   const [open, setOpen] = useState(false);
   return (
@@ -72,10 +73,10 @@ function Panel({ onClose }: { onClose: () => void }) {
         <header className="panel-head">
           <Initials name={accountId} className="avatar" />
           <div className="panel-id"><b title={accountId}>{middle(accountId)}</b></div>
-          <button className="icon-btn" title="Copy address" aria-label="Copy address" onClick={async () => { try { await navigator.clipboard.writeText(accountId); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* not available */ } }}>
+          <button className="icon-btn" title={t("Copy address")} aria-label="Copy address" onClick={async () => { try { await navigator.clipboard.writeText(accountId); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* not available */ } }}>
             {copied ? <CheckIcon /> : <CopyIcon />}
           </button>
-          <button className="icon-btn danger" title="Disconnect wallet" aria-label="Disconnect wallet" disabled={busy} onClick={() => go()}><PowerIcon /></button>
+          <button className="icon-btn danger" title={t("Disconnect wallet")} aria-label="Disconnect wallet" disabled={busy} onClick={() => go()}><PowerIcon /></button>
           <button className="icon-btn" aria-label="Close" onClick={onClose}>✕</button>
         </header>
 

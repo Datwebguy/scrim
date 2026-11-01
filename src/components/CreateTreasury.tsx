@@ -4,8 +4,10 @@ import { useState } from "react";
 import { api } from "@/client/api";
 import type { Treasury } from "@/server/treasuries";
 import { Spinner } from "./ui";
+import { useT } from "@/i18n/I18n";
 
 export function CreateTreasuryForm({ onCreated, compact = false }: { onCreated?: () => void; compact?: boolean }) {
+  const t = useT();
   const router = useRouter();
   const [kind, setKind] = useState<"individual" | "team">("individual");
   const [name, setName] = useState("");
@@ -38,28 +40,28 @@ export function CreateTreasuryForm({ onCreated, compact = false }: { onCreated?:
       <div className="segmented" role="radiogroup" aria-label="Account type">
         <label>
           <input type="radio" name="kind" checked={kind === "individual"} onChange={() => setKind("individual")} />
-          <b>Just me</b>
-          <span>You approve every payment yourself.</span>
+          <b>{t("Just me")}</b>
+          <span>{t("You approve every payment yourself.")}</span>
         </label>
         <label>
           <input type="radio" name="kind" checked={kind === "team"} onChange={() => setKind("team")} />
-          <b>Shared</b>
-          <span>Several people approve together.</span>
+          <b>{t("Shared")}</b>
+          <span>{t("Several people approve together.")}</span>
         </label>
       </div>
       <label className="field">
-        Account name
-        <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name this account" maxLength={80} required />
+        {t("Account name")}
+        <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("Name this account")} maxLength={80} required />
       </label>
       {kind === "team" && (
         <>
           <label className="field">
-            The other people who approve
-            <small>Their NEAR accounts, separated by commas. They are asked to join.</small>
+            {t("The other people who approve")}
+            <small>{t("Their NEAR accounts, separated by commas. They are asked to join.")}</small>
             <textarea className="textarea mono" rows={2} value={signers} onChange={(e) => setSigners(e.target.value)} placeholder="one.near, two.near" />
           </label>
           <label className="field">
-            How many must approve
+            {t("How many must approve")}
             <select className="select" value={Math.min(threshold, total)} onChange={(e) => setThreshold(Number(e.target.value))}>
               {Array.from({ length: total }, (_, i) => i + 1).map((n) => (
                 <option key={n} value={n}>

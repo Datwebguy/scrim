@@ -2,11 +2,13 @@
 import { useEffect, useState } from "react";
 import { api } from "@/client/api";
 import { checkProof, describeClaim, PROOF_PREFIX, type ProofCheck } from "@/protocol/proof";
+import { useT } from "@/i18n/I18n";
 
 type Result = { check: ProofCheck; revoked: boolean | null };
 const fromB64u = (t: string) => Uint8Array.from(atob(t.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
 
 export function VerifyPage() {
+  const t = useT();
   const [text, setText] = useState("");
   const [viewer, setViewer] = useState("");
   const [result, setResult] = useState<Result | null>(null);
@@ -25,7 +27,7 @@ export function VerifyPage() {
       }
       setResult({ check, revoked });
     } catch {
-      setError("Couldn't check this right now. Check your connection and try again.");
+      setError(t("Couldn't check this right now. Check your connection and try again."));
     } finally {
       setBusy(false);
     }
@@ -43,14 +45,14 @@ export function VerifyPage() {
     <div className="narrow">
       <div className="card card-pad form-grid">
         <div>
-          <span className="eyebrow">Check a proof</span>
-          <h1 style={{ marginTop: 10 }}>Is this proof real?</h1>
-          <p className="muted" style={{ marginTop: 6 }}>Someone sent you a proof from Scrim. Paste it here to see what it says and whether it still holds. You don't need an account.</p>
+          <span className="eyebrow">{t("Check a proof")}</span>
+          <h1 style={{ marginTop: 10 }}>{t("Is this proof real?")}</h1>
+          <p className="muted" style={{ marginTop: 6 }}>{t("Someone sent you a proof from Scrim. Paste it here to see what it says and whether it still holds. You don't need an account.")}</p>
         </div>
         <form className="form-grid" onSubmit={(e) => { e.preventDefault(); run(text.trim(), viewer); }}>
-          <label className="field">The proof<textarea className="textarea mono" rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder="scrimproof1.…" spellCheck={false} required /></label>
-          <label className="field">Your name <small>Optional. We'll check the proof was made for you.</small><input className="input" value={viewer} onChange={(e) => setViewer(e.target.value)} placeholder="The name the sender used for you" /></label>
-          <button className="btn btn-primary" disabled={busy}>Check proof</button>
+          <label className="field">{t("The proof")}<textarea className="textarea mono" rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder="scrimproof1.…" spellCheck={false} required /></label>
+          <label className="field">{t("Your name")} <small>{t("Optional. We'll check the proof was made for you.")}</small><input className="input" value={viewer} onChange={(e) => setViewer(e.target.value)} placeholder={t("The name the sender used for you")} /></label>
+          <button className="btn btn-primary" disabled={busy}>{t("Check proof")}</button>
         </form>
         {error && <p className="form-error" role="alert">{error}</p>}
       </div>
@@ -59,7 +61,7 @@ export function VerifyPage() {
         <div className="card card-pad form-grid" style={{ marginTop: 16 }} aria-live="polite">
           {!c.ok ? (
             <>
-              <div className="verdict bad">✕ Not valid</div>
+              <div className="verdict bad">{t("✕ Not valid")}</div>
               <p>{c.reason === "signature" ? "This proof has been changed, or it didn't come from Scrim. Don't rely on it." : c.reason === "version" ? "This proof uses a format we don't recognise." : "That doesn't look like a Scrim proof."}</p>
             </>
           ) : (
@@ -68,8 +70,8 @@ export function VerifyPage() {
               <p style={{ fontSize: 18 }}>{c.payload.account ? <b className="mono" style={{ overflowWrap: "anywhere" }}>{c.payload.account}</b> : c.payload.holder ? <b>{c.payload.holder}</b> : "The sender"} {describeClaim(c.payload.claim)}.</p>
               {c.payload.account && c.payload.holder && <p className="muted">The sender calls themselves “{c.payload.holder}”. Scrim verified the NEAR account above, not this name.</p>}
               <ul className="checks-list">
-                <li className="ok">The signature is genuine and nothing was changed.</li>
-                <li className={c.readerMatches === false ? "no" : "ok"}>Made for <b>{c.payload.reader}</b>.{c.readerMatches === false && " That isn't the name you entered."}{c.readerMatches === null && " Enter your name above to check it's you."}</li>
+                <li className="ok">{t("The signature is genuine and nothing was changed.")}</li>
+                <li className={c.readerMatches === false ? "no" : "ok"}>{t("Made for")} <b>{c.payload.reader}</b>.{c.readerMatches === false && " That isn't the name you entered."}{c.readerMatches === null && " Enter your name above to check it's you."}</li>
                 <li className={c.expired ? "no" : "ok"}>{c.expired ? "Expired" : "Valid until"} {new Date(c.payload.expiresAt).toLocaleString()}.</li>
                 <li className={result?.revoked ? "no" : result?.revoked === false ? "ok" : "warn"}>{result?.revoked ? "The sender has taken this proof back." : result?.revoked === false ? "Not taken back by the sender." : "Couldn't check whether the sender took it back."}</li>
               </ul>

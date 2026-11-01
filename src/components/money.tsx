@@ -51,6 +51,7 @@ function sortForPicking(assets: AssetInfo[]) {
 
 // Choose a coin and the chain it lives on from one searchable list, each with its real logo.
 export function AssetPicker({ label, assets, value, onChange, hint, empty }: { label: string; assets: AssetInfo[]; value: string; onChange: (assetId: string) => void; hint?: string; empty?: string }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const box = useRef<HTMLDivElement>(null);
@@ -86,7 +87,7 @@ export function AssetPicker({ label, assets, value, onChange, hint, empty }: { l
       </button>
       {open && (
         <div className="picker-panel">
-          <input className="input" autoFocus placeholder="Search a coin or chain" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search coins" />
+          <input className="input" autoFocus placeholder={t("Search a coin or chain")} value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search coins" />
           <ul role="listbox" aria-label={label}>
             {shown.length === 0 && <li className="picker-empty">Nothing matches "{query}"</li>}
             {shown.map((a) => (
@@ -106,13 +107,14 @@ export function AssetPicker({ label, assets, value, onChange, hint, empty }: { l
 }
 
 export function CopyField({ value, label, mono = true }: { value: string; label: string; mono?: boolean }) {
+  const t = useT();
   const toast = useToast();
   return (
     <div className="copyfield">
       <span className="section-label">{label}</span>
       <div className="copyrow">
         <code className={mono ? "mono" : ""}>{value}</code>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={async () => { await navigator.clipboard.writeText(value); toast("Copied"); }}>Copy</button>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={async () => { await navigator.clipboard.writeText(value); toast(t("Copied")); }}>Copy</button>
       </div>
     </div>
   );

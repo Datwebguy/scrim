@@ -87,14 +87,14 @@ export function SendSwap({ initial }: { initial: Mode }) {
   // From the wallet to a NEAR account: an ordinary transfer the wallet signs. Nothing goes through Scrim.
   async function sendDirect() {
     const coin = (pub?.holdings ?? []).find((h) => h.id !== "wrap.near" && walletAssetId(h.id) === fromId);
-    if (!coin) throw new Error("Choose a coin your wallet holds.");
+    if (!coin) throw new Error(t("Choose a coin your wallet holds."));
     const minor = parseAmount(amount, coin.decimals);
-    if (minor <= 0n) throw new Error("Enter an amount.");
+    if (minor <= 0n) throw new Error(t("Enter an amount."));
     if (minor > spendable(coin)) throw new Error(coin.id === "near" ? "Keep about 0.07 NEAR in your wallet for network fees. Lower the amount." : `Your wallet holds ${coin.display} ${coin.symbol}.`);
     // Tokens sent to an account that doesn't exist are lost, so check it first.
     const check = await api<{ accountId: string; exists: boolean }>(`/accounts/check?id=${encodeURIComponent(recipient.trim().toLowerCase())}`);
     if (!check.exists) throw new Error(`${check.accountId} doesn't exist. Check the spelling.`);
-    if (check.accountId === accountId) throw new Error("That's your own account.");
+    if (check.accountId === accountId) throw new Error(t("That's your own account."));
     setSentHash(coin.id === "near" ? await sendNear(network, check.accountId, minor.toString()) : await sendToken(network, coin.id, check.accountId, minor.toString()));
     setAmount("");
     reloadWallet();
@@ -178,25 +178,25 @@ export function SendSwap({ initial }: { initial: Mode }) {
         </div>
       )}
 
-      {!fromWallet && priv && priv.status !== "active" && <div className="notice">Unlock your private balance on the <Link href="/app">{t("home screen")}</Link> first.</div>}
+      {!fromWallet && priv && priv.status !== "active" && <div className="notice">{t("Unlock your private balance on the")} <Link href="/app">{t("home screen")}</Link> first.</div>}
       {fromWallet && pub && holdings.length === 0 && <div className="notice">{t("Your wallet holds no coins on NEAR yet.")}</div>}
-      {!fromWallet && priv?.status === "active" && holdings.length === 0 && <div className="notice">Your private balance is empty. <Link href="/app/add">{t("Add money")}</Link> to get started.</div>}
+      {!fromWallet && priv?.status === "active" && holdings.length === 0 && <div className="notice">{t("Your private balance is empty.")} <Link href="/app/add">{t("Add money")}</Link> to get started.</div>}
 
       {!transfer ? (
         <form className="card card-pad form-grid" onSubmit={(e) => { e.preventDefault(); getPrice(); }}>
           <AssetPicker label={mode === "swap" ? "You pay with" : mode === "address" ? (fromWallet ? "Take from your wallet" : "Take from your balance") : "Coin to send"} assets={fromAssets} value={fromId} onChange={setFromId}
             hint={held ? `You hold ${held.display} ${held.symbol}` : undefined} empty={ready && holdings.length === 0 ? "No coins yet" : undefined} />
-          {mode === "swap" && <AssetPicker label="You get" assets={assets.filter((a) => a.assetId !== fromId && (!fromWallet || a.chain === "near"))} value={toId} onChange={setToId} />}
+          {mode === "swap" && <AssetPicker label={t("You get")} assets={assets.filter((a) => a.assetId !== fromId && (!fromWallet || a.chain === "near"))} value={toId} onChange={setToId} />}
           {mode === "person" && (
-            <label className="field">Send to<small>{t("Their NEAR account, ending in .near")}</small>
+            <label className="field">{t("Send to")}<small>{t("Their NEAR account, ending in .near")}</small>
               <input className="input" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="account.near" autoComplete="off" spellCheck={false} required /></label>
           )}
           {mode === "address" && (
             <>
-              <AssetPicker label="They receive" assets={assets} value={toId} onChange={setToId} hint="Any coin on any network. Scrim converts for you." />
+              <AssetPicker label={t("They receive")} assets={assets} value={toId} onChange={setToId} hint={t("Any coin on any network. Scrim converts for you.")} />
               <label className="field">Their address on {to?.chainName ?? "that network"}
                 {to?.chain === "zec" && <small>{t("A shielded address (starting u1 or zs1) works too. It keeps the receiving side private on Zcash.")}</small>}
-                <input className="input mono" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="Paste the address" autoComplete="off" spellCheck={false} required /></label>
+                <input className="input mono" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder={t("Paste the address")} autoComplete="off" spellCheck={false} required /></label>
             </>
           )}
           <label className="field">{mode === "swap" ? "Amount to swap" : mode === "address" ? "Amount they receive" : "Amount"}
@@ -204,9 +204,9 @@ export function SendSwap({ initial }: { initial: Mode }) {
               <span>{(mode === "swap" ? from : mode === "address" ? to : from)?.symbol}</span></span>
             {mode === "swap" && held && <button type="button" className="linklike" onClick={() => setAmount(held.display.replace(/,/g, ""))}>Use everything I hold ({held.display})</button>}
           </label>
-          {mode !== "swap" && <label className="field">Note <small>{t("Optional. Only you can see it.")}</small><input className="input" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder="What it is for" /></label>}
+          {mode !== "swap" && <label className="field">{t("Note")} <small>{t("Optional. Only you can see it.")}</small><input className="input" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder={t("What it is for")} /></label>}
           {error && <p className="form-error" role="alert">{error}</p>}
-          {sentHash && <div className="notice good">Sent from your wallet. <span className="muted mono">Receipt {sentHash.slice(0, 10)}…</span> <Link href="/app/activity">{t("Activity")}</Link></div>}
+          {sentHash && <div className="notice good">{t("Sent from your wallet.")} <span className="muted mono">Receipt {sentHash.slice(0, 10)}…</span> <Link href="/app/activity">{t("Activity")}</Link></div>}
           <button className="btn btn-primary btn-lg" disabled={busy !== "" || !ready}>{busy === "price" && <Spinner />} {fromWallet && mode === "person" ? "Send with my wallet" : "See the price"}</button>
         </form>
       ) : (
@@ -222,7 +222,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
           </dl>
           {transfer.status === "awaiting_signature" && (
             <>
-              {enough === false && <div className="notice danger">You don't hold enough for this. Lower the amount or <Link href="/app/add">{t("add money")}</Link>.</div>}
+              {enough === false && <div className="notice danger">{t("You don't hold enough for this. Lower the amount or")} <Link href="/app/add">{t("add money")}</Link>.</div>}
               <p className="muted small-print">{t("Your wallet will ask you to approve this exact transfer. This price is held for a few minutes.")}</p>
               {error && <p className="form-error" role="alert">{error}</p>}
               <div className="between">
@@ -246,7 +246,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
           {transfer.status === "success" && <div className="notice good status-line"><StatusMark state="done" size={40} /><div className="text"><b>{t("Done")}</b> {transfer.kind === "swap" ? transfer.fromWallet ? `Your new coins are in your wallet${transfer.toAsset.symbol === "wNEAR" ? " as wrapped NEAR" : ""}.` : "Your new coins are in your private balance." : "The money has arrived."}
             {transfer.resultHashes[0] && <> <span className="muted mono">Receipt {transfer.resultHashes[0].slice(0, 10)}…</span></>}</div></div>}
           {["failed", "refunded", "expired"].includes(transfer.status) && <div className="notice danger">{transfer.status === "refunded" ? `This couldn't be completed, and your money was returned to your ${transfer.fromWallet ? "wallet" : "balance"}.` : `This didn't go through. Nothing was taken from your ${transfer.fromWallet ? "wallet" : "balance"}.`}</div>}
-          {TERMINAL.has(transfer.status) && <div className="between"><Link href="/app" className="btn btn-ghost">{t("Home")}</Link><button className="btn btn-primary" onClick={() => { setTransfer(null); setPaidTx(""); setAmount(""); toast("Ready for another"); }}>Do another</button></div>}
+          {TERMINAL.has(transfer.status) && <div className="between"><Link href="/app" className="btn btn-ghost">{t("Home")}</Link><button className="btn btn-primary" onClick={() => { setTransfer(null); setPaidTx(""); setAmount(""); toast(t("Ready for another")); }}>Do another</button></div>}
         </div>
       )}
     </div>

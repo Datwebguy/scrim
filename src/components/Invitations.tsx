@@ -6,9 +6,11 @@ import { useApi } from "@/client/use-api";
 import { short } from "@/client/format";
 import type { Invitation } from "@/server/treasuries";
 import { Spinner, useToast } from "./ui";
+import { useT } from "@/i18n/I18n";
 
 // Someone added you to their account. You become an approver only if you say yes.
 export function Invitations() {
+  const t = useT();
   const { data, reload } = useApi<{ invitations: Invitation[] }>("/invitations", { every: 30_000 });
   const toast = useToast();
   const router = useRouter();
@@ -35,7 +37,7 @@ export function Invitations() {
       {invitations.map((i) => (
         <div key={i.treasuryId} className="card card-pad" role="group" aria-label={`Invitation to ${i.name}`}>
           <h3 style={{ marginBottom: 6 }}>{short(i.invitedBy, 8, 4)} invited you to “{i.name}”</h3>
-          <p className="muted" style={{ marginBottom: 14 }}>Join to approve its payments. You can say no.</p>
+          <p className="muted" style={{ marginBottom: 14 }}>{t("Join to approve its payments. You can say no.")}</p>
           <div className="gate-actions">
             <button className="btn btn-primary" onClick={() => answer(i.treasuryId, true)} disabled={busy !== null}>{busy === i.treasuryId && <Spinner />} Join</button>
             <button className="btn btn-ghost" onClick={() => answer(i.treasuryId, false)} disabled={busy !== null}>Decline</button>

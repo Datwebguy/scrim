@@ -2,11 +2,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/client/api";
 import { useToast } from "./ui";
+import { useT } from "@/i18n/I18n";
 
 type Status = { available: boolean; linked: boolean };
 
 // Lets an approver get a Telegram message whenever a payment needs them.
 export function TelegramAlerts() {
+  const t = useT();
   const toast = useToast();
   const [status, setStatus] = useState<Status | null>(null);
   const [waiting, setWaiting] = useState(false);
@@ -31,7 +33,7 @@ export function TelegramAlerts() {
       if (next?.linked) {
         setStatus(next);
         setWaiting(false);
-        toast("Telegram alerts are on");
+        toast(t("Telegram alerts are on"));
       }
     }, 3000);
     const stop = setTimeout(() => setWaiting(false), 10 * 60 * 1000);
@@ -58,7 +60,7 @@ export function TelegramAlerts() {
             load();
           }}
         >
-          Turn off
+          {t("Turn off")}
         </button>
       ) : (
         <button
@@ -73,7 +75,7 @@ export function TelegramAlerts() {
             }
           }}
         >
-          Connect Telegram
+          {t("Connect Telegram")}
         </button>
       )}
     </div>

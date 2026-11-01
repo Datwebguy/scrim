@@ -5,11 +5,13 @@ import { useApi } from "@/client/use-api";
 import { describeClaim, type ProofClaim } from "@/protocol/proof";
 import { AssetPicker, CopyField, fmt, Heading, KIND_LABEL, useAssets, type TransferView } from "./money";
 import { Spinner, useToast } from "./ui";
+import { useT } from "@/i18n/I18n";
 
 type Proof = { id: string; kind: string; reader: string; summary: ProofClaim; issuedAt: string; expiresAt: string; revoked: boolean; token: string };
 type Kind = "usd" | "asset" | "payment";
 
 export function Proofs() {
+  const t = useT();
   const toast = useToast();
   const assets = useAssets();
   const { data, reload } = useApi<{ proofs: Proof[] }>("/proofs");
@@ -44,13 +46,13 @@ export function Proofs() {
 
   return (
     <div className="narrow">
-      <Heading eyebrow="Proofs" title="Show one fact, nothing else" text="Prove you hold enough, or that a payment was made, to one person you name. It expires, and you can take it back any time. They see the fact and nothing about the rest of your money." />
+      <Heading eyebrow="Proofs" title={t("Show one fact, nothing else")} text="Prove you hold enough, or that a payment was made, to one person you name. It expires, and you can take it back any time. They see the fact and nothing about the rest of your money." />
       {fresh ? (
         <div className="card card-pad form-grid">
-          <h2>Your proof is ready</h2>
-          <p className="muted">For <b>{fresh.reader}</b> · it says you <b>{describeClaim(fresh.summary)}</b> · valid until {new Date(fresh.expiresAt).toLocaleDateString()}</p>
-          <CopyField label="Send them this link" value={link(fresh)} />
-          <p className="muted small-print">They open the link and see a pass or fail check. They don't need an account.</p>
+          <h2>{t("Your proof is ready")}</h2>
+          <p className="muted">{t("For")} <b>{fresh.reader}</b> · it says you <b>{describeClaim(fresh.summary)}</b> · valid until {new Date(fresh.expiresAt).toLocaleDateString()}</p>
+          <CopyField label={t("Send them this link")} value={link(fresh)} />
+          <p className="muted small-print">{t("They open the link and see a pass or fail check. They don't need an account.")}</p>
           <button className="btn btn-ghost" style={{ justifySelf: "start" }} onClick={() => setFresh(null)}>Make another</button>
         </div>
       ) : (
@@ -61,38 +63,38 @@ export function Proofs() {
             ))}
           </div>
           {kind === "usd" && (
-            <div className="field">Amount in dollars
+            <div className="field">{t("Amount in dollars")}
               <div className="chips">{["1000", "10000", "50000"].map((v) => <button type="button" key={v} className={`chip ${amount === v ? "on" : ""}`} onClick={() => setAmount(v)}>${Number(v).toLocaleString()}</button>)}</div>
-              <span className="input-affix"><input className="input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} required /><span>USD</span></span></div>
+              <span className="input-affix"><input className="input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} required /><span>{t("USD")}</span></span></div>
           )}
           {kind === "asset" && (
             <>
-              <AssetPicker label="Which coin?" assets={assets} value={assetId} onChange={setAssetId} />
-              <label className="field">At least<input className="input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} required /></label>
+              <AssetPicker label={t("Which coin?")} assets={assets} value={assetId} onChange={setAssetId} />
+              <label className="field">{t("At least")}<input className="input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} required /></label>
             </>
           )}
           {kind === "payment" && (
             <>
-              <label className="field">Which payment?
+              <label className="field">{t("Which payment?")}
                 <select className="select" value={transferId} onChange={(e) => setTransferId(e.target.value)} required>
-                  <option value="">Choose a payment you sent</option>
+                  <option value="">{t("Choose a payment you sent")}</option>
                   {sent.map((t) => <option key={t.id} value={t.id}>{KIND_LABEL[t.kind]} · {fmt(t.amountOut, t.toAsset.decimals)} {t.toAsset.symbol} · {new Date(t.createdAt).toLocaleDateString()}</option>)}
                 </select></label>
               <label className="checkline"><input type="checkbox" checked={exact} onChange={(e) => setExact(e.target.checked)} /> Show the exact amount (otherwise they only see "at least")</label>
             </>
           )}
-          <label className="field">Who is this for?<small>Their name or company. It's written into the proof, so it only makes sense for them.</small>
-            <input className="input" value={reader} onChange={(e) => setReader(e.target.value)} placeholder="A bank, landlord or client" maxLength={80} required /></label>
-          <label className="field">Valid for<select className="select" value={days} onChange={(e) => setDays(Number(e.target.value))}><option value={1}>1 day</option><option value={7}>7 days</option><option value={30}>30 days</option></select></label>
+          <label className="field">{t("Who is this for?")}<small>{t("Their name or company. It's written into the proof, so it only makes sense for them.")}</small>
+            <input className="input" value={reader} onChange={(e) => setReader(e.target.value)} placeholder={t("A bank, landlord or client")} maxLength={80} required /></label>
+          <label className="field">{t("Valid for")}<select className="select" value={days} onChange={(e) => setDays(Number(e.target.value))}><option value={1}>{t("1 day")}</option><option value={7}>{t("7 days")}</option><option value={30}>{t("30 days")}</option></select></label>
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="btn btn-primary btn-lg" disabled={busy}>{busy && <Spinner />} Create proof</button>
-          <p className="muted small-print">Scrim checks your private balance and signs the statement. Today that check happens on Scrim's side. Proving it on your own device is the next step.</p>
+          <p className="muted small-print">{t("Scrim checks your private balance and signs the statement. Today that check happens on Scrim's side. Proving it on your own device is the next step.")}</p>
         </form>
       )}
 
       {data && data.proofs.length > 0 && (
         <section className="card" style={{ marginTop: 20 }}>
-          <div className="card-title"><h3>Proofs you've made</h3></div>
+          <div className="card-title"><h3>{t("Proofs you've made")}</h3></div>
           <ul className="rows">
             {data.proofs.map((p) => {
               const expired = new Date(p.expiresAt) < new Date();
@@ -101,8 +103,8 @@ export function Proofs() {
                   <span className="coin dark">◇</span>
                   <span><b>For {p.reader}</b><small>{describeClaim(p.summary)}</small></span>
                   <span className="right" style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                    {p.revoked ? <span className="pill">Taken back</span> : expired ? <span className="pill">Expired</span> : <>
-                      <button className="btn btn-ghost btn-sm" onClick={async () => { await navigator.clipboard.writeText(link(p)); toast("Link copied"); }}>Copy link</button>
+                    {p.revoked ? <span className="pill">{t("Taken back")}</span> : expired ? <span className="pill">{t("Expired")}</span> : <>
+                      <button className="btn btn-ghost btn-sm" onClick={async () => { await navigator.clipboard.writeText(link(p)); toast(t("Link copied")); }}>Copy link</button>
                       <button className="btn btn-danger btn-sm" onClick={async () => { await api(`/proofs/${p.id}/revoke`, { method: "POST" }); reload(); }}>Take back</button>
                     </>}
                   </span>

@@ -14,6 +14,7 @@ import { Receipts } from "./Receipts";
 import { useSession } from "./session";
 import { TelegramAlerts } from "./TelegramAlerts";
 import { Initials, Modal, newIdempotencyKey, Spinner, StatusPill, useToast } from "./ui";
+import { useT } from "@/i18n/I18n";
 
 type AuditEvent = { id: string; actor_type: string; actor_id: string; action: string; subject_id: string | null; data: Record<string, unknown>; created_at: string };
 type Data = { treasury: Treasury; role: TreasuryRole; agents: Agent[]; payments: Payment[]; audit: AuditEvent[] };
@@ -24,6 +25,7 @@ const amountIn = (minor: string | bigint, unit: Unit) => formatAmount(BigInt(min
 const COUNTED = new Set(["awaiting_approval", "approved", "quoted", "submitting", "settled"]);
 
 export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; accountId: string }) {
+  const t = useT();
   const router = useRouter();
   const toast = useToast();
   const [data, setData] = useState<Data | null>(null);
@@ -75,7 +77,7 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
               {treasury.thresholdRequired} of {treasury.signers.length} approvals
             </span>
             <span className="pill plain">{treasury.unit.routeLabel}</span>
-            {treasury.network === "mainnet" && <span className="pill plain">Pays out privately</span>}
+            {treasury.network === "mainnet" && <span className="pill plain">{t("Pays out privately")}</span>}
             <span className="pill plain">{role === "owner" ? "You own this account" : "You are an approver"}</span>
           </div>
         </div>
@@ -93,30 +95,30 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
 
       <div className="stats">
         <div className={`card stat ${needsMe.length ? "attention" : ""}`}>
-          <span>Needs your approval</span>
+          <span>{t("Needs your approval")}</span>
           <strong>{needsMe.length}</strong>
           <p>{needsMe.length ? "Review and approve in your wallet" : "You're all caught up"}</p>
         </div>
         <div className="card stat">
-          <span>Committed · 24h</span>
+          <span>{t("Committed · 24h")}</span>
           <strong>
             {amountIn(committed, treasury.unit)}
             <small>{treasury.unit.symbol}</small>
           </strong>
-          <p>Requested or approved, not blocked</p>
+          <p>{t("Requested or approved, not blocked")}</p>
         </div>
         <div className="card stat">
-          <span>Agents</span>
+          <span>{t("Agents")}</span>
           <strong>
             {agents.filter((a) => a.enabled).length}
             <small>/ {agents.length} active</small>
           </strong>
-          <p>Can ask, never approve</p>
+          <p>{t("Can ask, never approve")}</p>
         </div>
         <div className="card stat">
-          <span>Blocked by limits · 24h</span>
+          <span>{t("Blocked by limits · 24h")}</span>
           <strong>{blocked24h.length}</strong>
-          <p>Stopped before reaching anyone</p>
+          <p>{t("Stopped before reaching anyone")}</p>
         </div>
       </div>
 
@@ -217,6 +219,7 @@ const PURCHASE_STATUS: Record<string, string> = {
 
 // What an agent's x402 request buys, how it is paid, and what the seller sent back.
 function PurchaseBlock({ paymentId, status }: { paymentId: string; status: string }) {
+  const t = useT();
   const [p, setP] = useState<PurchaseDetails | null | undefined>(undefined);
   useEffect(() => {
     let live = true;
@@ -232,13 +235,13 @@ function PurchaseBlock({ paymentId, status }: { paymentId: string; status: strin
   try { pretty = JSON.stringify(JSON.parse(body), null, 2); } catch { /* not JSON: show as sent */ }
   return (
     <div>
-      <span className="section-label">x402 purchase</span>
+      <span className="section-label">{t("x402 purchase")}</span>
       <dl className="detail-list">
-        <div><dt>Buying</dt><dd className="mono" style={{ wordBreak: "break-all" }}>{p.url}</dd></div>
-        <div><dt>Price</dt><dd>{p.price ?? "—"}{p.scheme === "upto" ? " at most (charged for what was used)" : ""}</dd></div>
-        <div><dt>Paid with</dt><dd>{p.route === "wallet" ? `The agent's own wallet${p.chain ? `, on ${p.chain}` : ""}` : `Private balance, through NEAR Intents${p.chain ? ` (${p.chain})` : ""}`}</dd></div>
-        <div><dt>Status</dt><dd>{PURCHASE_STATUS[p.status] ?? p.status}{p.error ? ` · ${p.error}` : ""}</dd></div>
-        {p.charged && p.scheme === "upto" && <div><dt>Charged</dt><dd>{p.charged}</dd></div>}
+        <div><dt>{t("Buying")}</dt><dd className="mono" style={{ wordBreak: "break-all" }}>{p.url}</dd></div>
+        <div><dt>{t("Price")}</dt><dd>{p.price ?? "—"}{p.scheme === "upto" ? " at most (charged for what was used)" : ""}</dd></div>
+        <div><dt>{t("Paid with")}</dt><dd>{p.route === "wallet" ? `The agent's own wallet${p.chain ? `, on ${p.chain}` : ""}` : `Private balance, through NEAR Intents${p.chain ? ` (${p.chain})` : ""}`}</dd></div>
+        <div><dt>{t("Status")}</dt><dd>{PURCHASE_STATUS[p.status] ?? p.status}{p.error ? ` · ${p.error}` : ""}</dd></div>
+        {p.charged && p.scheme === "upto" && <div><dt>{t("Charged")}</dt><dd>{p.charged}</dd></div>}
       </dl>
       {p.response && (
         <details>
@@ -282,14 +285,15 @@ function Approvals({ have, need }: { have: number; need: number }) {
 }
 
 function Requests({ payments, treasury, onOpen, onNew }: { payments: Payment[]; treasury: Treasury; onOpen: (id: string) => void; onNew: () => void }) {
+  const t = useT();
   if (payments.length === 0) {
     return (
       <div className="card empty">
         <span className="icon">↗</span>
-        <h3>No payment requests yet</h3>
+        <h3>{t("No payment requests yet")}</h3>
         <p>Create a request yourself, or give an agent spending limits and let it ask. Every request is checked and waits for {treasury.thresholdRequired === 1 ? "your" : "your signers'"} approval.</p>
         <button className="btn btn-primary" onClick={onNew}>
-          New payment
+          {t("New payment")}
         </button>
       </div>
     );
@@ -299,11 +303,11 @@ function Requests({ payments, treasury, onOpen, onNew }: { payments: Payment[]; 
       <table className="table">
         <thead>
           <tr>
-            <th>Amount</th>
-            <th className="hide-sm">Recipient</th>
-            <th className="hide-sm">Requested by</th>
-            <th className="hide-sm">Approvals</th>
-            <th>Status</th>
+            <th>{t("Amount")}</th>
+            <th className="hide-sm">{t("Recipient")}</th>
+            <th className="hide-sm">{t("Requested by")}</th>
+            <th className="hide-sm">{t("Approvals")}</th>
+            <th>{t("Status")}</th>
           </tr>
         </thead>
         <tbody>
@@ -341,6 +345,7 @@ function Requests({ payments, treasury, onOpen, onNew }: { payments: Payment[]; 
 }
 
 function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { payment: Payment; treasury: Treasury; accountId: string; onClose: () => void; onChanged: () => void }) {
+  const t = useT();
   const { network } = useSession();
   const toast = useToast();
   const [busy, setBusy] = useState<"" | "approve" | "cancel" | "pay" | "payWallet">("");
@@ -362,7 +367,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
         const challenge = await api<{ challengeId: string; message: string; nonce: string; recipient: string }>(`/payments/${payment.id}/approval-challenge`, { method: "POST" });
         const signed = await signChallenge(network, challenge, accountId);
         await api(`/payments/${payment.id}/approve`, { body: signed });
-        toast("Approval signed");
+        toast(t("Approval signed"));
       } else if (kind === "pay" && network === "testnet") {
         // Remember the transfer once the wallet has sent it. If confirming fails, trying again only
         // confirms it; it never sends the money a second time.
@@ -371,7 +376,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
         try { txHash = sessionStorage.getItem(saved) ?? ""; } catch { /* optional */ }
         if (!txHash) {
           txHash = await sendNear(network, payment.recipient, payment.amount);
-          if (!txHash) throw new Error("Your wallet sent the payment but didn't share its receipt. Check your wallet's history before trying again.");
+          if (!txHash) throw new Error(t("Your wallet sent the payment but didn't share its receipt. Check your wallet's history before trying again."));
           try { sessionStorage.setItem(saved, txHash); } catch { /* optional */ }
         }
         try {
@@ -380,7 +385,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
           throw new Error(`${(e as Error).message} Your payment was already sent. Tap Pay again to confirm it; it won't be sent twice.`);
         }
         try { sessionStorage.removeItem(saved); } catch { /* optional */ }
-        toast("Paid. The transfer is confirmed on testnet.");
+        toast(t("Paid. The transfer is confirmed on testnet."));
       } else if (kind === "payWallet") {
         // Public payout from the owner's NEAR wallet: USDC on NEAR to a one-time address that delivers on Base.
         // Remembered once the wallet has paid, so trying again only reports it and never pays twice.
@@ -389,7 +394,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
         try { paid = JSON.parse(sessionStorage.getItem(saved) ?? "null"); } catch { /* optional */ }
         if (!paid) {
           const { transfer } = await api<{ transfer: { id: string; amountIn: string; fromAsset: { assetId: string }; deposit: { address: string } | null } }>(`/payments/${payment.id}/pay`, { body: { from: "wallet" } });
-          if (!transfer.deposit) throw new Error("No payment address came back. Try again.");
+          if (!transfer.deposit) throw new Error(t("No payment address came back. Try again."));
           paid = { transferId: transfer.id, txHash: await sendToken(network, transfer.fromAsset.assetId.replace(/^nep141:/, ""), transfer.deposit.address, transfer.amountIn) };
           try { sessionStorage.setItem(saved, JSON.stringify(paid)); } catch { /* optional */ }
         }
@@ -405,10 +410,10 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
         const { transfer } = await api<{ transfer: { id: string; intentToSign: { message: string; nonce: string; recipient: string } } }>(`/payments/${payment.id}/pay`, { method: "POST" });
         const signed = await signTransfer(network, transfer.intentToSign, accountId);
         await api(`/transfers/${transfer.id}/sign`, { body: signed });
-        toast("Payment sent");
+        toast(t("Payment sent"));
       } else {
         await api(`/payments/${payment.id}/cancel`, { method: "POST" });
-        toast("Request cancelled");
+        toast(t("Request cancelled"));
       }
       onChanged();
     } catch (e) {
@@ -443,21 +448,21 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
 
           <dl className="detail-list">
             <div>
-              <dt>Recipient</dt>
+              <dt>{t("Recipient")}</dt>
               <dd className="mono">{payment.recipient}</dd>
             </div>
             <div>
-              <dt>Route</dt>
+              <dt>{t("Route")}</dt>
               <dd>{isPurchase ? "x402 purchase: see below" : treasury.network === "mainnet" ? "Private balance or your wallet → USDC on Base" : "Your wallet → the recipient, on testnet"}</dd>
             </div>
             <div>
-              <dt>Requested by</dt>
+              <dt>{t("Requested by")}</dt>
               <dd>
                 <Origin payment={payment} />
               </dd>
             </div>
             <div>
-              <dt>Reference</dt>
+              <dt>{t("Reference")}</dt>
               <dd className="mono" title={payment.commitment}>
                 {short(payment.commitment, 16, 8)}
               </dd>
@@ -497,10 +502,10 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
                         <Initials name={s.accountId} className={`avatar ${approval ? "ok" : ""}`} />
                         <span style={{ fontSize: 14 }}>
                           {s.accountId}
-                          {s.accountId === accountId && <span className="muted"> (you)</span>}
+                          {s.accountId === accountId && <span className="muted"> {t("(you)")}</span>}
                         </span>
                       </span>
-                      {approval ? <span className="pill pill-green">Signed {relativeTime(approval.createdAt)}</span> : <span className="pill plain">Pending</span>}
+                      {approval ? <span className="pill pill-green">Signed {relativeTime(approval.createdAt)}</span> : <span className="pill plain">{t("Pending")}</span>}
                     </div>
                   );
                 })}
@@ -511,9 +516,9 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
           {payment.status === "approved" && (
             <div className="notice info">{network === "testnet" ? "Approved. The account owner can now pay this from their wallet. It sends real test NEAR." : "Approved. The account owner can now pay this from their private balance."}</div>
           )}
-          {payment.status === "submitting" && <div className="notice info">On its way to the recipient.</div>}
-          {payment.status === "settled" && <div className="notice good">Paid. The money has arrived.</div>}
-          {payment.status === "policy_rejected" && <div className="notice danger">The spending limits blocked this request before it reached anyone to approve. Change the limits or make a new request.</div>}
+          {payment.status === "submitting" && <div className="notice info">{t("On its way to the recipient.")}</div>}
+          {payment.status === "settled" && <div className="notice good">{t("Paid. The money has arrived.")}</div>}
+          {payment.status === "policy_rejected" && <div className="notice danger">{t("The spending limits blocked this request before it reached anyone to approve. Change the limits or make a new request.")}</div>}
           {error && (
             <p className="form-error" role="alert">
               {error}
@@ -528,7 +533,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
           )}
           {payment.status === "awaiting_approval" && approvedByMe && (
             <button className="btn btn-ghost" disabled>
-              You signed · waiting for others
+              {t("You signed · waiting for others")}
             </button>
           )}
           {payment.status === "approved" && treasury.ownerAccountId === accountId && (
@@ -543,7 +548,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
           )}
           {["awaiting_approval", "approved"].includes(payment.status) && (
             <button className="btn btn-danger" onClick={() => run("cancel")} disabled={!!busy} style={{ flex: "0 0 auto" }}>
-              Cancel
+              {t("Cancel")}
             </button>
           )}
         </div>
@@ -553,6 +558,7 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
 }
 
 function NewPaymentDialog({ open, treasuryId, unit, onClose, onCreated }: { open: boolean; treasuryId: string; unit: Unit; onClose: () => void; onCreated: (p: Payment) => void }) {
+  const t = useT();
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
@@ -585,7 +591,7 @@ function NewPaymentDialog({ open, treasuryId, unit, onClose, onCreated }: { open
   }
 
   return (
-    <Modal open={open} onClose={onClose} eyebrow="New payment" title="Request a payment">
+    <Modal open={open} onClose={onClose} eyebrow="New payment" title={t("Request a payment")}>
       <form id="new-payment" className="form-grid" onSubmit={submit}>
         <label className="field">
           Recipient<small>{unit.recipientLabel.replace(/^a /, "A ")}</small>
@@ -593,18 +599,18 @@ function NewPaymentDialog({ open, treasuryId, unit, onClose, onCreated }: { open
         </label>
         <div className="form-row">
           <label className="field">
-            Amount they receive
+            {t("Amount they receive")}
             <span className="input-affix">
               <input className="input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" required />
               <span>{unit.symbol}</span>
             </span>
           </label>
           <label className="field">
-            What it's for <small>Optional</small>
+            What it's for <small>{t("Optional")}</small>
             <input className="input" value={memo} onChange={(e) => setMemo(e.target.value)} maxLength={140} />
           </label>
         </div>
-        <div className="notice info">It needs the approvals you set before it can be paid.</div>
+        <div className="notice info">{t("It needs the approvals you set before it can be paid.")}</div>
         {error && (
           <p className="form-error" role="alert">
             {error}
@@ -612,7 +618,7 @@ function NewPaymentDialog({ open, treasuryId, unit, onClose, onCreated }: { open
         )}
         <div className="modal-foot" style={{ padding: 0 }}>
           <button type="button" className="btn btn-ghost" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button className="btn btn-primary" disabled={busy}>
             {busy && <Spinner />} Create request
@@ -631,15 +637,16 @@ function agentUsage(agent: Agent, payments: Payment[]) {
 }
 
 function Agents({ agents, payments, role, unit, onCreate, onEdit, onToggle, onConnect }: { agents: Agent[]; payments: Payment[]; role: TreasuryRole; unit: Unit; onCreate: () => void; onEdit: (a: Agent) => void; onToggle: (a: Agent) => void; onConnect: (a: Agent) => void }) {
+  const t = useT();
   if (agents.length === 0) {
     return (
       <div className="card empty">
         <span className="icon">⌁</span>
-        <h3>No agents yet</h3>
-        <p>An agent is a helper that spends for you, only inside the rules you set: who it may pay, how much each time, and how much per day. It can pay people and pay-per-use online services (x402). It either asks you first or, with a wallet of its own, pays by itself within those rules. It can never approve its own payments or change its rules.</p>
+        <h3>{t("No agents yet")}</h3>
+        <p>{t("An agent is a helper that spends for you, only inside the rules you set: who it may pay, how much each time, and how much per day. It can pay people and pay-per-use online services (x402). It either asks you first or, with a wallet of its own, pays by itself within those rules. It can never approve its own payments or change its rules.")}</p>
         {role === "owner" && (
           <button className="btn btn-primary" onClick={onCreate}>
-            Add your first agent
+            {t("Add your first agent")}
           </button>
         )}
       </div>
@@ -682,18 +689,18 @@ function Agents({ agents, payments, role, unit, onCreate, onEdit, onToggle, onCo
             </div>
             <div className="kv">
               <div>
-                <span>Per request</span>
+                <span>{t("Per request")}</span>
                 <b>{amountIn(agent.policy.perActionCap, unit)} {unit.symbol}</b>
               </div>
               <div>
-                <span>Requests · blocked</span>
+                <span>{t("Requests · blocked")}</span>
                 <b>
                   {requests.length} · {blocked}
                 </b>
               </div>
             </div>
             <div>
-              <span className="section-label">Allowed recipients</span>
+              <span className="section-label">{t("Allowed recipients")}</span>
               <div className="chips">
                 {agent.policy.counterparties.map((c) => (
                   <span key={c.address} className="chip" title={c.address}>
@@ -706,11 +713,11 @@ function Agents({ agents, payments, role, unit, onCreate, onEdit, onToggle, onCo
               <code>{agent.keyPrefix}…</code>
               <span style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 <button className="btn btn-ghost btn-sm" onClick={() => onConnect(agent)}>
-                  Connect
+                  {t("Connect")}
                 </button>
                 {role === "owner" && (
                   <button className="btn btn-ghost btn-sm" onClick={() => onEdit(agent)}>
-                    Edit limits
+                    {t("Edit limits")}
                   </button>
                 )}
                 {(agent.enabled || role === "owner") && (
@@ -730,6 +737,7 @@ function Agents({ agents, payments, role, unit, onCreate, onEdit, onToggle, onCo
 type CounterpartyDraft = { address: string; label: string };
 
 function AgentDialog({ state, treasuryId, unit, onClose, onSaved }: { state: { mode: "create" } | { mode: "edit"; agent: Agent } | null; treasuryId: string; unit: Unit; onClose: () => void; onSaved: (r: { agent: Agent; apiKey?: string }) => void }) {
+  const t = useT();
   const [name, setName] = useState("");
   const [perAction, setPerAction] = useState("");
   const [rolling, setRolling] = useState("");
@@ -786,20 +794,20 @@ function AgentDialog({ state, treasuryId, unit, onClose, onSaved }: { state: { m
       <form className="form-grid" onSubmit={submit}>
         {!editing && (
           <label className="field">
-            Agent name
-            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name this agent" maxLength={60} required />
+            {t("Agent name")}
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("Name this agent")} maxLength={60} required />
           </label>
         )}
         <div className="form-row">
           <label className="field">
-            Max per request
+            {t("Max per request")}
             <span className="input-affix">
               <input className="input" inputMode="decimal" value={perAction} onChange={(e) => setPerAction(e.target.value)} placeholder="0.00" required />
               <span>{unit.symbol}</span>
             </span>
           </label>
           <label className="field">
-            Rolling budget
+            {t("Rolling budget")}
             <span className="input-affix">
               <input className="input" inputMode="decimal" value={rolling} onChange={(e) => setRolling(e.target.value)} placeholder="0.00" required />
               <span>{unit.symbol}</span>
@@ -807,20 +815,20 @@ function AgentDialog({ state, treasuryId, unit, onClose, onSaved }: { state: { m
           </label>
         </div>
         <label className="field">
-          Budget window
+          {t("Budget window")}
           <select className="select" value={windowHours} onChange={(e) => setWindowHours(Number(e.target.value))}>
-            <option value={1}>1 hour</option>
-            <option value={24}>24 hours</option>
-            <option value={168}>7 days</option>
-            <option value={720}>30 days</option>
+            <option value={1}>{t("1 hour")}</option>
+            <option value={24}>{t("24 hours")}</option>
+            <option value={168}>{t("7 days")}</option>
+            <option value={720}>{t("30 days")}</option>
           </select>
         </label>
         <div className="field">
-          Allowed recipients
+          {t("Allowed recipients")}
           <small>{plural(unit.recipientLabel.replace(/^an? /, ""))} this agent may pay{unit.symbol === "NEAR" ? "" : ", or https:// sellers it may buy from (x402)"}. Anything else is blocked automatically.</small>
           {counterparties.map((c, i) => (
             <div key={i} className="counterparty-row">
-              <input className="input" value={c.label} onChange={(e) => setCounterparties((list) => list.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder="Label" maxLength={60} />
+              <input className="input" value={c.label} onChange={(e) => setCounterparties((list) => list.map((x, j) => (j === i ? { ...x, label: e.target.value } : x)))} placeholder={t("Label")} maxLength={60} />
               <input className="input mono" value={c.address} onChange={(e) => setCounterparties((list) => list.map((x, j) => (j === i ? { ...x, address: e.target.value } : x)))} placeholder={unit.symbol === "NEAR" ? "account.testnet" : "0x… or https://api.seller.com"} spellCheck={false} />
               <button type="button" className="icon-btn" aria-label="Remove" onClick={() => setCounterparties((list) => (list.length > 1 ? list.filter((_, j) => j !== i) : [{ address: "", label: "" }]))}>
                 ×
@@ -839,7 +847,7 @@ function AgentDialog({ state, treasuryId, unit, onClose, onSaved }: { state: { m
         )}
         <div className="modal-foot" style={{ padding: 0 }}>
           <button type="button" className="btn btn-ghost" onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </button>
           <button className="btn btn-primary" disabled={busy}>
             {busy && <Spinner />} {editing ? "Save new limits" : "Create agent"}
@@ -895,6 +903,7 @@ function Secret({ value }: { value: string }) {
 const plural = (noun: string) => (/(s|x|ch|sh)$/.test(noun) ? `${noun}es` : `${noun}s`);
 
 function ConnectGuide({ apiKey }: { apiKey: string }) {
+  const t = useT();
   const [how, setHow] = useState<"ai" | "code" | "x402">("ai");
   const origin = typeof window === "undefined" ? "" : window.location.origin;
   const mcp = JSON.stringify({ mcpServers: { scrim: { type: "http", url: `${origin}/api/mcp`, headers: { Authorization: `Bearer ${apiKey}` } } } }, null, 2);
@@ -917,7 +926,7 @@ function ConnectGuide({ apiKey }: { apiKey: string }) {
       </div>
       {how === "ai" ? (
         <>
-          <p className="muted">Add Scrim as a tool (MCP server) in Claude or any assistant that supports MCP. It can check its limits, ask to pay, find paid APIs with find_paid_apis and buy them with pay_x402.</p>
+          <p className="muted">{t("Add Scrim as a tool (MCP server) in Claude or any assistant that supports MCP. It can check its limits, ask to pay, find paid APIs with find_paid_apis and buy them with pay_x402.")}</p>
           <div className="code"><pre>{mcp}</pre></div>
         </>
       ) : how === "code" ? (
@@ -936,6 +945,7 @@ function ConnectGuide({ apiKey }: { apiKey: string }) {
 }
 
 function ConnectDialog({ agent, role, onClose, onNewKey, onChanged }: { agent: Agent | null; role: TreasuryRole; onClose: () => void; onNewKey: (agent: Agent, key: string) => void; onChanged: () => void }) {
+  const t = useT();
   const toast = useToast();
   const [url, setUrl] = useState("");
   const [secret, setSecret] = useState<string | null>(null);
@@ -981,7 +991,7 @@ function ConnectDialog({ agent, role, onClose, onNewKey, onChanged }: { agent: A
   return (
     <Modal open onClose={onClose} eyebrow="Connect" title={`Connect ${agent.name}`}>
       <section className="connect-block">
-        <span className="section-label">Key</span>
+        <span className="section-label">{t("Key")}</span>
         <div className="connect-row">
           <code>{agent.keyPrefix}…</code>
           <small className="muted">{agent.keyRotatedAt ? `Replaced ${relativeTime(agent.keyRotatedAt)}` : `Made ${relativeTime(agent.createdAt)}`}</small>
@@ -995,7 +1005,7 @@ function ConnectDialog({ agent, role, onClose, onNewKey, onChanged }: { agent: A
       </section>
 
       <section className="connect-block">
-        <span className="section-label">Updates to your agent</span>
+        <span className="section-label">{t("Updates to your agent")}</span>
         <p className="muted">Scrim calls this address when a request is approved, paid, stopped or cancelled, so the agent doesn&apos;t have to keep checking.</p>
         <div className="connect-row">
           <input className="input" placeholder="https://your-agent.example/scrim" value={url} disabled={!owner} onChange={(e) => setUrl(e.target.value)} />
@@ -1006,13 +1016,13 @@ function ConnectDialog({ agent, role, onClose, onNewKey, onChanged }: { agent: A
           )}
           {owner && agent.webhookUrl && (
             <button className="btn btn-ghost btn-sm" disabled={!!busy} onClick={() => saveWebhook(null)}>
-              Remove
+              {t("Remove")}
             </button>
           )}
         </div>
         {secret && (
           <>
-            <div className="notice">Signing secret, shown once. Use it to check the Scrim-Signature header on each update.</div>
+            <div className="notice">{t("Signing secret, shown once. Use it to check the Scrim-Signature header on each update.")}</div>
             <Secret value={secret} />
           </>
         )}
@@ -1026,7 +1036,7 @@ function ConnectDialog({ agent, role, onClose, onNewKey, onChanged }: { agent: A
       <AgentWalletBlock agent={agent} owner={owner} onChanged={onChanged} />
 
       <section className="connect-block">
-        <span className="section-label">Plug it in</span>
+        <span className="section-label">{t("Plug it in")}</span>
         <ConnectGuide apiKey={`${agent.keyPrefix}…`} />
         <small className="muted">Use the full key you saved in place of {agent.keyPrefix}…</small>
       </section>
@@ -1046,6 +1056,7 @@ type AgentWallet = {
 
 // The agent's own wallet on OutLayer. With it, the owner can let the agent pay by itself within its limits.
 function AgentWalletBlock({ agent, owner, onChanged }: { agent: Agent; owner: boolean; onChanged: () => void }) {
+  const t = useT();
   const toast = useToast();
   const [wallet, setWallet] = useState<AgentWallet | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
@@ -1094,7 +1105,7 @@ function AgentWalletBlock({ agent, owner, onChanged }: { agent: Agent; owner: bo
 
   return (
     <section className="connect-block">
-      <span className="section-label">Agent wallet</span>
+      <span className="section-label">{t("Agent wallet")}</span>
       {wallet === undefined ? (
         <Spinner />
       ) : wallet === null ? (
@@ -1118,8 +1129,8 @@ function AgentWalletBlock({ agent, owner, onChanged }: { agent: Agent; owner: bo
           </div>
           {owner && (
             <div className="connect-row">
-              {!wallet.private && <a className="btn btn-ghost btn-sm" href={wallet.fundUrl} target="_blank" rel="noreferrer">Add funds</a>}
-              {wallet.policyUrl && <a className="btn btn-ghost btn-sm" href={wallet.policyUrl} target="_blank" rel="noreferrer">Spending rules</a>}
+              {!wallet.private && <a className="btn btn-ghost btn-sm" href={wallet.fundUrl} target="_blank" rel="noreferrer">{t("Add funds")}</a>}
+              {wallet.policyUrl && <a className="btn btn-ghost btn-sm" href={wallet.policyUrl} target="_blank" rel="noreferrer">{t("Spending rules")}</a>}
               <button className={`btn btn-sm ${wallet.autonomous ? "btn-ghost" : "btn-primary"}`} disabled={busy} onClick={() => toggle(!wallet.autonomous)}>
                 {busy ? <Spinner /> : wallet.autonomous ? "Ask before paying" : "Let it pay by itself"}
               </button>
@@ -1140,10 +1151,10 @@ function AgentWalletBlock({ agent, owner, onChanged }: { agent: Agent; owner: bo
           )}
           {owner && wallet.private && (
             <div className="form-grid">
-              <span className="section-label">Add funds privately (USDC)</span>
+              <span className="section-label">{t("Add funds privately (USDC)")}</span>
               <div className="connect-row">
                 <select className="input" value={fund.chain} onChange={(e) => { setFund({ ...fund, chain: e.target.value }); setDeposit(null); }}>
-                  <option value="base">Base</option><option value="ethereum">Ethereum</option><option value="arbitrum">Arbitrum</option><option value="solana">Solana</option><option value="near">NEAR</option>
+                  <option value="base">{t("Base")}</option><option value="ethereum">{t("Ethereum")}</option><option value="arbitrum">{t("Arbitrum")}</option><option value="solana">{t("Solana")}</option><option value="near">{t("NEAR")}</option>
                 </select>
                 <input className="input" inputMode="decimal" placeholder="25" value={fund.amount} onChange={(e) => { setFund({ ...fund, amount: e.target.value }); setDeposit(null); }} />
                 <button className="btn btn-primary btn-sm" disabled={busy || !fund.amount.trim()} onClick={fundPrivately}>{busy ? <Spinner /> : "Get address"}</button>
@@ -1168,6 +1179,7 @@ function AgentWalletBlock({ agent, owner, onChanged }: { agent: Agent; owner: bo
 }
 
 function Signers({ treasury, accountId }: { treasury: Treasury; accountId: string }) {
+  const t = useT();
   return (
     <div className="card signer-list">
       <div className="signer-row" style={{ background: "var(--paper)" }}>
@@ -1181,7 +1193,7 @@ function Signers({ treasury, accountId }: { treasury: Treasury; accountId: strin
             <Initials name={s.accountId} className="avatar" />
             <span>
               {s.accountId}
-              {s.accountId === accountId && <span className="muted"> (you)</span>}
+              {s.accountId === accountId && <span className="muted"> {t("(you)")}</span>}
             </span>
           </span>
           <span className={`pill ${s.role === "owner" ? "pill-dark" : ""} plain`}>{s.role === "owner" ? "Owner" : s.state === "invited" ? "Invited" : s.state === "declined" ? "Declined" : "Approver"}</span>

@@ -8,6 +8,7 @@ import { parseAmount } from "@/protocol/amount";
 import { AssetPicker, fmt, Heading, StateChip, usd, useAssets, type AssetInfo, type TransferView } from "./money";
 import { useSession } from "./session";
 import { Spinner, useToast } from "./ui";
+import { StatusMark } from "./StatusMark";
 
 type Mode = "swap" | "person" | "address";
 type Holding = { assetId: string; symbol: string; chainName: string; amount: string; display: string };
@@ -239,9 +240,9 @@ export function SendSwap({ initial }: { initial: Mode }) {
               </div>
             </>
           )}
-          {transfer.status === "processing" && <div className="notice info"><Spinner /> On its way. You can leave this page; it will show up in your activity.</div>}
-          {transfer.status === "success" && <div className="notice good">Done. {transfer.kind === "swap" ? transfer.fromWallet ? `Your new coins are in your wallet${transfer.toAsset.symbol === "wNEAR" ? " as wrapped NEAR" : ""}.` : "Your new coins are in your private balance." : "The money has arrived."}
-            {transfer.resultHashes[0] && <> <span className="muted mono">Receipt {transfer.resultHashes[0].slice(0, 10)}…</span></>}</div>}
+          {transfer.status === "processing" && <div className="notice info status-line"><StatusMark state="moving" size={28} /><span className="text">On its way. You can leave this page; it will show up in your activity.</span></div>}
+          {transfer.status === "success" && <div className="notice good status-line"><StatusMark state="done" size={40} /><div className="text"><b>Done</b> {transfer.kind === "swap" ? transfer.fromWallet ? `Your new coins are in your wallet${transfer.toAsset.symbol === "wNEAR" ? " as wrapped NEAR" : ""}.` : "Your new coins are in your private balance." : "The money has arrived."}
+            {transfer.resultHashes[0] && <> <span className="muted mono">Receipt {transfer.resultHashes[0].slice(0, 10)}…</span></>}</div></div>}
           {["failed", "refunded", "expired"].includes(transfer.status) && <div className="notice danger">{transfer.status === "refunded" ? `This couldn't be completed, and your money was returned to your ${transfer.fromWallet ? "wallet" : "balance"}.` : `This didn't go through. Nothing was taken from your ${transfer.fromWallet ? "wallet" : "balance"}.`}</div>}
           {TERMINAL.has(transfer.status) && <div className="between"><Link href="/app" className="btn btn-ghost">Home</Link><button className="btn btn-primary" onClick={() => { setTransfer(null); setPaidTx(""); setAmount(""); toast("Ready for another"); }}>Do another</button></div>}
         </div>

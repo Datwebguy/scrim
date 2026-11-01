@@ -1,5 +1,6 @@
 // Helpers for tests that run against the real services: NEAR testnet and mainnet RPC, the testnet
-// account creator, and NEAR Intents. Nothing is faked. A "wallet" here is a real ed25519 key that
+// account creator, and NEAR Intents. Where the machine allows, "testnet" is a local NEAR chain run by
+// near-kit's sandbox (see sandbox-setup.ts): a real node, with accounts made in seconds. Nothing is faked. A "wallet" here is a real ed25519 key that
 // signs real messages and real transactions, exactly as a person's wallet would.
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -12,6 +13,15 @@ import { createOwnershipChallenge, createSignInChallenge, reconnectPrivateBalanc
 import { sql } from "@/server/db";
 import { endpoints } from "@/server/config";
 import { migrate } from "../scripts/migrate";
+import { inject } from "vitest";
+
+declare module "vitest" {
+  export interface ProvidedContext { sandbox: { rpcUrl: string } | null }
+}
+
+/** The local NEAR chain for this run, or null when tests use the real testnet. */
+export const sandbox = inject("sandbox");
+if (sandbox) process.env.NEAR_RPC_URL_TESTNET = sandbox.rpcUrl;
 
 export async function resetDatabase() {
   await sql`DROP SCHEMA public CASCADE`;
@@ -29,7 +39,7 @@ export type Wallet = {
   send(receiverId: string, yocto: bigint): Promise<string>;
 };
 
-function walletFor(accountId: string, network: Network, secret: Uint8Array): Wallet {
+export function walletFor(accountId: string, network: Network, secret: Uint8Array): Wallet {
   const publicKey = encodePublicKey(ed25519.getPublicKey(secret));
   const signDigest = (digest: Uint8Array) => Buffer.from(ed25519.sign(digest, secret)).toString("base64");
   return {
@@ -58,9 +68,9 @@ function KeyPairFromSecret(secret: Uint8Array) {
   return KeyPair.fromString(`ed25519:${bs58.encode(full)}` as `ed25519:${string}`);
 }
 
-async function waitForKey(network: Network, accountId: string, publicKey: string) {
+async function waitForKey(network: Network, accountId: string, publicKey: string, rpcUrl = endpoints(network).rpcUrl) {
   for (let i = 0; i < 20; i++) {
-    const response = await fetch(endpoints(network).rpcUrl, {
+    const response = await fetch(rpcUrl, {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "query", params: { request_type: "view_access_key", finality: "final", account_id: accountId, public_key: publicKey } }),
     });
@@ -88,6 +98,7 @@ async function liveBalance(accountId: string): Promise<bigint | null> {
 
 /** A real, funded NEAR testnet account: reused from earlier runs when it still has test NEAR, otherwise newly created. */
 export async function createTestnetWallet(prefix: string): Promise<Wallet> {
+  if (sandbox) return sandboxWallet(prefix, "testnet");
   const cache = readCache();
   const hit = cache[prefix];
   if (hit) {
@@ -114,6 +125,38 @@ async function newTestnetWallet(prefix: string): Promise<Wallet> {
     // Caching is only a convenience.
   }
   return walletFor(accountId, "testnet", secret);
+}
+
+/**
+ * A funded account on the local chain, named the way its network names accounts (`….testnet` or
+ * `….near`), with one full-access key. Written straight into the chain's state, so no faucet is needed.
+ */
+export async function sandboxWallet(prefix: string, network: Network, near = 100): Promise<Wallet> {
+  if (!sandbox) throw new Error("No local NEAR chain in this run.");
+  const secret = ed25519.utils.randomSecretKey();
+  const publicKey = encodePublicKey(ed25519.getPublicKey(secret));
+  const accountId = `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}.${network === "mainnet" ? "near" : "testnet"}`;
+  await patchState([
+    { Account: { account_id: accountId, account: { amount: NEAR(near).toString(), locked: "0", code_hash: "11111111111111111111111111111111", storage_usage: 182 } } },
+    { AccessKey: { account_id: accountId, public_key: publicKey, access_key: { nonce: 0, permission: "FullAccess" } } },
+  ]);
+  await waitForKey(network, accountId, publicKey, sandbox.rpcUrl);
+  return walletFor(accountId, network, secret);
+}
+
+/** Adds a key to an account on the local chain: full access, or a function-call key for one contract. */
+export async function addSandboxKey(accountId: string, secret: Uint8Array, permission: "FullAccess" | { receiver_id: string }) {
+  const publicKey = encodePublicKey(ed25519.getPublicKey(secret));
+  await patchState([{ AccessKey: { account_id: accountId, public_key: publicKey, access_key: { nonce: 0, permission: permission === "FullAccess" ? "FullAccess" : { FunctionCall: { allowance: null, receiver_id: permission.receiver_id, method_names: [] } } } } }]);
+}
+
+async function patchState(records: unknown[]) {
+  const response = await fetch(sandbox!.rpcUrl, {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", id: "patch", method: "sandbox_patch_state", params: { records } }),
+  });
+  const body = (await response.json()) as { error?: { message?: string } };
+  if (body.error) throw new Error(`Couldn't write to the local chain: ${body.error.message}`);
 }
 
 /** A mainnet implicit account: its ID is its public key, so no on-chain setup is needed. Holds no funds. */

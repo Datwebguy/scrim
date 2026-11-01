@@ -34,22 +34,7 @@ export default async function Home() {
 
       <main>
         <section className="l-hero">
-          <div className="l-bg" aria-hidden="true">
-            <span className="orb o1" /><span className="orb o2" /><span className="orb o3" /><span className="grid" />
-            {/* The cut from the mark, large: it crosses the page and leaves at the edge in orange. */}
-            <svg className="cut" viewBox="0 0 1440 700" preserveAspectRatio="xMaxYMin slice">
-              <defs>
-                <linearGradient id="cut-ink" x1="0" x2="1"><stop offset="0" stopColor="currentColor" stopOpacity="0" /><stop offset=".6" stopColor="currentColor" stopOpacity=".5" /><stop offset="1" stopColor="currentColor" stopOpacity=".85" /></linearGradient>
-                <linearGradient id="cut-run" x1="0" x2="1">
-                  <stop offset="0" stopColor="#ff5b2d" stopOpacity="0" /><stop offset=".38" stopColor="#ff5b2d" stopOpacity="0" /><stop offset=".5" stopColor="#ff5b2d" stopOpacity=".95" /><stop offset=".62" stopColor="#ff5b2d" stopOpacity="0" /><stop offset="1" stopColor="#ff5b2d" stopOpacity="0" />
-                  <animateTransform attributeName="gradientTransform" type="translate" from="-1 0" to="1 0" dur="6s" repeatCount="indefinite" />
-                </linearGradient>
-              </defs>
-              <path className="cut-line" d="M-10 704Q700 640 1180 128Q720 612 -10 704Z" fill="url(#cut-ink)" />
-              <path className="cut-flow" d="M-10 704Q700 640 1180 128Q720 612 -10 704Z" fill="url(#cut-run)" />
-              <path className="cut-tip" d="M1096 172Q1250 86 1440 -52L1440 -4Q1262 112 1096 172Z" />
-            </svg>
-          </div>
+          <div className="l-bg" aria-hidden="true"><span className="orb o1" /><span className="orb o2" /><span className="orb o3" /><span className="grid" /></div>
           <div className="wrap l-hero-grid">
             <Reveal>
               <span className="eyebrow">Money on NEAR</span>

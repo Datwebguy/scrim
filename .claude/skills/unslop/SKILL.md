@@ -23,14 +23,14 @@ Slop spreads color and effects over the chrome. Craft keeps the chrome quiet and
 - **Palette.** The tokens in `app/globals.css`: paper `#f5f4ef`, card `#fdfcf9`, ink `#151512`, hairlines `#e3e1d8`, one accent `--orange` `#ff5b2d`. Semantic colors (green, red, amber, blue) carry meaning only.
 - **Type.** Manrope for the interface, DM Mono for figures and meta. Weights 400 and 500, with 600 at most for rare emphasis.
 - **Moments.** The balance card, and the Scrim mark as a status: the cut travels while money is on its way and draws once, with the orange tip lighting, when it is done (`src/components/StatusMark.tsx`).
-- **Light and flow.** Scrim is warm and alive, and that is its character, not slop: the drifting orange light behind the hero, the glows behind the balance card and demos, the dark theme's orbit and slow warm breathing, and the light that travels along the cut. Keep all of it and make it better. Never strip it to make a screen quiet, and never leave a page flat. If a screen feels plain after a pass, the pass went too far.
+- **The current look is approved.** The owner has signed off on the landing and the app as they are: the warm orange light, the glows, the motion, the labels and the type. A pass must not change that look. Do not add backgrounds, grids, boxes or new shapes, and do not remove light or motion. Change only what the owner asks for, and show a visual to the owner before it goes into the app.
 - **Signature.** The cut. It is the wordmark's i, the mark, the loader and the Done state, and nowhere else.
 
 ## Run it
 
 1. **Look at the screen.** Find the files that render it. Take a screenshot when the app can run.
 2. **Audit.** List every sign from the list below, one line each with where it lives.
-3. **Decide how much to change.** Scrim is mostly designed, so the usual mode is polish: fix only what the audit found, keep the palette, type and layout. If a screen has no slop, say so and stop.
+3. **Decide how much to change.** Scrim's look is approved, so the default is to change nothing visual. Report what the audit found and wait for the owner to pick what to fix.
 4. **Fix in nine passes, in order**, finishing each across the whole screen before the next: spacing, color, icons, copy, type, layout, details, visuals, motion.
 5. **Check** against the checklist, render again, and report what changed per pass.
 

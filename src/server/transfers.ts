@@ -446,9 +446,12 @@ async function refreshRow(row: Row): Promise<Transfer> {
       } else if (DEPOSIT_SEEN.has(s.status) && row.status !== "processing") {
         await save(row.id, row.account_id, "processing", details);
         await walletPayoutSent(row);
+      } else if (row.status === "processing") {
+        console.info("[transfers] still open:", row.id, row.kind, s.status);
       }
-    } catch {
+    } catch (error) {
       // The network is briefly unreachable: keep the last known state.
+      if (row.status === "processing") console.error("[transfers] status lookup failed:", row.id, row.kind, (error as Error).message);
     }
   }
   const [fresh] = await sql<Row[]>`SELECT * FROM transfers WHERE id = ${id}`;

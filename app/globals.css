@@ -1140,7 +1140,7 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 .rm-item h3 { font-size: 16px; letter-spacing: -0.02em; }
 .rm-item p { margin-top: 6px; font-size: 14px; color: var(--muted); line-height: 1.55; }
 .rm-live .rm-item { border-left: 3px solid var(--green); }
-.rm-next .rm-item { border-left: 3px solid var(--orange); }
+.rm-building .rm-item { border-left: 3px solid var(--orange); }
 @media (max-width: 900px) { .rm-grid { grid-template-columns: 1fr; } }
 .wp-meta { margin-top: 12px; font: 500 12px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
 .wp-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: clamp(24px, 5vw, 64px); align-items: start; }

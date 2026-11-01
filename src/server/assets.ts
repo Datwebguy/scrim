@@ -162,6 +162,10 @@ function stellarChecksumOk(address: string): boolean {
 }
 const LONG_ADDRESS_CHAINS = new Set(["zec"]);
 
+// Chains whose one-time deposit addresses need a memo sent with the payment.
+const MEMO_DEPOSIT_CHAINS = new Set(["stellar"]);
+export const depositModeFor = (asset: Pick<Asset, "chain">) => (MEMO_DEPOSIT_CHAINS.has(asset.chain) ? { depositMode: "MEMO" as const } : {});
+
 export function checkAddress(asset: Pick<Asset, "chain" | "chainName" | "depositChain">, address: string): string {
   const value = address.trim();
   if (!value || value.length > (LONG_ADDRESS_CHAINS.has(asset.chain) ? 512 : 128) || /\s/.test(value)) throw badRequest("Enter a valid address.");

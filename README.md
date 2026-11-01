@@ -141,7 +141,7 @@ An agent is a helper that spends for you, only inside the rules you set. It can 
 | | |
 | --- | --- |
 | [Whitepaper](docs/WHITEPAPER.md) | The full design: privacy, accounts, agents, private AI and security ([PDF](public/scrim-whitepaper.pdf)) |
-| [Roadmap](ROADMAP.md) | What is live, what is next, and what comes after |
+| [Roadmap](ROADMAP.md) | What is live, what we are building now, and what is coming soon |
 | [Try it](docs/TRY_IT.md) | A twelve step walkthrough with what you should see at each step |
 | [How it works](docs/HOW_IT_WORKS.md) | Sign in, moving money, proofs, rules and Ask |
 | [Developers](docs/DEVELOPERS.md) | Keys, every call, MCP, webhooks and x402, with examples |

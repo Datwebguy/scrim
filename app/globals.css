@@ -1186,3 +1186,26 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 .status-line { display: flex; align-items: center; gap: 12px; }
 .status-line .text { min-width: 0; }
 .status-line b { display: block; font-weight: 500; }
+
+/* Language picker: the same size and weight as the theme toggle beside it. */
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.lang-menu { display: inline-flex; flex: none; }
+.lang-menu select { height: 34px; padding: 0 10px; border-radius: 99px; border: 1px solid var(--line-2); background: var(--card); color: var(--ink); font: 500 12px var(--mono); cursor: pointer; transition: border-color 300ms cubic-bezier(0.32, 0.72, 0, 1); }
+.lang-menu select:hover { border-color: var(--orange); }
+.on-dark-toggle .lang-menu select { background: transparent; border-color: #34342d; color: #e9e8e0; }
+.on-dark-toggle .lang-menu option { color: #151512; }
+.gate-form > .gate-theme { display: flex; gap: 8px; align-items: center; }
+
+/* Korean and Chinese: break between words, not inside them, and relax the tight tracking meant for Latin display type. */
+html:lang(ko) body { word-break: keep-all; overflow-wrap: break-word; }
+html:lang(ko) h1, html:lang(ko) h2, html:lang(zh) h1, html:lang(zh) h2 { letter-spacing: -0.01em; }
+
+/* On a phone the picker is a round globe button, the size of the theme button beside it. */
+.lang-menu { position: relative; }
+.lang-menu .lang-ico { display: none; }
+@media (max-width: 720px) {
+  .lang-menu { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line-2); background: var(--card); color: var(--ink); align-items: center; justify-content: center; }
+  .lang-menu .lang-ico { display: block; width: 16px; height: 16px; pointer-events: none; }
+  .lang-menu select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border-radius: 50%; }
+  .on-dark-toggle .lang-menu { background: transparent; border-color: #34342d; color: #e9e8e0; }
+}

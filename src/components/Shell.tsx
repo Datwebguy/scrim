@@ -8,7 +8,9 @@ import { SessionProvider } from "./session";
 import { ToastProvider } from "./ui";
 import { Notifications } from "@/components/Notifications";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageMenu } from "@/i18n/I18n";
 import { Wordmark } from "@/components/Wordmark";
+import { useT } from "@/i18n/I18n";
 
 const NAV: { href: string; label: string; privateMoney?: boolean; match?: (p: string) => boolean }[] = [
   { href: "/app", label: "Home", match: (p) => p === "/app" },
@@ -34,6 +36,7 @@ export function Shell({ accountId, network, otherNetworks, teamPending, children
 }
 
 function Frame({ accountId, network, otherNetworks, teamPending, children }: { accountId: string; network: Network; otherNetworks: Network[]; teamPending: number; children: React.ReactNode }) {
+  const t = useT();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const info = NETWORK_INFO[network];
@@ -41,14 +44,14 @@ function Frame({ accountId, network, otherNetworks, teamPending, children }: { a
   return (
         <div className="ws">
           <aside className={`ws-side ${open ? "open" : ""}`}>
-            <div className="ws-side-head on-dark-toggle"><Link href="/" className="brand"><img src="/scrim-mark.png" alt="" /><Wordmark /></Link><span className="ws-top-actions"><Notifications /><ThemeToggle /></span></div>
+            <div className="ws-side-head on-dark-toggle"><Link href="/" className="brand"><img src="/scrim-mark.png" alt="" /><Wordmark /></Link><span className="ws-top-actions"><Notifications /><LanguageMenu /><ThemeToggle /></span></div>
             <nav aria-label="Main" style={{ display: "grid", gap: 4 }}>
               {NAV.filter((item) => !item.privateMoney || info.privateMoney).map((item) => {
                 const active = item.match ? item.match(pathname) : pathname === item.href || pathname.startsWith(`${item.href}/`);
                 return (
                   <Link key={item.href} href={item.href} className={`ws-link ${active ? "active" : ""}`} onClick={() => setOpen(false)} aria-current={active ? "page" : undefined}>
-                    <span>{item.label}</span>
-                    {item.href === "/app/accounts" && teamPending > 0 && <span className="count" title="Waiting for you">{teamPending}</span>}
+                    <span>{t(item.label)}</span>
+                    {item.href === "/app/accounts" && teamPending > 0 && <span className="count" title={t("Waiting for you")}>{teamPending}</span>}
                   </Link>
                 );
               })}
@@ -62,12 +65,13 @@ function Frame({ accountId, network, otherNetworks, teamPending, children }: { a
               <Link href="/" className="brand"><img src="/scrim-mark.png" alt="" style={{ width: 24, height: 24 }} /><Wordmark /></Link>
               <span className="ws-top-actions on-dark-toggle">
                 <Notifications />
+                <LanguageMenu />
                 <ThemeToggle />
                 <AccountMenu />
-                <button onClick={() => setOpen((v) => !v)} aria-expanded={open}>{open ? "Close" : "Menu"}</button>
+                <button onClick={() => setOpen((v) => !v)} aria-expanded={open}>{t(open ? "Close" : "Menu")}</button>
               </span>
             </div>
-            {network === "testnet" && <div className="net-banner">You're on testnet: free test coins, no real money.</div>}
+            {network === "testnet" && <div className="net-banner">{t("You're on testnet: free test coins, no real money.")}</div>}
             <div className="ws-body">{children}</div>
           </div>
         </div>

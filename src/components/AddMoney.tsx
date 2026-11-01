@@ -47,7 +47,7 @@ export function AddMoney() {
 
   return (
     <div className="narrow">
-      <Heading eyebrow="Add money" title="Bring money in from any chain" text="Pick a coin and its network, and Scrim gives you a one-time address. Send to it from any wallet or exchange. It lands in your private balance or your NEAR wallet, as you choose." />
+      <Heading eyebrow="Add money" title={t("Bring money in from any chain")} text="Pick a coin and its network, and Scrim gives you a one-time address. Send to it from any wallet or exchange. It lands in your private balance or your NEAR wallet, as you choose." />
       {!transfer ? (
         <div className="card card-pad form-grid">
           <div className="field">
@@ -58,10 +58,10 @@ export function AddMoney() {
             </div>
             <small className="muted">{toWallet ? "Lands in your NEAR wallet, like any transfer: it shows on the blockchain. If it can't be delivered, it comes back to you in Scrim." : "Lands in your private balance: nobody can link what you add to what you send later."}</small>
           </div>
-          <AssetPicker label="What are you sending?" assets={assets} value={assetId} onChange={setAssetId} />
+          <AssetPicker label={t("What are you sending?")} assets={assets} value={assetId} onChange={setAssetId} />
           {direct ? (
             <>
-              <CopyField label="Your NEAR wallet address" value={accountId} />
+              <CopyField label={t("Your NEAR wallet address")} value={accountId} />
               <small className="muted">Send {picked.symbol} on NEAR straight to this address from any wallet or exchange.</small>
             </>
           ) : (
@@ -79,7 +79,7 @@ export function AddMoney() {
               <CopyField label={`Your deposit address on ${transfer.deposit.chainName}`} value={transfer.deposit.address} />
               {transfer.deposit.memo && <CopyField label="Memo (required)" value={transfer.deposit.memo} />}
               <ul className="checklist">
-                <li>Send only <b>{transfer.fromAsset.symbol}</b> on the <b>{transfer.fromAsset.chainName}</b> network. Anything else can be lost.</li>
+                <li>{t("Send only")} <b>{transfer.fromAsset.symbol}</b> on the <b>{transfer.fromAsset.chainName}</b> network. Anything else can be lost.</li>
                 {transfer.deposit.minimum && <li>Minimum: {fmt(transfer.deposit.minimum, transfer.fromAsset.decimals, 0)} {transfer.fromAsset.symbol}. Smaller deposits aren't credited.</li>}
                 <li>{t("Use this address once. Create a new one for your next deposit.")}</li>
                 <li>{t("It stays open for 24 hours.")}</li>

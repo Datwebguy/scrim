@@ -128,15 +128,21 @@ export async function deliver(code: string, purchase: string): Promise<Delivered
   if (!row?.product_sealed) return null;
   const p = open<Sealed>(row.product_sealed, aad(row.id, row.account_id));
   if (p.deliver.kind === "text") return { status: 200, contentType: "application/json", body: JSON.stringify({ product: p.name, content: p.deliver.text }) };
+  const api = p.deliver;
   const keyAad = `delivery:${code}:${purchase}`;
-  const [kept] = await sql<{ response_sealed: string }[]>`SELECT response_sealed FROM product_deliveries WHERE purchase_key = ${purchase} AND link_id = ${code}`;
-  if (kept) return open<Delivered>(kept.response_sealed, keyAad);
-  const res = await safeRequest(p.deliver.url, { timeoutMs: 20_000, maxBytes: 512 * 1024, headers: p.deliver.header ? { [p.deliver.header.name]: p.deliver.header.value } : {} }).catch(() => null);
-  if (!res) return unavailable(p.name, "The seller's service didn't answer. Your payment is recorded; try again in a moment.");
-  if (res.status < 200 || res.status >= 300) return unavailable(p.name, `The seller's service answered ${res.status}. Your payment is recorded; try again in a moment.`);
-  const type = res.headers["content-type"] ?? "";
-  if (!TEXT_TYPES.test(type) || res.truncated) return unavailable(p.name, "The seller's service sent something Scrim can't pass on (only text or JSON up to 512 KB). Your payment is recorded; ask the seller.");
-  const delivered: Delivered = { status: 200, contentType: type, body: res.body };
-  await sql`INSERT INTO product_deliveries (purchase_key, link_id, response_sealed) VALUES (${purchase}, ${code}, ${seal(delivered, keyAad)}) ON CONFLICT (purchase_key) DO NOTHING`;
-  return delivered;
+  // One payment, one call: concurrent requests for the same purchase wait on this lock, then read the
+  // answer the first one kept instead of calling the seller again.
+  return sql.begin(async (tx) => {
+    await tx`SELECT pg_advisory_xact_lock(hashtext(${keyAad}))`;
+    const [kept] = await tx<{ response_sealed: string }[]>`SELECT response_sealed FROM product_deliveries WHERE purchase_key = ${purchase} AND link_id = ${code}`;
+    if (kept) return open<Delivered>(kept.response_sealed, keyAad);
+    const res = await safeRequest(api.url, { timeoutMs: 20_000, maxBytes: 512 * 1024, headers: api.header ? { [api.header.name]: api.header.value } : {} }).catch(() => null);
+    if (!res) return unavailable(p.name, "The seller's service didn't answer. Your payment is recorded; try again in a moment.");
+    if (res.status < 200 || res.status >= 300) return unavailable(p.name, `The seller's service answered ${res.status}. Your payment is recorded; try again in a moment.`);
+    const type = res.headers["content-type"] ?? "";
+    if (!TEXT_TYPES.test(type) || res.truncated) return unavailable(p.name, "The seller's service sent something Scrim can't pass on (only text or JSON up to 512 KB). Your payment is recorded; ask the seller.");
+    const delivered: Delivered = { status: 200, contentType: type, body: res.body };
+    await tx`INSERT INTO product_deliveries (purchase_key, link_id, response_sealed) VALUES (${purchase}, ${code}, ${seal(delivered, keyAad)}) ON CONFLICT (purchase_key) DO NOTHING`;
+    return delivered;
+  });
 }

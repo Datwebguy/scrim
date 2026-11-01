@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { formatAmount, parseAmount } from "@/protocol/amount";
-import { signProof, type ProofClaim, type ProofPayload } from "@/protocol/proof";
+import { atLeastAmount, signProof, type ProofClaim, type ProofPayload } from "@/protocol/proof";
 import { audit } from "./audit";
 import type { Session } from "./auth";
 import { assetById } from "./assets";
@@ -65,9 +65,11 @@ export async function createProof(session: Session, input: ProofInput): Promise<
     const transfer = await getTransfer(session, String(input.transferId ?? ""));
     if (!["send", "withdraw"].includes(transfer.kind)) throw badRequest("Only payments you sent can be proven.");
     if (transfer.status !== "success") throw conflict("That payment hasn't completed yet.");
+    const exact = input.revealExact !== false;
+    const paid = BigInt(transfer.amountOut);
     claim = {
-      type: "payment", amount: formatAmount(BigInt(transfer.amountOut), transfer.toAsset.decimals, 2), symbol: transfer.toAsset.symbol,
-      chainName: transfer.toAsset.chainName, exact: input.revealExact !== false, paidAt: transfer.createdAt.toISOString(),
+      type: "payment", amount: formatAmount(exact ? paid : atLeastAmount(paid), transfer.toAsset.decimals, exact ? 2 : 0), symbol: transfer.toAsset.symbol,
+      chainName: transfer.toAsset.chainName, exact, paidAt: transfer.createdAt.toISOString(),
       ...(transfer.recipient ? { to: transfer.recipient } : {}),
     };
   } else {

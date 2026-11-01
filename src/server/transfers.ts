@@ -12,7 +12,7 @@ import { normalizeNearAccount } from "@/protocol/identifiers";
 import { verifyNep413 } from "@/protocol/nep413";
 import { audit } from "./audit";
 import type { Session } from "./auth";
-import { assetById, catalog, checkAddress, usdValue, type Asset } from "./assets";
+import { assetById, catalog, checkAddress, depositModeFor, usdValue, type Asset } from "./assets";
 import { PRIVATE_MONEY_MAINNET_ONLY, type Network } from "@/protocol/networks";
 import { config } from "./config";
 import { sql } from "./db";
@@ -180,7 +180,7 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
     if (!to) throw badRequest(`${from.symbol} can't arrive in a NEAR wallet. Add it to your private balance instead.`);
     return {
       from, to, amountAsset: from, recipient: account, needsUserToken: false, deadlineMinutes: 24 * 60, public: true,
-      request: { ...base, swapType: "FLEX_INPUT", originAsset: from.assetId, depositType: "ORIGIN_CHAIN", destinationAsset: to.assetId,
+      request: { ...base, swapType: "FLEX_INPUT", originAsset: from.assetId, depositType: "ORIGIN_CHAIN", ...depositModeFor(from), destinationAsset: to.assetId,
         amount: quoteAmountFor(from), refundTo: account, refundType: "CONFIDENTIAL_INTENTS", recipient: account,
         recipientType: "DESTINATION_CHAIN", quoteWaitingTimeMs: 5000 },
     };
@@ -521,7 +521,7 @@ export async function createLinkPayment(link: { id: string; accountId: string; n
 
   const deadline = new Date(Math.min(link.expiresAt.getTime(), Date.now() + 60 * 60_000));
   const q = await oneclick.quote({
-    dry: false, swapType: "EXACT_OUTPUT", slippageTolerance: 100, originAsset: from.assetId, depositType: "ORIGIN_CHAIN",
+    dry: false, swapType: "EXACT_OUTPUT", slippageTolerance: 100, originAsset: from.assetId, depositType: "ORIGIN_CHAIN", ...depositModeFor(from),
     destinationAsset: to.assetId, amount: link.amount, refundTo, refundType: "ORIGIN_CHAIN", recipient: link.accountId,
     // The owner chose: into their private balance, or straight into their NEAR wallet.
     recipientType: link.receive === "wallet" ? "DESTINATION_CHAIN" : "CONFIDENTIAL_INTENTS", deadline: deadline.toISOString(), quoteWaitingTimeMs: 5000,

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ROADMAP } from "@/content/roadmap";
 
-const PILL = { live: "pill-green", next: "pill-orange", later: "" } as const;
+const PILL = { live: "pill-green", building: "pill-orange", soon: "" } as const;
 
 export function RoadmapPage() {
   return (
@@ -11,7 +11,7 @@ export function RoadmapPage() {
         <h1>Where Scrim is going</h1>
         <p className="lead">
           Scrim ships in steps. Each one makes private money easier to use for people, teams and the software that pays for them. Here is what is
-          live, what we are building now, and what comes after.
+          live, what we are building now, and what is coming soon.
         </p>
       </header>
 

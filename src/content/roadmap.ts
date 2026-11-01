@@ -1,7 +1,7 @@
-// What Scrim does today, what is being built next, and what comes after. Shown on /roadmap and in ROADMAP.md.
+// What Scrim does today, what is being built now, and what is coming soon. Shown on /roadmap and in ROADMAP.md.
 
 type RoadmapItem = { title: string; text: string };
-export type RoadmapStage = { id: "live" | "next" | "later"; label: string; summary: string; items: RoadmapItem[] };
+export type RoadmapStage = { id: "live" | "building" | "soon"; label: string; summary: string; items: RoadmapItem[] };
 
 export const ROADMAP: RoadmapStage[] = [
   {
@@ -21,9 +21,9 @@ export const ROADMAP: RoadmapStage[] = [
     ],
   },
   {
-    id: "next",
-    label: "Next",
-    summary: "Being built now, shipping in the coming releases.",
+    id: "building",
+    label: "Building now",
+    summary: "In development now, shipping in the coming releases.",
     items: [
       { title: "Hire agents on NEAR AI Agent Market", text: "Scrim agents hire other agents by the job over A2A and x402, paid in USDC on NEAR, inside the same limits and approvals." },
       { title: "Payroll batches", text: "Pay a whole team or a list of contractors in one approval, each in the coin and chain they prefer." },
@@ -31,13 +31,12 @@ export const ROADMAP: RoadmapStage[] = [
       { title: "Sell to every x402 buyer", text: "Accept the standard x402 payment as well as NEAR Intents, so any agent with a wallet can buy from you." },
       { title: "Ask drafts a payment", text: "Describe a payment in plain words and Ask prepares it for you to check and approve in your wallet." },
       { title: "One budget for all agents", text: "An optional total limit across every agent on an account, alongside each agent's own limits." },
-      { title: "Memos for exchange deposits", text: "Send to exchanges that need a memo or tag, on Stellar and other chains that use them." },
     ],
   },
   {
-    id: "later",
-    label: "Later",
-    summary: "The longer arc: more of the trust moves to the user's device and to the chain.",
+    id: "soon",
+    label: "Coming soon",
+    summary: "Planned after that, moving more of the trust to your own device and to the chain.",
     items: [
       { title: "Proofs made on your device", text: "Proofs generated in your own browser, so a reader can check a fact without anyone vouching for it." },
       { title: "Account rules on chain", text: "Approval thresholds and spending limits enforced by a NEAR contract, after a full independent audit." },

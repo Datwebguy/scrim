@@ -92,9 +92,9 @@ Scrim ships in steps. The full list, with a line on each item, is on the [roadma
 
 **Live:** Private balance · Add, send and swap on 30+ chains · Payment links · Sell to people and agents · Proofs · Shared accounts · Agents with limits · Ask your money · Wallets and alerts
 
-**Next:** Hire agents on NEAR AI Agent Market · Payroll batches · Agents that swap · Sell to every x402 buyer · Ask drafts a payment · One budget for all agents · Memos for exchange deposits
+**Building now:** Hire agents on NEAR AI Agent Market · Payroll batches · Agents that swap · Sell to every x402 buyer · Ask drafts a payment · One budget for all agents
 
-**Later:** Proofs made on your device · Account rules on chain · Sign in with any wallet type · Hardware proof for Ask
+**Coming soon:** Proofs made on your device · Account rules on chain · Sign in with any wallet type · Hardware proof for Ask
 
 ## Closing
 

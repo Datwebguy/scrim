@@ -8,6 +8,12 @@ const loaders: Record<Locale, () => Promise<Messages>> = {
   zh: () => import("./messages/zh").then((m) => m.default),
   id: () => import("./messages/id").then((m) => m.default),
   ko: () => import("./messages/ko").then((m) => m.default),
+  es: () => import("./messages/es").then((m) => m.default),
+  pt: () => import("./messages/pt").then((m) => m.default),
+  ru: () => import("./messages/ru").then((m) => m.default),
+  tr: () => import("./messages/tr").then((m) => m.default),
+  vi: () => import("./messages/vi").then((m) => m.default),
+  ja: () => import("./messages/ja").then((m) => m.default),
 };
 
 // The person's saved language, else the one their browser asks for, else English.

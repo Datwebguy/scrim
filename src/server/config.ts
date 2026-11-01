@@ -28,6 +28,11 @@ export const config = {
   get oneClickApiKey(): string | undefined {
     return trim(process.env.ONECLICK_API_KEY);
   },
+  // The NEAR account that receives Scrim's fee on swaps (0.5% of the coin swapped, of which NEAR Intents keeps half).
+  // Unset means no fee. Falls back to the account that receives Ask credits.
+  get appFeeAccount(): string | undefined {
+    return trim(process.env.APP_FEE_ACCOUNT) ?? trim(process.env.ASK_FEE_ACCOUNT);
+  },
   get coinGeckoUrl(): string {
     return trim(process.env.COINGECKO_URL) ?? "https://api.coingecko.com/api/v3";
   },

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StatusMark } from "./StatusMark";
+import { useT } from "@/i18n/I18n";
 import { api } from "@/client/api";
 import { formatAmount } from "@/protocol/amount";
 import { useToast } from "./ui";
@@ -123,9 +124,10 @@ const CHIP: Record<string, [string, string]> = {
   expired: ["Expired", ""], cancelled: ["Cancelled", ""],
 };
 export function StateChip({ status }: { status: string }) {
+  const t = useT();
   const [text, tone] = CHIP[status] ?? [status, ""];
   const mark = status === "success" ? "done" : status === "processing" ? "moving" : null;
-  return <span className={`pill ${tone}${mark ? " has-mark" : ""}`}>{mark && <StatusMark state={mark} size={14} />}{text}</span>;
+  return <span className={`pill ${tone}${mark ? " has-mark" : ""}`}>{mark && <StatusMark state={mark} size={14} />}{t(text)}</span>;
 }
 
 export const KIND_LABEL: Record<string, string> = { add: "Added money", swap: "Swapped", send: "Sent", withdraw: "Sent out", link_payment: "Received by link" };
@@ -141,12 +143,13 @@ export type TransferView = {
 };
 
 export function Heading({ eyebrow, title, text }: { eyebrow: string; title: string; text?: string }) {
+  const t = useT();
   return (
     <div className="page-head">
       <div>
-        <span className="eyebrow">{eyebrow}</span>
-        <h1>{title}</h1>
-        {text && <p className="muted" style={{ marginTop: 8, maxWidth: 560 }}>{text}</p>}
+        <span className="eyebrow">{t(eyebrow)}</span>
+        <h1>{t(title)}</h1>
+        {text && <p className="muted" style={{ marginTop: 8, maxWidth: 560 }}>{t(text)}</p>}
       </div>
     </div>
   );

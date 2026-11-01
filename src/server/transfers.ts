@@ -66,6 +66,9 @@ type Details = {
   etaSeconds?: number | null;
   resultHashes: string[];
   public?: boolean; // paid from the wallet: the wallet sends to the deposit address
+  // What the private balance held just before the signed transfer was sent. NEAR Intents shows no status for private
+  // transfers, so they are confirmed by the balance moving.
+  before?: { from: string; to: string };
 };
 
 // For deposits on an EVM chain: the chain id and the token contract (null for the chain's own coin),
@@ -230,6 +233,23 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
   };
 }
 
+// Everything the person holds privately, by coin; null when it can't be read right now.
+async function heldPrivately(session: Session): Promise<Record<string, bigint> | null> {
+  try {
+    const { balances } = await oneclick.balances(await privateAccessToken(session));
+    return Object.fromEntries(balances.map((b) => [b.tokenId, BigInt(b.available)]));
+  } catch {
+    return null;
+  }
+}
+
+// A private swap is done when its coin has arrived; a private send or withdrawal when the coin has left.
+function movedPrivately(kind: TransferKind, d: Details, held: Record<string, bigint>): boolean {
+  if (!d.before) return false;
+  if (kind === "swap") return (held[d.toAssetId] ?? 0n) >= BigInt(d.before.to) + BigInt(d.minAmountOut);
+  return (held[d.fromAssetId] ?? 0n) <= BigInt(d.before.from) - BigInt(d.amountIn);
+}
+
 async function ownBalance(session: Session, assetId: string): Promise<bigint | null> {
   try {
     const { balances } = await oneclick.balances(await privateAccessToken(session));
@@ -260,7 +280,7 @@ export async function preview(session: Session, input: TransferInput): Promise<P
   };
 }
 
-type Row = { id: string; account_id: string; kind: TransferKind; status: TransferStatus; deposit_address: string | null; deposit_memo: string | null; details_sealed: string; team_request_id: string | null; pay_link_id: string | null; expires_at: Date; created_at: Date };
+type Row = { id: string; account_id: string; kind: TransferKind; status: TransferStatus; deposit_address: string | null; deposit_memo: string | null; intent_hash: string | null; details_sealed: string; team_request_id: string | null; pay_link_id: string | null; expires_at: Date; created_at: Date };
 
 async function toTransfer(row: Row): Promise<Transfer> {
   const d = open<Details>(row.details_sealed, aad(row.id, row.account_id));
@@ -381,6 +401,8 @@ export async function submitSigned(session: Session, id: string, signed: { publi
     if (row.team_request_id) await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "approved", { type: "system", id: "scrim" }, ["submitting"], row.id));
     throw conflict("This transfer was already sent.");
   }
+  const held = await heldPrivately(session);
+  if (held) details.before = { from: String(held[details.fromAssetId] ?? 0n), to: String(held[details.toAssetId] ?? 0n) };
   try {
     const { intentHash } = await oneclick.submitIntent({
       standard: "nep413",
@@ -411,12 +433,14 @@ const END_STATE: Record<string, TransferStatus> = { SUCCESS: "success", REFUNDED
 const DEPOSIT_SEEN = new Set(["KNOWN_DEPOSIT_TX", "INCOMPLETE_DEPOSIT", "PROCESSING"]);
 
 async function refreshOne(session: Session, id: string): Promise<Transfer> {
-  return refreshRow(await mine(session, id));
+  const row = await mine(session, id);
+  const held = row.status === "processing" && row.intent_hash ? await heldPrivately(session) : null;
+  return refreshRow(row, held);
 }
 
 // Follows a transfer to the end and records the result. Safe to call from a person's session or
 // from the public payment-link page, which holds only the transfer's random ID.
-async function refreshRow(row: Row): Promise<Transfer> {
+async function refreshRow(row: Row, held: Record<string, bigint> | null = null): Promise<Transfer> {
   const id = row.id;
   const sealed = open<Details>(row.details_sealed, aad(row.id, row.account_id));
   // A wallet pays on its own, so a wallet transfer closed here may still have been paid: keep following it for two days.
@@ -424,12 +448,14 @@ async function refreshRow(row: Row): Promise<Transfer> {
   if (row.status === "awaiting_deposit" || row.status === "processing" || lateWalletPayment) {
     try {
       const details = sealed;
-      const s = await oneclick.status(details.trackAddress, details.trackMemo);
-      const ended = END_STATE[s.status];
+      // A signed private transfer has no status on NEAR Intents' side: it is confirmed by the balance moving.
+      const byBalance = Boolean(row.intent_hash && details.before);
+      const s = byBalance ? null : await oneclick.status(details.trackAddress, details.trackMemo);
+      const ended: TransferStatus | undefined = byBalance ? (held && movedPrivately(row.kind, details, held) ? "success" : undefined) : END_STATE[s!.status];
       // Only money that arrived counts: a closed wallet payout that was never paid leaves its request approved.
       if (ended === "success" && row.team_request_id && details.public) await walletPayoutSent(row);
       if (ended) {
-        details.resultHashes = s.swapDetails?.destinationChainTxHashes?.map((h) => h.hash) ?? details.resultHashes;
+        details.resultHashes = s?.swapDetails?.destinationChainTxHashes?.map((h) => h.hash) ?? details.resultHashes;
         await save(row.id, row.account_id, ended, details);
         if (row.team_request_id) {
           const outcome = ended === "success" ? "settled" : ended === "refunded" ? "approved" : "failed";
@@ -443,10 +469,10 @@ async function refreshRow(row: Row): Promise<Transfer> {
         }
         // A product stays open for the next buyer; a one-off link is done once paid.
         if (row.pay_link_id && ended === "success") await sql`UPDATE pay_links SET status = 'paid' WHERE id = ${row.pay_link_id} AND status = 'open' AND product_sealed IS NULL`;
-      } else if (DEPOSIT_SEEN.has(s.status) && row.status !== "processing") {
+      } else if (s && DEPOSIT_SEEN.has(s.status) && row.status !== "processing") {
         await save(row.id, row.account_id, "processing", details);
         await walletPayoutSent(row);
-      } else if (row.status === "processing") {
+      } else if (s && row.status === "processing") {
         console.info("[transfers] still open:", row.id, row.kind, s.status);
       }
     } catch (error) {

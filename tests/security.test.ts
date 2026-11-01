@@ -6,7 +6,7 @@ import { registerExactEvmScheme } from "@x402/evm/exact/client";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { parseAmount } from "@/protocol/amount";
-import { intentMatchesQuote } from "@/protocol/intents-auth";
+import { PRIVATE_TREASURY, intentMatchesQuote } from "@/protocol/intents-auth";
 import { describeClaim } from "@/protocol/proof";
 import { agentFromApiKey, agentSpendInWindow, createAgent } from "@/server/agents";
 import type { Session } from "@/server/auth";
@@ -60,6 +60,16 @@ describe("transfers: the intent to sign must match the quote", () => {
     expect(intentMatchesQuote({ message: message([ok, ok]), nonce }, expect_)).toBe(false);
     expect(intentMatchesQuote({ message: message([transfer(deposit, { "nep141:usdc.near": "1", "nep141:wrap.near": "1" })]), nonce }, expect_)).toBe(false);
     expect(intentMatchesQuote({ message: message([transfer(deposit, { "nep141:usdc.near": "0" })]), nonce }, expect_)).toBe(false);
+  });
+  // Found by the first real-money run: a transfer from a private balance names the coin as its private
+  // token, `imt:<NEAR Intents' private treasury>:<asset>`, and the check refused a correct transfer.
+  it("accepts the quoted coin named as a private-balance token, and only from NEAR Intents' treasury", () => {
+    const imt = (treasury: string, asset: string) => `imt:${treasury}:${asset}`;
+    expect(intentMatchesQuote({ message: message([transfer(deposit, { [imt(PRIVATE_TREASURY, "nep141:usdc.near")]: "1000000" })]), nonce }, expect_)).toBe(true);
+    expect(intentMatchesQuote({ message: message([transfer(deposit, { [imt("b".repeat(64), "nep141:usdc.near")]: "1000000" })]), nonce }, expect_)).toBe(false);
+    expect(intentMatchesQuote({ message: message([transfer(deposit, { [imt(PRIVATE_TREASURY, "nep141:wrap.near")]: "1" })]), nonce }, expect_)).toBe(false);
+    expect(intentMatchesQuote({ message: message([transfer(deposit, { [imt(PRIVATE_TREASURY, "nep141:usdc.near")]: "999999999999" })]), nonce }, expect_)).toBe(false);
+    expect(intentMatchesQuote({ message: message([transfer("attacker.near", { [imt(PRIVATE_TREASURY, "nep141:usdc.near")]: "1000000" })]), nonce }, expect_)).toBe(false);
   });
   it("refuses another receiver, a bigger amount, another coin, a late deadline or a bad nonce", () => {
     expect(intentMatchesQuote({ message: message([transfer("attacker.near", { "nep141:usdc.near": "1000000" })]), nonce }, expect_)).toBe(false);

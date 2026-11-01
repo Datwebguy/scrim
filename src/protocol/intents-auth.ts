@@ -37,7 +37,8 @@ export function parseIntentMessage(message: string): IntentMessage | null {
 }
 
 // Checks a transfer intent handed out by NEAR Intents before anyone is asked to sign it. It must be
-// exactly one transfer: to the quote's one-time deposit address, of the quoted coin only, for more than
+// exactly one transfer: to the quote's one-time deposit address, of the quoted coin only (named publicly or
+// as its private-balance token), for more than
 // zero and no more than the quoted amount, expiring in time. Any other kind of intent (adding a key,
 // withdrawing, swapping balances), a second intent, or a second coin is refused, so a wrong or hostile
 // intent is never put in front of a wallet.
@@ -57,10 +58,16 @@ export function intentMatchesQuote(
   const tokens = Object.entries(intent.tokens as Record<string, unknown>);
   if (tokens.length !== 1) return false;
   const [token, amount] = tokens[0];
-  if (token !== expect.assetId || typeof amount !== "string" || !/^\d+$/.test(amount)) return false;
+  if (!sameCoin(token, expect.assetId) || typeof amount !== "string" || !/^\d+$/.test(amount)) return false;
   const value = BigInt(amount);
   return value > 0n && value <= expect.maxAmount;
 }
+
+// Coins in a private balance live on NEAR Intents' private chain as IMT tokens: the public asset ID
+// prefixed with NEAR Intents' private treasury, a fixed production account (see "Confidential Intents"
+// in the NEAR Intents docs). A transfer of the quoted coin from a private balance names it that way.
+export const PRIVATE_TREASURY = "51e8f94d77b5e90dc9852ca6113771e11e8382ce69473a75e313e41665de7cbe";
+const sameCoin = (token: string, assetId: string) => token === assetId || token === `imt:${PRIVATE_TREASURY}:${assetId}`;
 
 // An implicit NEAR account is the hex encoding of its ed25519 public key.
 export function isImplicitAccount(accountId: string): boolean {

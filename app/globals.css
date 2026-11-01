@@ -1122,3 +1122,53 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 .acct-chip .dot { position: absolute; right: -2px; bottom: -2px; width: 11px; height: 11px; border: 2px solid #151512; }
 .ws-account { padding: 0 4px; background: none; border: 0; }
 .ws-account .acct-chip { width: 40px; height: 40px; }
+
+/* Roadmap and whitepaper */
+.doc-page { padding-top: clamp(8px, 3vw, 24px); padding-bottom: clamp(40px, 6vw, 80px); }
+.doc-hero { max-width: 760px; margin-bottom: clamp(28px, 5vw, 48px); }
+.doc-hero h1 { margin-top: 14px; font-size: clamp(32px, 5vw, 52px); letter-spacing: -0.045em; line-height: 1.05; }
+.doc-hero .lead { margin-top: 16px; font-size: 18px; color: var(--muted); line-height: 1.6; }
+.doc-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.doc-foot { margin-top: 40px; color: var(--muted); }
+.doc-foot a { color: var(--ink); }
+.rm-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.rm-stage { display: grid; gap: 14px; }
+.rm-head { display: grid; gap: 10px; padding: 4px 2px 6px; }
+.rm-head p { color: var(--muted); font-size: 14px; }
+.rm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.rm-item { padding: 18px 20px; }
+.rm-item h3 { font-size: 16px; letter-spacing: -0.02em; }
+.rm-item p { margin-top: 6px; font-size: 14px; color: var(--muted); line-height: 1.55; }
+.rm-live .rm-item { border-left: 3px solid var(--green); }
+.rm-next .rm-item { border-left: 3px solid var(--orange); }
+@media (max-width: 900px) { .rm-grid { grid-template-columns: 1fr; } }
+.wp-meta { margin-top: 12px; font: 500 12px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.wp-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: clamp(24px, 5vw, 64px); align-items: start; }
+.wp-toc { position: sticky; top: 92px; display: grid; gap: 12px; }
+.wp-toc ol { margin: 0; padding-left: 18px; display: grid; gap: 8px; font-size: 14px; color: var(--muted); }
+.wp-toc a { color: inherit; text-decoration: none; }
+.wp-toc a:hover { color: var(--ink); }
+.wp-body { max-width: 720px; font-size: 17px; line-height: 1.75; }
+.wp-body section { scroll-margin-top: 90px; padding-bottom: 12px; }
+.wp-body section + section { margin-top: 36px; padding-top: 32px; border-top: 1px solid var(--line); }
+.wp-body h2 { font-size: 28px; letter-spacing: -0.035em; line-height: 1.15; margin-bottom: 14px; }
+.wp-body h3 { font-size: 18px; letter-spacing: -0.02em; margin: 24px 0 6px; }
+.wp-body p + p { margin-top: 14px; }
+.wp-body ul { margin: 14px 0 0; padding-left: 20px; display: grid; gap: 10px; }
+.wp-body a { color: var(--ink); }
+.wp-table { overflow-x: auto; margin: 18px 0 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.wp-table table { width: 100%; border-collapse: collapse; font-size: 14px; line-height: 1.5; }
+.wp-table th, .wp-table td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.wp-table th { font: 500 11px var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.wp-table tr:last-child td { border-bottom: 0; }
+.wp-stage h3 { margin-top: 14px; }
+@media (max-width: 900px) { .wp-layout { grid-template-columns: 1fr; } .wp-toc { position: static; } }
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff; }
+  .public-main { padding: 0; }
+  .wp-layout { grid-template-columns: 1fr; }
+  .wp-body { max-width: none; font-size: 12pt; }
+  .wp-body section { break-inside: auto; }
+  .wp-body h2, .wp-body h3 { break-after: avoid; }
+}

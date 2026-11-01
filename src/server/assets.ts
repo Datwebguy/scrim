@@ -139,7 +139,27 @@ const SHAPES: Record<string, RegExp> = {
   // Zcash: a transparent address (t1, t3), a shielded Sapling address (zs1), or a unified address (u1), which can
   // hold a shielded Orchard receiver and runs to a couple of hundred characters.
   zec: /^(t[13][1-9A-HJ-NP-Za-km-z]{33}|zs1[02-9ac-hj-np-z]{75}|u1[02-9ac-hj-np-z]{80,500})$/,
+  stellar: /^G[A-Z2-7]{55}$/,
 };
+
+// A Stellar account address carries a version byte and a CRC16 checksum, so a mistyped one can be caught here.
+function stellarChecksumOk(address: string): boolean {
+  const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  const bytes: number[] = [];
+  let bits = 0, value = 0;
+  for (const ch of address) {
+    value = (value << 5) | alphabet.indexOf(ch);
+    bits += 5;
+    if (bits >= 8) { bytes.push((value >>> (bits - 8)) & 0xff); bits -= 8; }
+  }
+  if (bytes.length !== 35 || bytes[0] !== 6 << 3) return false;
+  let crc = 0;
+  for (const b of bytes.slice(0, 33)) {
+    crc ^= b << 8;
+    for (let i = 0; i < 8; i++) crc = crc & 0x8000 ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff;
+  }
+  return bytes[33] === (crc & 0xff) && bytes[34] === crc >> 8;
+}
 const LONG_ADDRESS_CHAINS = new Set(["zec"]);
 
 export function checkAddress(asset: Pick<Asset, "chain" | "chainName" | "depositChain">, address: string): string {
@@ -147,7 +167,7 @@ export function checkAddress(asset: Pick<Asset, "chain" | "chainName" | "deposit
   if (!value || value.length > (LONG_ADDRESS_CHAINS.has(asset.chain) ? 512 : 128) || /\s/.test(value)) throw badRequest("Enter a valid address.");
   const isEvm = asset.depositChain?.startsWith("eth:") ?? false;
   const shape = isEvm ? /^0x[0-9a-fA-F]{40}$/ : SHAPES[asset.chain];
-  if (shape && !shape.test(value)) throw badRequest(`That doesn't look like a ${asset.chainName} address.`);
+  if ((shape && !shape.test(value)) || (asset.chain === "stellar" && !stellarChecksumOk(value))) throw badRequest(`That doesn't look like a ${asset.chainName} address.`);
   return asset.chain === "near" ? value.toLowerCase() : value;
 }
 

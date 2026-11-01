@@ -187,7 +187,7 @@ async function autoPay(requestId: string) {
     } else {
       // Mainnet team payouts go to an address on Base, in USDC, gasless from the agent's private (or public) balance.
       const send = isPrivate(wallet) ? outlayer.privateWithdraw : outlayer.withdraw;
-      const sent = await send("mainnet", wallet.secret.apiKey, { to: req.recipient, amount: await amountToDeliver(req.recipient, req.amount, wallet.account_id), token: `nep141:${outlayer.USDC.mainnet}`, chain: "base" }, `scrim-${requestId}`);
+      const sent = await send("mainnet", wallet.secret.apiKey, { to: req.recipient, amount: await amountToDeliver(req.recipient, req.amount, wallet.account_id, isPrivate(wallet)), token: `nep141:${outlayer.USDC.mainnet}`, chain: "base" }, `scrim-${requestId}`);
       await recordSent(requestId, sent);
     }
     await syncAgentPayout(requestId);
@@ -200,10 +200,14 @@ async function autoPay(requestId: string) {
   }
 }
 
+// The wallet's private route costs a little more than the price NEAR Intents quotes for the public one: measured on
+// mainnet, the fee taken was 0.004813 USDC against a quoted 0.002943, so 0.002 USDC is added for it.
+const PRIVATE_ROUTE_EXTRA = 2000n;
+
 // The wallet takes the network fee out of what it sends, so a payout of $0.05 would arrive about half a cent short.
 // Ask NEAR Intents what must be sent for the recipient to get the full amount, and send that. If the price can't be
 // had right now, send the plain amount, as before.
-async function amountToDeliver(recipient: string, amount: string, walletAccount: string): Promise<string> {
+async function amountToDeliver(recipient: string, amount: string, walletAccount: string, privately: boolean): Promise<string> {
   try {
     const q = await oneclick.quote({
       dry: true, swapType: "EXACT_OUTPUT", slippageTolerance: 100,
@@ -211,7 +215,7 @@ async function amountToDeliver(recipient: string, amount: string, walletAccount:
       amount, refundTo: walletAccount, refundType: "INTENTS", recipient, recipientType: "DESTINATION_CHAIN",
       deadline: new Date(Date.now() + 15 * 60_000).toISOString(),
     });
-    const needed = BigInt(q.quote.amountIn);
+    const needed = BigInt(q.quote.amountIn) + (privately ? PRIVATE_ROUTE_EXTRA : 0n);
     return (needed > BigInt(amount) ? needed : BigInt(amount)).toString();
   } catch {
     return amount;

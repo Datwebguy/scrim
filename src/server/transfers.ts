@@ -512,19 +512,22 @@ export async function createLinkPayment(link: { id: string; accountId: string; n
   const from = await assetById(String(input.fromAssetId ?? ""));
   const to = await assetById(link.assetId);
   const refundTo = checkAddress(from, String(input.refundAddress ?? ""));
-  const [{ open: openAttempts }] = await sql<{ open: number }[]>`SELECT count(*)::int AS open FROM transfers WHERE pay_link_id = ${link.id} AND ((status = 'awaiting_deposit' AND expires_at > now()) OR status = 'processing')`;
   // A product is bought by many people at once; a one-off link has one payer.
   const [{ product }] = await sql<{ product: boolean }[]>`SELECT product_sealed IS NOT NULL AS product FROM pay_links WHERE id = ${link.id}`;
-  // A one-off link is paid once: while someone is paying it, nobody else can start (a second payment would
-  // reach the owner with no way back). A product can be bought by many at once.
-  if (openAttempts >= (product ? 200 : 1)) throw conflict(product ? "This link has too many unfinished payments. Try again in a few minutes." : "Someone is already paying this link. Try again in a few minutes.");
+  const row = await sql.begin(async (tx) => {
+    // Two payers starting a one-off link together take turns here, so the second sees the first's payment.
+    if (!product) await tx`SELECT pg_advisory_xact_lock(hashtext(${`paylink:${link.id}`}))`;
+    const [{ open: openAttempts }] = await tx<{ open: number }[]>`SELECT count(*)::int AS open FROM transfers WHERE pay_link_id = ${link.id} AND ((status = 'awaiting_deposit' AND expires_at > now()) OR status = 'processing')`;
+    // A one-off link is paid once: while someone is paying it, nobody else can start (a second payment would
+    // reach the owner with no way back). A product can be bought by many at once.
+    if (openAttempts >= (product ? 200 : 1)) throw conflict(product ? "This link has too many unfinished payments. Try again in a few minutes." : "Someone is already paying this link. Try again in a few minutes.");
 
-  const deadline = new Date(Math.min(link.expiresAt.getTime(), Date.now() + 60 * 60_000));
-  const q = await oneclick.quote({
-    dry: false, swapType: "EXACT_OUTPUT", slippageTolerance: 100, originAsset: from.assetId, depositType: "ORIGIN_CHAIN", ...depositModeFor(from),
-    destinationAsset: to.assetId, amount: link.amount, refundTo, refundType: "ORIGIN_CHAIN", recipient: link.accountId,
-    // The owner chose: into their private balance, or straight into their NEAR wallet.
-    recipientType: link.receive === "wallet" ? "DESTINATION_CHAIN" : "CONFIDENTIAL_INTENTS", deadline: deadline.toISOString(), quoteWaitingTimeMs: 5000,
+    const deadline = new Date(Math.min(link.expiresAt.getTime(), Date.now() + 60 * 60_000));
+    const q = await oneclick.quote({
+      dry: false, swapType: "EXACT_OUTPUT", slippageTolerance: 100, originAsset: from.assetId, depositType: "ORIGIN_CHAIN", ...depositModeFor(from),
+      destinationAsset: to.assetId, amount: link.amount, refundTo, refundType: "ORIGIN_CHAIN", recipient: link.accountId,
+      // The owner chose: into their private balance, or straight into their NEAR wallet.
+      recipientType: link.receive === "wallet" ? "DESTINATION_CHAIN" : "CONFIDENTIAL_INTENTS", deadline: deadline.toISOString(), quoteWaitingTimeMs: 5000,
   });
   const depositAddress = q.quote.depositAddress;
   if (!depositAddress) throw new HttpError(502, "upstream", "No route is available for that coin right now. Try another.");
@@ -535,9 +538,11 @@ export async function createLinkPayment(link: { id: string; accountId: string; n
     minAmountOut: q.quote.minAmountOut, recipient: link.accountId, note: link.note, quoteSignature: q.signature, intent: null,
     depositChain: from.depositChain, depositMinimum: q.quote.minAmountIn ?? null, trackAddress: depositAddress, trackMemo: memo, resultHashes: [],
   };
-  await sql`INSERT INTO transfers (id, account_id, network, kind, status, deposit_address, deposit_memo, details_sealed, pay_link_id, expires_at)
+  await tx`INSERT INTO transfers (id, account_id, network, kind, status, deposit_address, deposit_memo, details_sealed, pay_link_id, expires_at)
     VALUES (${id}, ${link.accountId}, ${link.network}, 'link_payment', 'awaiting_deposit', ${depositAddress}, ${memo}, ${seal(details, aad(id, link.accountId))}, ${link.id}, ${deadline})`;
-  const [row] = await sql<Row[]>`SELECT * FROM transfers WHERE id = ${id}`;
+  const [inserted] = await tx<Row[]>`SELECT * FROM transfers WHERE id = ${id}`;
+  return inserted;
+  });
   return toTransfer(row);
 }
 

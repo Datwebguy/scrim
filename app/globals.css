@@ -1167,3 +1167,22 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
   .wp-body section { break-inside: auto; }
   .wp-body h2, .wp-body h3 { break-after: avoid; }
 }
+
+/* Status mark: the Scrim mark as the on its way and done states. Plays once for done; travels while on its way. */
+.status-mark { display: inline-block; flex: none; overflow: visible; vertical-align: -0.2em; }
+.status-mark .sm-body { fill: #000; }
+.status-mark .sm-tip { fill: var(--orange); transform-box: view-box; transform-origin: 100px 28px; }
+.status-mark.moving .sm-tip { display: none; }
+.status-mark.moving .sm-streak { animation: sm-travel 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+.status-mark.done .sm-body { transform-box: view-box; transform-origin: 50px 50px; animation: sm-settle 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.status-mark.done .sm-streak { animation: sm-draw 0.55s cubic-bezier(0.2, 0.7, 0.2, 1); }
+.status-mark.done .sm-tip { animation: sm-tip 0.35s 0.5s ease-out backwards; }
+@keyframes sm-travel { 0% { clip-path: inset(0 100% 0 0); opacity: 0.9; } 60% { clip-path: inset(0 0 0 0); opacity: 1; } 100% { clip-path: inset(0 0 0 0); opacity: 0; } }
+@keyframes sm-draw { from { clip-path: inset(0 100% 0 0); } }
+@keyframes sm-tip { from { opacity: 0; transform: scale(0.6); } 60% { opacity: 1; transform: scale(1.15); } }
+@keyframes sm-settle { from { transform: scale(0.94); } }
+.pill .status-mark { vertical-align: 0; }
+.pill.has-mark::before { display: none; }
+.status-line { display: flex; align-items: center; gap: 12px; }
+.status-line .text { min-width: 0; }
+.status-line b { display: block; font-weight: 500; }

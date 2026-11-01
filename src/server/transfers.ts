@@ -7,7 +7,7 @@
 import { randomUUID } from "node:crypto";
 import { formatAmount, parseAmount } from "@/protocol/amount";
 import { corridorFor, USDC_NEAR_TO_BASE } from "@/protocol/corridor";
-import { intentMatchesQuote, parseIntentMessage } from "@/protocol/intents-auth";
+import { intentMismatch, parseIntentMessage } from "@/protocol/intents-auth";
 import { normalizeNearAccount } from "@/protocol/identifiers";
 import { verifyNep413 } from "@/protocol/nep413";
 import { audit } from "./audit";
@@ -312,11 +312,11 @@ export async function createTransfer(session: Session, input: TransferInput): Pr
     const { intent } = await oneclick.generateIntent(depositAddress, session.accountId);
     // The intent must do exactly what the quote said: right signer, right coin, no more than the quoted
     // amount, only to the quote's deposit address, expiring in time. Otherwise nobody is asked to sign it.
-    const matches = intentMatchesQuote(intent.payload, { signerId: session.accountId, depositAddress, assetId: p.from.assetId, maxAmount: BigInt(q.quote.amountIn), notAfter: deadline });
-    if (!matches) {
+    const mismatch = intentMismatch(intent.payload, { signerId: session.accountId, depositAddress, assetId: p.from.assetId, maxAmount: BigInt(q.quote.amountIn), notAfter: deadline });
+    if (mismatch) {
       // The shape only (field names), never amounts or addresses, so a format change can be diagnosed.
       const shape = (v: unknown): unknown => (Array.isArray(v) ? v.map(shape) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).map((k) => [k, shape((v as Record<string, unknown>)[k])])) : typeof v);
-      console.error("[transfers] intent refused", JSON.stringify(shape(parseIntentMessage(intent.payload.message))));
+      console.error("[transfers] intent refused:", mismatch, JSON.stringify(shape(parseIntentMessage(intent.payload.message))));
       throw new HttpError(502, "upstream", "The payment network returned an unexpected transfer. Nothing was sent.");
     }
     details.intent = intent.payload;

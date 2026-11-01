@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { StatusMark } from "./StatusMark";
 import { api } from "@/client/api";
 import { formatAmount } from "@/protocol/amount";
 import { useToast } from "./ui";
@@ -123,7 +124,8 @@ const CHIP: Record<string, [string, string]> = {
 };
 export function StateChip({ status }: { status: string }) {
   const [text, tone] = CHIP[status] ?? [status, ""];
-  return <span className={`pill ${tone}`}>{text}</span>;
+  const mark = status === "success" ? "done" : status === "processing" ? "moving" : null;
+  return <span className={`pill ${tone}${mark ? " has-mark" : ""}`}>{mark && <StatusMark state={mark} size={14} />}{text}</span>;
 }
 
 export const KIND_LABEL: Record<string, string> = { add: "Added money", swap: "Swapped", send: "Sent", withdraw: "Sent out", link_payment: "Received by link" };

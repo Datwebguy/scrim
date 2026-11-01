@@ -146,6 +146,8 @@ export default async function Home() {
           <nav aria-label="Footer">
             <Link href="/app">App</Link>
             <Link href="/verify">Check a proof</Link>
+            <Link href="/roadmap">Roadmap</Link>
+            <Link href="/whitepaper">Whitepaper</Link>
             <a href={REPO}>GitHub</a>
           </nav>
           <span className="l-built">Built on NEAR</span>

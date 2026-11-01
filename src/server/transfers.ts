@@ -24,6 +24,9 @@ import { privateAccessToken, toIntentsSignature } from "./private-access";
 import { open, seal } from "./secrets";
 
 export type TransferKind = "add" | "swap" | "send" | "withdraw" | "link_payment";
+// 0.5% of the coin swapped. NEAR Intents keeps half of it, so Scrim earns 0.25% and the person pays 0.5%.
+const SWAP_FEE_BPS = 50;
+
 type TransferStatus = "awaiting_deposit" | "awaiting_signature" | "processing" | "success" | "refunded" | "failed" | "expired" | "cancelled";
 
 export type TransferInput = {
@@ -153,6 +156,8 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
     }
   };
   const base = { slippageTolerance: 100 };
+  // Scrim's fee applies to swaps only: sends, withdrawals, payment links and money in are free.
+  const fee = input.kind === "swap" && config.appFeeAccount ? { appFees: [{ recipient: config.appFeeAccount, fee: SWAP_FEE_BPS }] } : {};
 
   // From the wallet: the wallet sends a coin it holds on NEAR to a one-time NEAR Intents address, and the
   // result goes straight to the recipient's chain (or back to the wallet, for a swap). Public end to end.
@@ -165,7 +170,7 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
       if (from.assetId === to.assetId) throw badRequest("Choose two different assets to swap.");
       if (to.chain !== "near") throw badRequest("Swaps from your wallet come back to your wallet, so choose a coin on NEAR.");
       return { from, to, amountAsset: from, recipient: account, needsUserToken: false, deadlineMinutes: 30, public: true,
-        request: { ...out, swapType: "EXACT_INPUT", amount: toMinor(from).toString(), recipient: account } };
+        request: { ...out, ...fee, swapType: "EXACT_INPUT", amount: toMinor(from).toString(), recipient: account } };
     }
     if (input.kind === "send") throw badRequest("Your wallet sends to a NEAR account directly.");
     const recipient = checkAddress(to, String(input.recipient ?? ""));
@@ -206,7 +211,7 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
     if (from.assetId === to.assetId) throw badRequest("Choose two different assets to swap.");
     return {
       from, to, amountAsset: from, recipient: null, needsUserToken: true, deadlineMinutes: 15, public: false,
-      request: { ...base, swapType: "EXACT_INPUT", originAsset: from.assetId, depositType: "CONFIDENTIAL_INTENTS", destinationAsset: to.assetId,
+      request: { ...base, ...fee, swapType: "EXACT_INPUT", originAsset: from.assetId, depositType: "CONFIDENTIAL_INTENTS", destinationAsset: to.assetId,
         amount: toMinor(from).toString(), refundTo: account, refundType: "CONFIDENTIAL_INTENTS", recipient: account, recipientType: "CONFIDENTIAL_INTENTS" },
     };
   }
@@ -261,11 +266,24 @@ async function ownBalance(session: Session, assetId: string): Promise<bigint | n
   }
 }
 
+// A swap is quoted with Scrim's fee. If NEAR Intents refuses the quote because of the fee, the swap is quoted without
+// it: a person is never stopped from swapping by a revenue setting.
+async function quoteWithFee(request: oneclick.QuoteRequest, token?: string) {
+  try {
+    return await oneclick.quote(request, token);
+  } catch (error) {
+    if (!request.appFees || !(error instanceof oneclick.UpstreamError) || error.upstreamStatus >= 500 || error.upstreamStatus === 429) throw error;
+    console.error("[transfers] quote refused with the fee, retrying without it:", error.message);
+    const { appFees: _fees, ...plain } = request;
+    return oneclick.quote(plain, token);
+  }
+}
+
 export async function preview(session: Session, input: TransferInput): Promise<Preview> {
   requireEnabled(session.network);
   const p = await plan(session, input);
   const token = p.needsUserToken ? await privateAccessToken(session) : undefined;
-  const q = await oneclick.quote({ ...p.request, dry: true, deadline: new Date(Date.now() + p.deadlineMinutes * 60_000).toISOString() }, token);
+  const q = await quoteWithFee({ ...p.request, dry: true, deadline: new Date(Date.now() + p.deadlineMinutes * 60_000).toISOString() }, token);
   const paid = BigInt(q.quote.amountIn);
   const got = BigInt(q.quote.amountOut);
   const balance = input.kind === "add" || p.public ? null : await ownBalance(session, p.from.assetId);
@@ -307,7 +325,7 @@ export async function createTransfer(session: Session, input: TransferInput): Pr
   const p = await plan(session, input);
   const token = p.needsUserToken ? await privateAccessToken(session) : undefined;
   const deadline = new Date(Date.now() + p.deadlineMinutes * 60_000);
-  const q = await oneclick.quote({ ...p.request, dry: false, deadline: deadline.toISOString() }, token);
+  const q = await quoteWithFee({ ...p.request, dry: false, deadline: deadline.toISOString() }, token);
   const depositAddress = q.quote.depositAddress;
   if (!depositAddress) throw new HttpError(502, "upstream", "The payment network did not return a route. Try again.");
   const id = randomUUID();

@@ -9,6 +9,7 @@ import { turnOnPrivateMode, unlockPrivateBalance } from "@/client/wallet";
 import { fmt, Heading, KIND_LABEL, StateChip, TokenLogo, usd, type TransferView } from "./money";
 import { useSession, useSwitchNetwork } from "./session";
 import { Spinner, useToast } from "./ui";
+import { useT } from "@/i18n/I18n";
 
 // The one-time registration costs a tiny network fee, but wallets want some headroom in the account.
 const SETUP_MIN_NEAR = 110n * 10n ** 21n; // 0.11 NEAR
@@ -17,6 +18,8 @@ type Holding = { assetId: string; symbol: string; chainName: string; display: st
 type Overview = { status: string; detail: string | null; publicKey: string | null; totalUsd: number; holdings: Holding[] };
 
 export function Home() {
+  const t = useT();
+  const tr = t;
   const { accountId, network, otherNetworks } = useSession();
   const switchNetwork = useSwitchNetwork();
   const toast = useToast();
@@ -83,12 +86,12 @@ export function Home() {
         <div className="card card-pad gate-card">
           {data.status === "needs_setup" ? (
             <>
-              <h2>Turn on a private balance</h2>
-              <p className="muted">Optional: your wallet below works as it is. A private balance lets you hold, send and receive without anyone seeing amounts or who you pay. Your wallet is registered once so it can hold private money. You approve one transaction in your wallet. The small fee goes to the NEAR network, not to Scrim, and you only pay it this once.</p>
+              <h2>{t("Turn on a private balance")}</h2>
+              <p className="muted">{t("Optional: your wallet below works as it is. A private balance lets you hold, send and receive without anyone seeing amounts or who you pay. Your wallet is registered once so it can hold private money. You approve one transaction in your wallet. The small fee goes to the NEAR network, not to Scrim, and you only pay it this once.")}</p>
               {near && <p className="muted">{accountId} has <b>{near.display} NEAR</b>.</p>}
               {tooLow && (
                 <div className="notice info">
-                  <b>Add a little NEAR first.</b> This account needs about 0.1 NEAR in it to cover the network fee. The fee itself is under 0.01 NEAR. Send some NEAR to {accountId} from an exchange or another wallet. This page updates by itself, or tap Check again.
+                  <b>{t("Add a little NEAR first.")}</b> This account needs about 0.1 NEAR in it to cover the network fee. The fee itself is under 0.01 NEAR. Send some NEAR to {accountId} from an exchange or another wallet. This page updates by itself, or tap Check again.
                 </div>
               )}
               {setupError && <p className="form-error" role="alert">{setupError}</p>}
@@ -99,14 +102,14 @@ export function Home() {
             </>
           ) : data.status === "unavailable" ? (
             <>
-              <h2>Can't reach your private balance</h2>
-              <p className="muted">Your money is safe. Try again in a moment.</p>
+              <h2>{t("Can't reach your private balance")}</h2>
+              <p className="muted">{t("Your money is safe. Try again in a moment.")}</p>
               <button className="btn btn-primary" onClick={() => unlock()} disabled={busy}>{busy && <Spinner />} Try again</button>
             </>
           ) : (
             <>
-              <h2>Unlock your private balance</h2>
-              <p className="muted">Optional. Approve one message in your wallet. It can't move money.</p>
+              <h2>{t("Unlock your private balance")}</h2>
+              <p className="muted">{t("Optional. Approve one message in your wallet. It can't move money.")}</p>
               <button className="btn btn-signal btn-lg" onClick={() => unlock()} disabled={busy}>{busy && <Spinner />} Unlock</button>
             </>
           )}
@@ -125,30 +128,30 @@ export function Home() {
             </div>
             {view === "you" ? (
               <div>
-                <span className="muted-on-dark">Private balance</span>
+                <span className="muted-on-dark">{t("Private balance")}</span>
                 <strong className="balance-figure">{usd(data.totalUsd)}</strong>
-                <span className="muted-on-dark">Only you can see this.</span>
+                <span className="muted-on-dark">{t("Only you can see this.")}</span>
               </div>
             ) : (
               <div>
-                <span className="muted-on-dark">Anyone looking at the blockchain</span>
-                <strong className="balance-figure faint">Nothing</strong>
-                <span className="muted-on-dark">No balance. No payments. No link between what you add and what you send.</span>
+                <span className="muted-on-dark">{t("Anyone looking at the blockchain")}</span>
+                <strong className="balance-figure faint">{t("Nothing")}</strong>
+                <span className="muted-on-dark">{t("No balance. No payments. No link between what you add and what you send.")}</span>
               </div>
             )}
             <div className="quick">
-              <Link href="/app/add" className="btn btn-signal">Add money</Link>
-              <Link href="/app/send" className="btn btn-light">Send</Link>
-              <Link href="/app/swap" className="btn btn-light">Swap</Link>
-              <Link href="/app/requests" className="btn btn-light">Get paid</Link>
+              <Link href="/app/add" className="btn btn-signal">{t("Add money")}</Link>
+              <Link href="/app/send" className="btn btn-light">{t("Send")}</Link>
+              <Link href="/app/swap" className="btn btn-light">{t("Swap")}</Link>
+              <Link href="/app/requests" className="btn btn-light">{t("Get paid")}</Link>
             </div>
           </section>
 
           <div className="two-col">
             <section className="card">
-              <div className="card-title"><h3>What you hold</h3></div>
+              <div className="card-title"><h3>{t("What you hold")}</h3></div>
               {data.holdings.length === 0 ? (
-                <div className="empty small"><h3>Nothing here yet</h3><p>Add money from any chain and it will show up here.</p><Link href="/app/add" className="btn btn-primary">Add money</Link></div>
+                <div className="empty small"><h3>{t("Nothing here yet")}</h3><p>{t("Add money from any chain and it will show up here.")}</p><Link href="/app/add" className="btn btn-primary">{t("Add money")}</Link></div>
               ) : (
                 <ul className="rows">
                   {data.holdings.map((h) => (
@@ -163,15 +166,15 @@ export function Home() {
             </section>
 
             <section className="card">
-              <div className="card-title"><h3>Recent activity</h3><Link href="/app/activity" className="muted">See all</Link></div>
+              <div className="card-title"><h3>{t("Recent activity")}</h3><Link href="/app/activity" className="muted">{t("See all")}</Link></div>
               {recent.length === 0 ? (
-                <div className="empty small"><p>Nothing yet. What you do here will show up in this list, and only you can see it.</p></div>
+                <div className="empty small"><p>{t("Nothing yet. What you do here will show up in this list, and only you can see it.")}</p></div>
               ) : (
                 <ul className="rows">
                   {recent.map((t) => (
                     <li key={t.id}>
                       <span className="coin dark">{t.kind === "send" || t.kind === "withdraw" ? "↗" : t.kind === "swap" ? "⇄" : "↓"}</span>
-                      <span><b>{KIND_LABEL[t.kind] ?? t.kind}</b><small>{fmt(t.amountOut, t.toAsset.decimals)} {t.toAsset.symbol}</small></span>
+                      <span><b>{tr(KIND_LABEL[t.kind] ?? t.kind)}</b><small>{fmt(t.amountOut, t.toAsset.decimals)} {t.toAsset.symbol}</small></span>
                       <span className="right"><StateChip status={t.status} /></span>
                     </li>
                   ))}
@@ -184,15 +187,15 @@ export function Home() {
 
       {wallet && (
         <section className="card" style={{ marginTop: 16 }}>
-          <div className="card-title"><h3>Your wallet</h3><span className="muted" title="Public on the blockchain">{short(accountId, 8, 6)} · public</span></div>
+          <div className="card-title"><h3>{t("Your wallet")}</h3><span className="muted" title="Public on the blockchain">{short(accountId, 8, 6)} · public</span></div>
           {wallet.holdings.length === 0 ? (
-            <div className="empty small"><p>Your NEAR wallet is empty. <Link href="/app/add">Add money</Link> and choose your wallet.</p></div>
+            <div className="empty small"><p>Your NEAR wallet is empty. <Link href="/app/add">{t("Add money")}</Link> and choose your wallet.</p></div>
           ) : (
             <ul className="rows">
               {wallet.holdings.map((h) => (
                 <li key={h.id}>
                   <TokenLogo icon={h.icon} symbol={h.symbol} chainIcon={null} />
-                  <span><b>{h.symbol}</b><small>NEAR</small></span>
+                  <span><b>{h.symbol}</b><small>{t("NEAR")}</small></span>
                   <span className="right"><b>{h.display}</b></span>
                 </li>
               ))}

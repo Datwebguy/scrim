@@ -176,6 +176,23 @@ describe("selling with x402", () => {
   });
 });
 
+describe("selling an API with x402", () => {
+  // Found by a NEAR AI RED review: two checks for the same payment at the same moment each called the
+  // seller's API and each got its own answer. One payment must mean one call, however the buyer asks.
+  it("calls the seller's API once per payment, even when the buyer asks many times at once", async () => {
+    const { createProduct, deliver } = await import("@/server/products");
+    const usdc = (await catalog()).find((a) => a.symbol === "USDC" && a.chain === "near")!;
+    // A real public API that answers something new every time it is called.
+    const product = await createProduct(session, { name: "Fresh code", assetId: usdc.assetId, amount: "1", deliver: { kind: "api", url: "https://httpbin.org/uuid" } });
+    const answers = await Promise.all(Array.from({ length: 5 }, () => deliver(product.code, "race-purchase-1")));
+    const bodies = new Set(answers.map((a) => a?.body));
+    expect(answers[0]?.status).toBe(200);
+    expect(bodies.size).toBe(1);
+    expect((await deliver(product.code, "race-purchase-1"))?.body).toBe(answers[0]?.body);
+    expect((await deliver(product.code, "race-purchase-2"))?.body).not.toBe(answers[0]?.body); // another payment, another call
+  }, 60_000);
+});
+
 describe.skipIf(!hasKey)("selling with x402 (needs the partner key)", () => {
   it("describes the product in its 402 answer", async () => {
     const { createProduct } = await import("@/server/products");

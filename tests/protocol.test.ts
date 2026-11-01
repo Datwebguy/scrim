@@ -131,7 +131,7 @@ describe("NEAR Intents ownership message", async () => {
 });
 
 describe("proofs", async () => {
-  const { checkProof, describeClaim, signProof } = await import("@/protocol/proof");
+  const { atLeastAmount, checkProof, describeClaim, signProof } = await import("@/protocol/proof");
   const secret = ed25519.utils.randomSecretKey();
   const publicKey = ed25519.getPublicKey(secret);
   const issued = new Date("2026-11-01T10:00:00Z");
@@ -147,6 +147,15 @@ describe("proofs", async () => {
     expect(check.ok && check.expired).toBe(false);
     expect(check.ok && check.readerMatches).toBe(true);
     expect(check.ok && describeClaim(check.payload.claim)).toBe("holds at least $10,000 in private funds");
+  });
+  // Found by a NEAR AI RED review: an "at least" payment proof used to carry the exact amount paid.
+  it("keeps only two digits of an \"at least\" payment, so the exact amount stays private", () => {
+    const usdc = (n: string) => formatAmount(atLeastAmount(parseAmount(n, 6)), 6, 0);
+    expect(usdc("1234.56")).toBe("1,200");
+    expect(usdc("87.30")).toBe("87");
+    expect(usdc("5")).toBe("5");
+    expect(usdc("0.0129")).toBe("0.012");
+    expect(atLeastAmount(1_234_560_000n) <= 1_234_560_000n).toBe(true); // never more than was paid
   });
   it("expires at the time inside the signed statement", () => {
     const check = checkProof(token, publicKey, { now: new Date("2026-11-08T10:00:00Z") });

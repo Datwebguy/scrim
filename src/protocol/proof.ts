@@ -10,6 +10,15 @@ import { canonicalJson } from "./canonical";
 
 export const PROOF_PREFIX = "scrimproof1";
 
+// "Sent at least" must not carry the exact figure: keep the first two digits and round the rest down,
+// so 1,234.56 becomes 1,200 and 87.30 becomes 87. The reader learns the size, not the amount.
+export function atLeastAmount(minor: bigint): bigint {
+  const digits = minor.toString();
+  if (minor <= 0n || digits.length <= 2) return minor;
+  const step = 10n ** BigInt(digits.length - 2);
+  return (minor / step) * step;
+}
+
 export type ProofClaim =
   | { type: "balance_at_least"; amount: string; symbol: string | null; unit: "asset" | "usd" }
   // `to`: who was paid (a NEAR account or an address on that chain). Proofs made before it was added have none.

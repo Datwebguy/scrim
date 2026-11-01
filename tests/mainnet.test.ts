@@ -137,4 +137,17 @@ describe.skipIf(!hasKey)("moving money (needs the partner key)", () => {
     expect(payment.status).toBe("awaiting_deposit");
     expect(payment.deposit?.address.length).toBeGreaterThan(20);
   }, 90_000);
+
+  // Found by a NEAR AI RED review: two payers starting a one-off link at the same moment could both get a
+  // deposit address, and the owner could be paid twice with no way back for the second payer.
+  it("lets only one of two payers who start a one-off link at the same moment go ahead", async () => {
+    const usdc = (await catalog()).find((a) => a.symbol === "USDC" && a.chain === "near")!;
+    const btc = (await catalog()).find((a) => a.chain === "btc" && a.symbol === "BTC" && a.depositChain)!;
+    const link = await createPayLink(session, { assetId: usdc.assetId, amount: "10", note: "Race", days: 1 });
+    const row = await linkRow(link.code);
+    const start = () => createLinkPayment(row, { fromAssetId: btc.assetId, refundAddress: "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq" });
+    const results = await Promise.allSettled([start(), start()]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(results.find((r) => r.status === "rejected")?.reason?.message).toMatch(/already paying/);
+  }, 120_000);
 });

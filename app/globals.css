@@ -764,8 +764,6 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 .l-hero { position: relative; overflow: hidden; }
 .l-hero .wrap { position: relative; z-index: 1; }
 .l-bg { position: absolute; inset: 0; pointer-events: none; }
-.l-bg .grid { position: absolute; inset: 0; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 56px 56px; mask-image: radial-gradient(ellipse at 60% 40%, #000 10%, transparent 70%); opacity: .55; animation: gridmove 24s linear infinite; }
-@keyframes gridmove { to { background-position: 56px 56px; } }
 .l-bg .orb { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .5; }
 .l-bg .o1 { width: 420px; height: 420px; right: 4%; top: -120px; background: #ffb59e; animation: drift 14s ease-in-out infinite alternate; }
 .l-bg .o2 { width: 300px; height: 300px; left: -80px; bottom: -120px; background: #ffd9c9; animation: drift 18s ease-in-out infinite alternate-reverse; }
@@ -1042,7 +1040,6 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 [data-theme="dark"] .l-bg .o1 { background: #ff5b2d; }
 [data-theme="dark"] .l-bg .o2 { background: #ffd9c9; opacity: 0.12; }
 [data-theme="dark"] .l-bg .o3 { background: #ff8a65; opacity: 0.18; }
-[data-theme="dark"] .l-bg .grid { opacity: 0.45; }
 /* A slow orbit turning behind the hero. */
 [data-theme="dark"] .l-bg::after { content: ""; position: absolute; right: 6%; top: 50%; width: min(620px, 70vw); aspect-ratio: 1; translate: 0 -50%; border-radius: 50%; pointer-events: none;
   border: 1px dashed rgba(255, 138, 101, 0.22); box-shadow: 0 0 0 70px rgba(255, 91, 45, 0.02), 0 0 0 1px rgba(239, 236, 227, 0.05); }

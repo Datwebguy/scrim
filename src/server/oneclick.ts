@@ -75,6 +75,8 @@ export type QuoteRequest = {
   slippageTolerance: number;
   originAsset: string;
   depositType: Venue;
+  // Some chains (Stellar) take deposits only with a memo next to the address.
+  depositMode?: "SIMPLE" | "MEMO";
   destinationAsset: string;
   amount: string;
   refundTo: string;

@@ -70,21 +70,9 @@ Ask answers questions about a person's own money in plain words, such as what wa
 
 ## Trust and security
 
-Scrim is designed so that the party holding each piece of information is the one that needs it, and nobody else.
+Keys never leave the user's wallet, so Scrim cannot sign a transfer or spend funds. Every transfer is checked against its quote and accepted once, and everything Scrim stores about a person's money is sealed and shown only to them.
 
-| Party | Sees | Cannot |
-| --- | --- | --- |
-| The public chain | Value entering and leaving NEAR Intents | Link a deposit to a later payment |
-| NEAR Intents' private ledger | Private balances and transfers, as a bank sees an account | Move money without the owner's signature |
-| Scrim | Each person's own records, sealed at rest | Hold keys, spend funds or sign a transfer |
-| A payer on a link | The amount and coin asked for | See the requester's balance or history |
-| A proof reader | One fact, who it is for, when it expires | See the balance, other payments or history |
-
-- **Keys stay in the wallet.** A breached server cannot sign a transfer.
-- **What you sign is what you were quoted.** Payloads are checked against the quote and accepted once.
-- **Sealed records.** Amounts, recipients, notes and session tokens are sealed with AES-256-GCM, bound to their record, under keys that can be rotated without losing data.
-- **One person never sees another's data.** A standing test has a stranger and an invited person try to read or change someone else's records, and every attempt is refused.
-- **Reviewed.** The code was reviewed in October 2026 across sign in, every money flow, agents and x402, and the cryptography. Every confirmed issue was fixed with a regression test.
+The public chain sees money enter and leave NEAR Intents, and nothing that links the two. A payer sees only what was asked, and a proof reader sees one fact. The code was reviewed in October 2026, and every confirmed issue was fixed with a test.
 
 ## Roadmap
 

@@ -45,7 +45,7 @@ export function TelegramAlerts() {
 
   return (
     <div className="tg-bar">
-      <span className="tg-icon" aria-hidden="true">✈</span>
+      <span className="tg-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 4 3 11l6 2.5L11 20l3-4.5L19 19z" /><path d="m9 13.5 12-9.5" /></svg></span>
       <div>
         <b>{status.linked ? "Telegram alerts are on" : "Get alerts on Telegram"}</b>
         <small>{status.linked ? "You'll get a message when a payment needs your approval." : waiting ? "Tap Start in Telegram to finish." : "Know the moment a payment needs your approval."}</small>

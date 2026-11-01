@@ -98,7 +98,7 @@ export function PaidScene({ nets }: { nets: Net[] }) {
   const net = nets.length ? nets[n % nets.length] : undefined;
   return (
     <div ref={ref} className="sc-card sc-paid">
-      <div className={`sc-link ${step >= 1 ? "copied" : ""}`}><span>🔗</span><b>Your payment link</b><em>{step >= 1 ? "Copied" : "Copy"}</em></div>
+      <div className={`sc-link ${step >= 1 ? "copied" : ""}`}><svg className="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1" /><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" /></svg><b>Your payment link</b><em>{step >= 1 ? "Copied" : "Copy"}</em></div>
       <div className={`sc-payer ${step >= 2 ? "show" : ""}`}><Logo item={net} size={26} /><span>Payer on <b>{net?.name ?? "any chain"}</b></span></div>
       <div className={`sc-arrive ${step >= 3 ? "show" : ""}`}>✓ Received where you chose</div>
     </div>

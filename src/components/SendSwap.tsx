@@ -16,7 +16,7 @@ type WalletHolding = { id: string; symbol: string; decimals: number; amount: str
 // A wallet coin as NEAR Intents names it: the wallet's own NEAR travels as wrapped NEAR.
 const walletAssetId = (id: string) => `nep141:${id === "near" ? "wrap.near" : id}`;
 // NEAR kept back for network fees and token registration when paying with the wallet's own NEAR.
-const NEAR_RESERVE = 5n * 10n ** 22n; // 0.05 NEAR
+const NEAR_RESERVE = 7n * 10n ** 22n; // 0.07 NEAR: token registration (0.0025) plus the gas NEAR holds back for a wrapped payment (50 Tgas ≈ 0.055)
 const spendable = (h: WalletHolding) => (h.id === "near" ? (BigInt(h.amount) > NEAR_RESERVE ? BigInt(h.amount) - NEAR_RESERVE : 0n) : BigInt(h.amount));
 const TERMINAL = new Set(["success", "refunded", "failed", "expired", "cancelled"]);
 
@@ -87,7 +87,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
     if (!coin) throw new Error("Choose a coin your wallet holds.");
     const minor = parseAmount(amount, coin.decimals);
     if (minor <= 0n) throw new Error("Enter an amount.");
-    if (minor > spendable(coin)) throw new Error(coin.id === "near" ? "Keep about 0.05 NEAR in your wallet for network fees. Lower the amount." : `Your wallet holds ${coin.display} ${coin.symbol}.`);
+    if (minor > spendable(coin)) throw new Error(coin.id === "near" ? "Keep about 0.07 NEAR in your wallet for network fees. Lower the amount." : `Your wallet holds ${coin.display} ${coin.symbol}.`);
     // Tokens sent to an account that doesn't exist are lost, so check it first.
     const check = await api<{ accountId: string; exists: boolean }>(`/accounts/check?id=${encodeURIComponent(recipient.trim().toLowerCase())}`);
     if (!check.exists) throw new Error(`${check.accountId} doesn't exist. Check the spelling.`);

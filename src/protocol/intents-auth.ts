@@ -46,21 +46,34 @@ export function intentMatchesQuote(
   payload: { message: string; nonce: string },
   expect: { signerId: string; depositAddress: string; assetId: string; maxAmount: bigint; notAfter: Date },
 ): boolean {
+  return intentMismatch(payload, expect) === null;
+}
+
+// The first rule a transfer intent breaks, by name only (never amounts or addresses), or null when it
+// matches the quote. Used to refuse, and to say why in the server log.
+export function intentMismatch(
+  payload: { message: string; nonce: string },
+  expect: { signerId: string; depositAddress: string; assetId: string; maxAmount: bigint; notAfter: Date },
+): string | null {
   const parsed = parseIntentMessage(payload.message);
-  if (!parsed || parsed.signer_id !== expect.signerId) return false;
+  if (!parsed) return "not an intent message";
+  if (parsed.signer_id !== expect.signerId) return "signer";
   const deadline = Date.parse(parsed.deadline);
-  if (!Number.isFinite(deadline) || deadline > expect.notAfter.getTime() + 5 * 60_000) return false;
-  if (Buffer.from(payload.nonce, "base64").length !== 32) return false;
-  if (parsed.intents.length !== 1) return false;
+  if (!Number.isFinite(deadline) || deadline > expect.notAfter.getTime() + 5 * 60_000) return "deadline";
+  if (Buffer.from(payload.nonce, "base64").length !== 32) return "nonce";
+  if (parsed.intents.length !== 1) return "intent count";
   const intent = parsed.intents[0] as { intent?: unknown; receiver_id?: unknown; tokens?: unknown };
-  if (intent?.intent !== "transfer" || intent.receiver_id !== expect.depositAddress) return false;
-  if (!intent.tokens || typeof intent.tokens !== "object" || Array.isArray(intent.tokens)) return false;
+  if (intent?.intent !== "transfer") return "intent kind";
+  if (intent.receiver_id !== expect.depositAddress) return "receiver";
+  if (!intent.tokens || typeof intent.tokens !== "object" || Array.isArray(intent.tokens)) return "tokens shape";
   const tokens = Object.entries(intent.tokens as Record<string, unknown>);
-  if (tokens.length !== 1) return false;
+  if (tokens.length !== 1) return "token count";
   const [token, amount] = tokens[0];
-  if (!sameCoin(token, expect.assetId) || typeof amount !== "string" || !/^\d+$/.test(amount)) return false;
+  if (!sameCoin(token, expect.assetId)) return "coin";
+  if (typeof amount !== "string" || !/^\d+$/.test(amount)) return "amount format";
   const value = BigInt(amount);
-  return value > 0n && value <= expect.maxAmount;
+  if (value <= 0n) return "amount zero";
+  return value <= expect.maxAmount ? null : "amount above quote";
 }
 
 // Coins in a private balance live on NEAR Intents' private chain as IMT tokens: the public asset ID

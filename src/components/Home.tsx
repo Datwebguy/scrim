@@ -46,7 +46,7 @@ export function Home() {
         if (fresh.status === "needs_setup" && fresh.publicKey) await turnOnPrivateMode(network, fresh.publicKey);
       }
       await unlockPrivateBalance(network, accountId);
-      toast("Private balance unlocked");
+      toast(t("Private balance unlocked"));
       await reload();
       router.refresh();
     } catch (e) {
@@ -78,7 +78,7 @@ export function Home() {
 
   return (
     <>
-      <Heading eyebrow="Home" title="Your money" />
+      <Heading eyebrow="Home" title={t("Your money")} />
 
       {loading && !data && <div className="skeleton" />}
 
@@ -114,7 +114,7 @@ export function Home() {
             </>
           )}
         {otherNetworks.includes("testnet") && (
-            <p className="fine">Want to practice first with free test coins? <button type="button" className="link-btn" onClick={() => switchNetwork("testnet")}>Use testnet instead</button></p>
+            <p className="fine">{t("Want to practice first with free test coins?")} <button type="button" className="link-btn" onClick={() => switchNetwork("testnet")}>Use testnet instead</button></p>
           )}
         </div>
       )}
@@ -187,9 +187,9 @@ export function Home() {
 
       {wallet && (
         <section className="card" style={{ marginTop: 16 }}>
-          <div className="card-title"><h3>{t("Your wallet")}</h3><span className="muted" title="Public on the blockchain">{short(accountId, 8, 6)} · public</span></div>
+          <div className="card-title"><h3>{t("Your wallet")}</h3><span className="muted" title={t("Public on the blockchain")}>{short(accountId, 8, 6)} · public</span></div>
           {wallet.holdings.length === 0 ? (
-            <div className="empty small"><p>Your NEAR wallet is empty. <Link href="/app/add">{t("Add money")}</Link> and choose your wallet.</p></div>
+            <div className="empty small"><p>{t("Your NEAR wallet is empty.")} <Link href="/app/add">{t("Add money")}</Link> and choose your wallet.</p></div>
           ) : (
             <ul className="rows">
               {wallet.holdings.map((h) => (

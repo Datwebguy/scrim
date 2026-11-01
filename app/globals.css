@@ -760,6 +760,14 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 .l-hero { position: relative; overflow: hidden; }
 .l-hero .wrap { position: relative; z-index: 1; }
 .l-bg { position: absolute; inset: 0; pointer-events: none; }
+.l-bg .cut { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--ink); overflow: hidden; }
+.l-bg .cut-tip { fill: var(--orange); }
+@media (prefers-reduced-motion: no-preference) {
+  .l-bg .cut-line { animation: cut-draw 1.4s cubic-bezier(0.2, 0.7, 0.2, 1) 0.2s backwards; }
+  .l-bg .cut-tip { animation: cut-tip 0.5s 1.3s ease-out backwards; }
+}
+@keyframes cut-draw { from { clip-path: inset(0 100% 0 0); } }
+@keyframes cut-tip { from { opacity: 0; } }
 .l-bg .grid { position: absolute; inset: 0; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 56px 56px; mask-image: radial-gradient(ellipse at 60% 40%, #000 10%, transparent 70%); opacity: .55; animation: gridmove 24s linear infinite; }
 @keyframes gridmove { to { background-position: 56px 56px; } }
 .l-head.center { margin-inline: auto; text-align: center; justify-items: center; }
@@ -1159,3 +1167,12 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 .status-line { display: flex; align-items: center; gap: 12px; }
 .status-line .text { min-width: 0; }
 .status-line b { display: block; font-weight: 500; }
+
+/* The whole landing page sits on paper: a faint ruled grid that fades towards the edges. */
+.l-page { position: relative; }
+.l-page::before { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 56px 56px; opacity: 0.45;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); }
+.l-page > * { position: relative; z-index: 1; }
+[data-theme="dark"] .l-page::before { opacity: 0.2; }

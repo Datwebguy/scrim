@@ -312,11 +312,17 @@ export async function createTransfer(session: Session, input: TransferInput): Pr
     const { intent } = await oneclick.generateIntent(depositAddress, session.accountId);
     // The intent must do exactly what the quote said: right signer, right coin, no more than the quoted
     // amount, only to the quote's deposit address, expiring in time. Otherwise nobody is asked to sign it.
-    const mismatch = intentMismatch(intent.payload, { signerId: session.accountId, depositAddress, assetId: p.from.assetId, maxAmount: BigInt(q.quote.amountIn), notAfter: deadline });
+    // NEAR Intents may give the transfer the quote's own expiry rather than the one asked for, so the
+    // later of the two is allowed, never more than a week out. The transfer can only pay this quote's
+    // deposit address, with no more than the quoted amount; anything not executed comes back to the sender.
+    const quotedDeadline = q.quote.deadline ? Date.parse(q.quote.deadline) : NaN;
+    const notAfter = new Date(Math.min(Math.max(deadline.getTime(), Number.isFinite(quotedDeadline) ? quotedDeadline : 0), Date.now() + 7 * 86_400_000));
+    const mismatch = intentMismatch(intent.payload, { signerId: session.accountId, depositAddress, assetId: p.from.assetId, maxAmount: BigInt(q.quote.amountIn), notAfter });
     if (mismatch) {
       // The shape only (field names), never amounts or addresses, so a format change can be diagnosed.
       const shape = (v: unknown): unknown => (Array.isArray(v) ? v.map(shape) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).map((k) => [k, shape((v as Record<string, unknown>)[k])])) : typeof v);
-      console.error("[transfers] intent refused:", mismatch, JSON.stringify(shape(parseIntentMessage(intent.payload.message))));
+      const late = mismatch === "deadline" ? ` (${Math.round((Date.parse(parseIntentMessage(intent.payload.message)?.deadline ?? "") - notAfter.getTime()) / 60_000)} min past the limit)` : "";
+      console.error("[transfers] intent refused:", mismatch + late, JSON.stringify(shape(parseIntentMessage(intent.payload.message))));
       throw new HttpError(502, "upstream", "The payment network returned an unexpected transfer. Nothing was sent.");
     }
     details.intent = intent.payload;

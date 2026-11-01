@@ -247,7 +247,9 @@ async function heldPrivately(session: Session): Promise<Record<string, bigint> |
 function movedPrivately(kind: TransferKind, d: Details, held: Record<string, bigint>): boolean {
   if (!d.before) return false;
   if (kind === "swap") return (held[d.toAssetId] ?? 0n) >= BigInt(d.before.to) + BigInt(d.minAmountOut);
-  return (held[d.fromAssetId] ?? 0n) <= BigInt(d.before.from) - BigInt(d.amountIn);
+  // The quote is the most it may cost, and a send often costs a little less, so a drop within 5% of it counts.
+  const dropped = BigInt(d.before.from) - (held[d.fromAssetId] ?? 0n);
+  return dropped >= (BigInt(d.amountIn) * 95n) / 100n;
 }
 
 async function ownBalance(session: Session, assetId: string): Promise<bigint | null> {

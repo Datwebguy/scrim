@@ -169,26 +169,14 @@ export function WhitepaperPage() {
 
           <section id="trust">
             <h2>Trust and security</h2>
-            <p>Scrim is designed so that the party holding each piece of information is the one that needs it, and nobody else.</p>
-            <div className="wp-table">
-              <table>
-                <thead><tr><th>Party</th><th>Sees</th><th>Cannot</th></tr></thead>
-                <tbody>
-                  <tr><td>The public chain</td><td>Value entering and leaving NEAR Intents</td><td>Link a deposit to a later payment</td></tr>
-                  <tr><td>NEAR Intents&apos; private ledger</td><td>Private balances and transfers, as a bank sees an account</td><td>Move money without the owner&apos;s signature</td></tr>
-                  <tr><td>Scrim</td><td>Each person&apos;s own records, sealed at rest</td><td>Hold keys, spend funds or sign a transfer</td></tr>
-                  <tr><td>A payer on a link</td><td>The amount and coin asked for</td><td>See the requester&apos;s balance or history</td></tr>
-                  <tr><td>A proof reader</td><td>One fact, who it is for, when it expires</td><td>See the balance, other payments or history</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <ul>
-              <li><b>Keys stay in the wallet.</b> A breached server cannot sign a transfer.</li>
-              <li><b>What you sign is what you were quoted.</b> Payloads are checked against the quote and accepted once.</li>
-              <li><b>Sealed records.</b> Amounts, recipients, notes and session tokens are sealed with AES-256-GCM, bound to their record, under keys that can be rotated without losing data.</li>
-              <li><b>One person never sees another&apos;s data.</b> A standing test has a stranger and an invited person try to read or change someone else&apos;s records, and every attempt is refused.</li>
-              <li><b>Reviewed.</b> The code was reviewed in October 2026 across sign in, every money flow, agents and x402, and the cryptography. Every confirmed issue was fixed with a regression test.</li>
-            </ul>
+            <p>
+              Keys never leave the user&apos;s wallet, so Scrim cannot sign a transfer or spend funds. Every transfer is checked against its quote
+              and accepted once, and everything Scrim stores about a person&apos;s money is sealed and shown only to them.
+            </p>
+            <p>
+              The public chain sees money enter and leave NEAR Intents, and nothing that links the two. A payer sees only what was asked, and a
+              proof reader sees one fact. The code was reviewed in October 2026, and every confirmed issue was fixed with a test.
+            </p>
           </section>
 
           <section id="roadmap">

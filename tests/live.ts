@@ -179,7 +179,7 @@ export async function sandboxCall(wallet: Wallet, contractId: string, method: st
 }
 
 function kit(wallet: Wallet) {
-  return new Near({ network: { rpcUrl: sandbox!.rpcUrl, networkId: "localnet" }, privateKey: wallet.privateKey, defaultWaitUntil: "FINAL" });
+  return new Near({ network: { rpcUrl: sandbox!.rpcUrl, networkId: "localnet" }, privateKey: wallet.privateKey, defaultSignerId: wallet.accountId, defaultWaitUntil: "FINAL" });
 }
 
 /** Adds a key to an account on the local chain: full access, or a function-call key for one contract. */

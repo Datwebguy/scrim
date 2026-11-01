@@ -6,6 +6,7 @@ import { NETWORK_INFO, type Network } from "@/protocol/networks";
 import { TokenLogo, trimDecimals, usd } from "./money";
 import { useSession, useSwitchNetwork } from "./session";
 import { Initials } from "./ui";
+import { useT } from "@/i18n/I18n";
 
 type WalletCoin = { id: string; symbol: string; display: string; icon: string | null };
 type PrivateCoin = { assetId: string; symbol: string; display: string; usd: number | null; icon: string | null; chainIcon: string | null };
@@ -40,6 +41,7 @@ export function AccountMenu() {
 }
 
 function Panel({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const { accountId, network, otherNetworks } = useSession();
   const leave = useSwitchNetwork();
   const [copied, setCopied] = useState(false);
@@ -96,10 +98,10 @@ function Panel({ onClose }: { onClose: () => void }) {
 
         <div className="panel-body">
           {tab === "private" && privateMoney ? (
-            !priv ? <div className="skeleton" /> : priv.status !== "active" ? <p className="muted">Unlock your private balance from Home.</p> : (
+            !priv ? <div className="skeleton" /> : priv.status !== "active" ? <p className="muted">{t("Unlock your private balance from Home.")}</p> : (
               <>
                 <div className="panel-total">{usd(priv.totalUsd)}</div>
-                {priv.holdings.length === 0 ? <p className="muted">Nothing here yet.</p> : (
+                {priv.holdings.length === 0 ? <p className="muted">{t("Nothing here yet.")}</p> : (
                   <ul className="panel-list">
                     {priv.holdings.map((h) => (
                       <li key={h.assetId}><TokenLogo icon={h.icon} symbol={h.symbol} chainIcon={h.chainIcon} size={32} /><b>{h.symbol}</b><span>{h.display}{h.usd !== null && <small>{usd(h.usd)}</small>}</span></li>

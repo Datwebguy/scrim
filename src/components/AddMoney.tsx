@@ -6,8 +6,10 @@ import { PayFromSolanaWallet } from "./PayFromSolanaWallet";
 import { PayFromWallet } from "./PayFromWallet";
 import { useSession } from "./session";
 import { Spinner } from "./ui";
+import { useT } from "@/i18n/I18n";
 
 export function AddMoney() {
+  const t = useT();
   const { accountId } = useSession();
   const all = useAssets();
   // Where it lands is the person's choice: the private balance, or their own NEAR wallet in public.
@@ -49,7 +51,7 @@ export function AddMoney() {
       {!transfer ? (
         <div className="card card-pad form-grid">
           <div className="field">
-            <span className="picker-label">Where it lands</span>
+            <span className="picker-label">{t("Where it lands")}</span>
             <div className="segmented" role="radiogroup" aria-label="Where it lands">
               <button type="button" role="radio" aria-checked={!toWallet} onClick={() => { setInto("private"); setAssetId(""); }}>Private balance</button>
               <button type="button" role="radio" aria-checked={toWallet} onClick={() => { setInto("wallet"); setAssetId(""); }}>My wallet</button>
@@ -79,8 +81,8 @@ export function AddMoney() {
               <ul className="checklist">
                 <li>Send only <b>{transfer.fromAsset.symbol}</b> on the <b>{transfer.fromAsset.chainName}</b> network. Anything else can be lost.</li>
                 {transfer.deposit.minimum && <li>Minimum: {fmt(transfer.deposit.minimum, transfer.fromAsset.decimals, 0)} {transfer.fromAsset.symbol}. Smaller deposits aren't credited.</li>}
-                <li>Use this address once. Create a new one for your next deposit.</li>
-                <li>It stays open for 24 hours.</li>
+                <li>{t("Use this address once. Create a new one for your next deposit.")}</li>
+                <li>{t("It stays open for 24 hours.")}</li>
               </ul>
               {transfer.status === "awaiting_deposit" && transfer.deposit.evm && (
                 <PayFromWallet to={transfer.deposit.address} chainId={transfer.deposit.evm.chainId} token={transfer.deposit.evm.token}
@@ -94,10 +96,10 @@ export function AddMoney() {
           )}
           {transfer.status === "success" && <div className="notice good">Your money arrived in {landsIn}.</div>}
           {transfer.status === "processing" && <div className="notice info">We see your deposit. It will be in {landsIn} in a moment.</div>}
-          {["refunded", "failed", "expired"].includes(transfer.status) && <div className="notice danger">This deposit address is closed. If you sent money to it, it is returned to the address it came from.</div>}
+          {["refunded", "failed", "expired"].includes(transfer.status) && <div className="notice danger">{t("This deposit address is closed. If you sent money to it, it is returned to the address it came from.")}</div>}
           <div className="between">
             <button className="btn btn-ghost" onClick={() => setTransfer(null)}>{transfer.status === "awaiting_deposit" ? "Back" : "Add more"}</button>
-            {transfer.status === "awaiting_deposit" && <span className="muted"><Spinner /> Waiting for your deposit…</span>}
+            {transfer.status === "awaiting_deposit" && <span className="muted"><Spinner /> {t("Waiting for your deposit…")}</span>}
           </div>
         </div>
       )}

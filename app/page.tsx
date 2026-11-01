@@ -37,7 +37,7 @@ export default async function Home() {
 
       <main>
         <section className="l-hero">
-          <div className="l-bg" aria-hidden="true"><span className="orb o1" /><span className="orb o2" /><span className="orb o3" /><span className="grid" /></div>
+          <div className="l-bg" aria-hidden="true"><span className="orb o1" /><span className="orb o2" /><span className="orb o3" /></div>
           <div className="wrap l-hero-grid">
             <Reveal>
               <span className="eyebrow">{t("Money on NEAR")}</span>

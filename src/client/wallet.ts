@@ -151,10 +151,12 @@ export async function sendNear(network: Network, receiverId: string, yocto: stri
   return sentHash(outcome);
 }
 
+// NEAR holds back about 0.001 NEAR for every unit of gas a transaction asks for, until it finishes, so the gas below is kept small:
+// a payment from native NEAR asks for 50 Tgas and needs about 0.06 NEAR free besides the amount.
 // A plain token transfer on NEAR, signed by the wallet. Registers the receiver with the token first
 // (a tiny one-off storage deposit) so the transfer can't fail for an account the token hasn't seen.
 const register = (account: string) =>
-  ({ type: "FunctionCall" as const, params: { methodName: "storage_deposit", args: { account_id: account, registration_only: true }, gas: "30000000000000", deposit: "1250000000000000000000" } });
+  ({ type: "FunctionCall" as const, params: { methodName: "storage_deposit", args: { account_id: account, registration_only: true }, gas: "10000000000000", deposit: "1250000000000000000000" } });
 
 // wrapNative: pay with the wallet's own NEAR, wrapped first (NEAR Intents takes wrapped NEAR).
 export async function sendToken(network: Network, contract: string, receiverId: string, amount: string, wrapNative = false): Promise<string> {
@@ -164,7 +166,7 @@ export async function sendToken(network: Network, contract: string, receiverId: 
     actions: [
       ...(wrapNative ? [register(accountId), { type: "FunctionCall" as const, params: { methodName: "near_deposit", args: {}, gas: "10000000000000", deposit: amount } }] : []),
       register(receiverId),
-      { type: "FunctionCall", params: { methodName: "ft_transfer", args: { receiver_id: receiverId, amount }, gas: "30000000000000", deposit: "1" } },
+      { type: "FunctionCall", params: { methodName: "ft_transfer", args: { receiver_id: receiverId, amount }, gas: "20000000000000", deposit: "1" } },
     ],
   });
   return sentHash(outcome);

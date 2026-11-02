@@ -54,6 +54,51 @@ describe("limits", () => {
   });
 });
 
+describe("repeats", () => {
+  it("holds a second request for the same recipient and amount until a person confirms it", async () => {
+    const created = await createAgent(ownerSession, treasuryId, {
+      name: "Retry bot",
+      perActionCap: "1",
+      rollingCap: "5",
+      windowHours: 24,
+      counterparties: [{ address: payee.accountId, label: "Payee" }],
+    });
+    const agent = await agentFromApiKey(`Bearer ${created.apiKey}`);
+    const first = await createAgentPayment(agent, { recipient: payee.accountId, amount: "0.3", idempotencyKey: "repeat-first-01" });
+    expect(first.status).toBe("awaiting_approval");
+    expect(first.policyDecision?.hold).toBeUndefined();
+
+    // The same request again, as a fresh retry after a note that says the payment failed.
+    const again = await createAgentPayment(agent, { recipient: payee.accountId, amount: "0.3", idempotencyKey: "repeat-again-01" });
+    expect(again.status).toBe("awaiting_approval");
+    expect(again.policyDecision?.allowed).toBe(true);
+    expect(again.policyDecision?.hold?.reason).toBe("repeat");
+    expect(again.policyDecision?.hold?.detail).toMatch(/minute/);
+
+    // A different amount is a different payment, and the same Idempotency-Key still returns the first request.
+    const other = await createAgentPayment(agent, { recipient: payee.accountId, amount: "0.4", idempotencyKey: "repeat-other-01" });
+    expect(other.policyDecision?.hold).toBeUndefined();
+    const same = await createAgentPayment(agent, { recipient: payee.accountId, amount: "0.3", idempotencyKey: "repeat-first-01" });
+    expect(same.id).toBe(first.id);
+    expect(same.policyDecision?.hold).toBeUndefined();
+  });
+
+  it("does not hold a retry of a payment that failed or was cancelled", async () => {
+    const created = await createAgent(ownerSession, treasuryId, {
+      name: "Second chance bot",
+      perActionCap: "1",
+      rollingCap: "5",
+      windowHours: 24,
+      counterparties: [{ address: payee.accountId, label: "Payee" }],
+    });
+    const agent = await agentFromApiKey(`Bearer ${created.apiKey}`);
+    const first = await createAgentPayment(agent, { recipient: payee.accountId, amount: "0.2", idempotencyKey: "second-first-01" });
+    await sql`UPDATE payment_requests SET status = 'failed' WHERE id = ${first.id}`;
+    const retry = await createAgentPayment(agent, { recipient: payee.accountId, amount: "0.2", idempotencyKey: "second-retry-01" });
+    expect(retry.policyDecision?.hold).toBeUndefined();
+  });
+});
+
 describe("replacing a key", () => {
   it("stops the old key at once and the new key works", async () => {
     const { apiKey: fresh } = await rotateAgentKey(ownerSession, agentId);

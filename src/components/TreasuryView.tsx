@@ -484,6 +484,13 @@ function PaymentDrawer({ payment, treasury, accountId, onClose, onChanged }: { p
                     <small>{RULE_LABEL[c.rule] ?? c.rule.replace(/_/g, " ")}</small>
                   </div>
                 ))}
+                {payment.policyDecision.hold && (
+                  <div className="check fail">
+                    <span className="mark">!</span>
+                    <b style={{ fontWeight: 600 }}>{payment.policyDecision.hold.detail}</b>
+                    <small>possible repeat</small>
+                  </div>
+                )}
               </div>
             </div>
           )}

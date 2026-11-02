@@ -16,6 +16,8 @@ An owner can give an agent its own wallet (Connect → **Create wallet**), secur
 2. **Spending rules** opens OutLayer, where the owner sets the wallet's own limits with their NEAR wallet.
 3. **Let it pay by itself** → requests inside the agent's Scrim limits are paid straight from its wallet, with no approval step. `get_payment` shows `submitting`, then `settled` or `failed`.
 
+A request that repeats one from the last 10 minutes (same recipient, same amount) waits for a person, even inside the limits. A note that says "the payment failed, retry" can be false, and a repeat is how an agent would pay twice. A payment that really failed or was cancelled can be retried at once. Purchases from x402 sellers are not held, since buying twice can be on purpose.
+
 On testnet the wallet sends NEAR and Scrim reads the transfer back from the chain. On mainnet it sends USDC and pays x402 sellers the same way, choosing per agent:
 
 - **Private** (default): funds go in through **Add funds privately** (an address on Base, Ethereum, Arbitrum, Solana or NEAR) and every payment leaves from the wallet's private balance. Recipients see a payment arrive, not which wallet sent it.

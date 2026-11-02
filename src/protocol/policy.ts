@@ -17,6 +17,8 @@ type PolicyCheck = { rule: "active" | "counterparty" | "per_action_cap" | "rolli
 
 export type PolicyDecision = {
   allowed: boolean;
+  // Inside its limits, but a person confirms it first: it repeats a recent request, which is what a fake "payment failed, retry" note asks for.
+  hold?: { reason: "repeat"; detail: string };
   checks: PolicyCheck[];
   policyVersion: number;
   policyCommitment: string;

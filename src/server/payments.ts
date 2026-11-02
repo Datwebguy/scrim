@@ -92,6 +92,21 @@ function validate(input: CreatePaymentInput, corridor: Corridor) {
   return { recipient, amount, memo, idempotencyKey };
 }
 
+// A request that repeats a recent one (same agent, recipient and amount) waits for a person, even inside its limits.
+const REPEAT_WINDOW_SECONDS = 600;
+
+async function recentRepeat(tx: Tx, agentId: string, recipient: string, amount: bigint): Promise<string | null> {
+  const [row] = await tx<{ seconds: string }[]>`
+    SELECT EXTRACT(EPOCH FROM now() - created_at)::int::text AS seconds FROM payment_requests
+    WHERE agent_id = ${agentId} AND recipient = ${recipient} AND amount = ${amount.toString()}
+      AND status IN ('awaiting_approval', 'approved', 'quoted', 'submitting', 'settled')
+      AND created_at > now() - make_interval(secs => ${REPEAT_WINDOW_SECONDS})
+    ORDER BY created_at DESC LIMIT 1`;
+  if (!row) return null;
+  const minutes = Math.max(1, Math.round(Number(row.seconds) / 60));
+  return `Same recipient and amount as a request from ${minutes} minute${minutes === 1 ? "" : "s"} ago. A person confirms it is not a repeat.`;
+}
+
 async function insertPayment(tx: Tx, treasury: Treasury, actor: Actor, agent: Agent | null, input: CreatePaymentInput): Promise<Payment> {
   const corridor = corridorFor(treasury.network);
   const { recipient, amount, memo, idempotencyKey } = validate(input, corridor);
@@ -109,6 +124,11 @@ async function insertPayment(tx: Tx, treasury: Treasury, actor: Actor, agent: Ag
     const [lock] = await tx<{ enabled: boolean }[]>`SELECT enabled FROM agents WHERE id = ${agent.id} FOR UPDATE`;
     const spent = await agentSpendInWindow(tx, agent.id, agent.policy.rollingCap.windowSeconds);
     decision = evaluatePolicy(agent.policy, { recipient, amount, unit: corridor, spentInWindow: spent, enabled: lock.enabled });
+    // Buying from an x402 seller can repeat on purpose, so only plain payments are held.
+    if (decision.allowed && !input.x402) {
+      const detail = await recentRepeat(tx, agent.id, recipient, amount);
+      if (detail) decision = { ...decision, hold: { reason: "repeat", detail } };
+    }
   }
 
   const id = randomUUID();
@@ -152,8 +172,8 @@ export async function createAgentPayment(agent: Agent, input: CreatePaymentInput
     if (treasury.status !== "active") throw forbidden("This account is not accepting payment requests.");
     return insertPayment(tx, treasury, { type: "agent", id: agent.id }, agent, input);
   }));
-  // An agent with its own wallet pays what its limits allow, without waiting for people.
-  if (agent.mode === "autonomous" && payment.status === "awaiting_approval") (await import("./agent-wallets")).scheduleAutoPay(payment.id);
+  // An agent with its own wallet pays what its limits allow, without waiting for people. A repeat of a recent request waits for a person.
+  if (agent.mode === "autonomous" && payment.status === "awaiting_approval" && !payment.policyDecision?.hold) (await import("./agent-wallets")).scheduleAutoPay(payment.id);
   return payment;
 }
 

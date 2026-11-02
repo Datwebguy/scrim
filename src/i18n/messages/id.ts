@@ -366,6 +366,18 @@ const messages: Record<string, string> = {
   "Your NEAR wallet is empty.": "Dompet NEAR Anda kosong.",
   "Your name": "Nama Anda",
   "Your private balance is empty.": "Saldo pribadi Anda kosong.",
-  "Your question": "Pertanyaan Anda"
+  "Your question": "Pertanyaan Anda",
+  "{agent} asks to pay a vendor": "{agent} meminta membayar vendor",
+  "{agent} asks to pay over its per payment limit": "{agent} meminta membayar melebihi batas per pembayaran",
+  "{agent} asks to pay someone not on its list": "{agent} meminta membayar orang yang tidak ada di daftarnya",
+  "Scrim checks the rules": "Scrim memeriksa aturan",
+  "Inside its limits": "Dalam batasnya",
+  "Not on the allowed list": "Tidak ada di daftar yang diizinkan",
+  "Approved by you": "Disetujui oleh Anda",
+  "Checking": "Memeriksa",
+  "Inside limits": "Dalam batas",
+  "Waits for you": "Menunggu Anda",
+  "Refused": "Ditolak",
+  "Stopped": "Dihentikan"
 };
 export default messages;

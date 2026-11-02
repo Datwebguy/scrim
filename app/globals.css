@@ -1213,12 +1213,16 @@ html:lang(ja) body { line-break: strict; overflow-wrap: break-word; }
 /* On a phone the picker is a round globe button, the size of the theme button beside it. */
 .lang-menu { position: relative; }
 .lang-menu .lang-ico { display: none; }
-@media (max-width: 720px) {
+@media (max-width: 1240px) {
   .lang-menu { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line-2); background: var(--card); color: var(--ink); align-items: center; justify-content: center; }
   .lang-menu .lang-ico { display: block; width: 16px; height: 16px; pointer-events: none; }
   .lang-menu select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border-radius: 50%; }
   .on-dark-toggle .lang-menu { background: transparent; border-color: #34342d; color: #e9e8e0; }
 }
+
+/* Tablets and phones in desktop mode: the links leave the bar before it can grow wider than the screen. */
+@media (max-width: 1000px) { .site-nav nav { display: none; } }
+@media (max-width: 1160px) { html:lang(ru) .site-nav nav, html:lang(vi) .site-nav nav, html:lang(tr) .site-nav nav, html:lang(pt) .site-nav nav, html:lang(es) .site-nav nav { display: none; } }
 
 /* Longer languages: keep the navigation on one line and size the big headline to fit its column. */
 .site-nav nav a { white-space: nowrap; }

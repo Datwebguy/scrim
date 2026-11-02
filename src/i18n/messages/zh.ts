@@ -366,6 +366,18 @@ const messages: Record<string, string> = {
   "Your NEAR wallet is empty.": "你的 NEAR 钱包是空的。",
   "Your name": "你的名字",
   "Your private balance is empty.": "你的隐私余额是空的。",
-  "Your question": "你的问题"
+  "Your question": "你的问题",
+  "{agent} asks to pay a vendor": "{agent} 请求向商家付款",
+  "{agent} asks to pay over its per payment limit": "{agent} 请求付款，超出了单笔限额",
+  "{agent} asks to pay someone not on its list": "{agent} 请求向名单之外的人付款",
+  "Scrim checks the rules": "Scrim 检查规则",
+  "Inside its limits": "在限额之内",
+  "Not on the allowed list": "不在允许名单中",
+  "Approved by you": "你已批准",
+  "Checking": "检查中",
+  "Inside limits": "限额内",
+  "Waits for you": "等你决定",
+  "Refused": "已拒绝",
+  "Stopped": "已停止"
 };
 export default messages;

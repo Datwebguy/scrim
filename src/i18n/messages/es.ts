@@ -366,6 +366,18 @@ const messages: Record<string, string> = {
   "Your NEAR wallet is empty.": "Tu billetera NEAR está vacía.",
   "Your name": "Tu nombre",
   "Your private balance is empty.": "Tu saldo privado está vacío.",
-  "Your question": "Tu pregunta"
+  "Your question": "Tu pregunta",
+  "{agent} asks to pay a vendor": "{agent} pide pagar a un proveedor",
+  "{agent} asks to pay over its per payment limit": "{agent} pide pagar por encima de su límite por pago",
+  "{agent} asks to pay someone not on its list": "{agent} pide pagar a alguien que no está en su lista",
+  "Scrim checks the rules": "Scrim revisa las reglas",
+  "Inside its limits": "Dentro de sus límites",
+  "Not on the allowed list": "No está en la lista permitida",
+  "Approved by you": "Aprobado por ti",
+  "Checking": "Revisando",
+  "Inside limits": "Dentro del límite",
+  "Waits for you": "Espera tu decisión",
+  "Refused": "Rechazado",
+  "Stopped": "Detenido"
 };
 export default messages;

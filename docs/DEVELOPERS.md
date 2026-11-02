@@ -163,6 +163,8 @@ The response holds the payment:
 }
 ```
 
+A request that repeats one from the last 10 minutes (same recipient, same amount, a new `Idempotency-Key`) still returns `awaiting_approval`, with `policyDecision.hold` set to `{ "reason": "repeat", "detail": "..." }`. It waits for a person even inside the limits, and an agent with its own wallet does not pay it by itself. To retry the same payment safely, send the same `Idempotency-Key`: you get the first request back. A payment that failed or was cancelled can be retried with a new key at once. x402 purchases are not held.
+
 ### List and read requests
 
 `GET /api/v1/agent/payments` returns `{ "payments": [ ... ] }`, newest first.

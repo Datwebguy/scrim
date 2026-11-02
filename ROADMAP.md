@@ -14,8 +14,9 @@ In people's hands today, on NEAR mainnet and testnet.
 - **Sell to people and agents.** List a product, set a price, and sell it on a pay page and over x402. Sales land in your private balance or your wallet.
 - **Proofs.** Show one fact, such as a minimum balance or a completed payment, to one named reader, with an expiry you choose.
 - **Shared accounts.** Invite approvers, require M of N approvals, set spending limits, and download receipts for your accountant.
-- **Agents with limits.** Give software a key and rules. It asks to pay, or pays by itself from its own OutLayer wallet. MCP, HTTPS and signed webhooks.
+- **Agents with limits.** Give software a key and rules. It asks to pay, or pays by itself from its own OutLayer wallet. A repeat of a recent payment waits for a person. MCP, HTTPS and signed webhooks.
 - **Ask your money.** Questions about your own money, answered by AI running in NEAR AI Cloud's secure hardware, with each answer's signature checked.
+- **Ten languages.** English, Chinese, Indonesian, Korean, Spanish, Portuguese, Russian, Turkish, Vietnamese and Japanese, offered in your browser's language and remembered for a year.
 - **Wallets and alerts.** Pay from NEAR, EVM and Solana wallets. Alerts in the app and on Telegram when something needs you.
 
 ## Building now

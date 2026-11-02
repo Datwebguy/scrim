@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { DM_Mono, Manrope } from "next/font/google";
 import "./globals.css";
 import { THEME_SCRIPT } from "@/client/theme-script";
-import { I18nProvider } from "@/i18n/I18n";
+import { I18nProvider, LanguageOffer } from "@/i18n/I18n";
 import { directionOf } from "@/i18n/locales";
 import { getLocale, getMessages } from "@/i18n/server";
 
@@ -23,7 +23,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang={locale} dir={directionOf(locale)} className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} /></head>
-      <body><I18nProvider locale={locale} messages={messages}>{children}</I18nProvider></body>
+      <body><I18nProvider locale={locale} messages={messages}>{children}<LanguageOffer /></I18nProvider></body>
     </html>
   );
 }

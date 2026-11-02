@@ -19,15 +19,4 @@ export const LOCALE_COOKIE = "scrim_lang";
 
 export const isLocale = (value: string | undefined | null): value is Locale => LOCALES.some((l) => l.code === value);
 
-// The best language for a browser's Accept-Language header: the first one it lists that Scrim speaks.
-export function matchLocale(acceptLanguage: string | null | undefined): Locale {
-  for (const part of (acceptLanguage ?? "").split(",")) {
-    const tag = part.split(";")[0].trim().toLowerCase();
-    if (!tag) continue;
-    const primary = tag.split("-")[0] === "in" ? "id" : tag.split("-")[0];
-    if (isLocale(primary)) return primary;
-  }
-  return DEFAULT_LOCALE;
-}
-
 export const directionOf = (locale: Locale): "ltr" | "rtl" => LOCALES.find((l) => l.code === locale)?.dir ?? "ltr";

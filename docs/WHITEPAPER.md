@@ -60,7 +60,7 @@ Spending limits apply to people and agents alike. Every request is checked again
 
 An agent is software that spends on someone's behalf: an AI assistant, a payroll script or a billing job. The owner adds it to an account and sets its rules: the most per payment, the most per time window, the recipients it may pay and an optional expiry. Scrim shows the agent a key once and stores only its hash. The key can ask to pay. It cannot approve, change its rules or move money on its own.
 
-By default an agent asks and people approve. An owner can also give it a wallet of its own, an OutLayer agent wallet whose key is created and kept inside a secure enclave. With that wallet the agent pays by itself, still inside the same Scrim limits, while the wallet enforces a second, independent set of rules the owner sets on OutLayer. On mainnet the wallet can pay from a private balance, so recipients see a payment arrive, not which wallet sent it.
+By default an agent asks and people approve. An owner can also give it a wallet of its own, an OutLayer agent wallet whose key is created and kept inside a secure enclave. With that wallet the agent pays by itself, still inside the same Scrim limits, while the wallet enforces a second, independent set of rules the owner sets on OutLayer. On mainnet the wallet can pay from a private balance, so recipients see a payment arrive, not which wallet sent it. A request that repeats a recent one, the same recipient and amount within ten minutes, waits for a person even inside the limits, because a false "the payment failed, retry" note is how an agent would pay twice.
 
 x402 is how software pays for things on the web: a site answers a request with a price, the buyer pays, and the site returns what was asked for. Scrim agents find paid services in the public x402 catalog and buy from them on Ethereum, Base, Arbitrum, Optimism, Polygon, BNB Chain, Avalanche, Solana and through NEAR Intents. Agents connect over MCP or plain HTTPS, and owners receive signed webhooks at every step.
 
@@ -78,7 +78,7 @@ The public chain sees money enter and leave NEAR Intents, and nothing that links
 
 Scrim ships in steps. The full list, with a line on each item, is on the [roadmap](https://scrimfinance.vercel.app/roadmap).
 
-**Live:** Private balance · Add, send and swap on 30+ chains · Payment links · Sell to people and agents · Proofs · Shared accounts · Agents with limits · Ask your money · Wallets and alerts
+**Live:** Private balance · Add, send and swap on 30+ chains · Payment links · Sell to people and agents · Proofs · Shared accounts · Agents with limits · Ask your money · Ten languages · Wallets and alerts
 
 **Building now:** Hire agents on NEAR AI Agent Market · Payroll batches · Agents that swap · Sell to every x402 buyer · Ask drafts a payment · One budget for all agents
 

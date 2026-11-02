@@ -47,9 +47,10 @@ Scrim never holds your keys or your money. You sign in with your own NEAR wallet
 | **Sell** | Sell a file, a code, a report or your API to agents (over x402) and people (on a pay page), from any coin on any chain. Each sale lands where you choose, your private balance or your wallet; buyers get what you sell once the payment is confirmed. A sales list shows every sale. |
 | **Proofs** | Show that you hold at least an amount, or that a payment was made, to one named reader. The proof expires (1, 7 or 30 days), can be taken back, and is checked in the reader's browser without revealing your balance or history. |
 | **Accounts with rules** | Approve payments yourself, or share an account where M of N people approve each one. People are invited and join only when they say yes. Spending limits for people and agents, a full history, and a Receipts tab with a spreadsheet download. A small bell shows what is waiting for you. |
-| **Ask** | Ask about your own money in plain words ("what did we pay suppliers last week?"). Answered by AI running in NEAR AI Cloud's secure hardware; each answer's signature is checked against the key NEAR AI's attestation report names. |
+| **Ask** | Ask about your own money in plain words ("what did we pay suppliers last week?"). Answered by AI running in NEAR AI Cloud's secure hardware; each answer's signature is checked against the key NEAR AI's attestation report names. The first question is free; after that, questions use Ask credits bought in USDC. |
 | **Activity** | Everything you did, in plain words. Private payments are listed only for you; your connected wallet's own transactions (public) are read from the chain. |
-| **Agents** | Give software its own key and limits. It asks to pay and people approve, or, with a wallet of its own, it pays by itself within those limits. Agents can pay your links and buy from paid APIs over x402. See [Agents](#agents). |
+| **Agents** | Give software its own key and limits. It asks to pay and people approve, or, with a wallet of its own, it pays by itself within those limits. A payment that repeats a recent one waits for a person. Agents can pay your links and buy from paid APIs over x402. See [Agents](#agents). |
+| **Languages** | English, Chinese, Indonesian, Korean, Spanish, Portuguese, Russian, Turkish, Vietnamese and Japanese. Scrim offers your browser's language and remembers the one you pick. |
 
 ## How to use Scrim
 

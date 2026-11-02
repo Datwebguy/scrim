@@ -366,6 +366,18 @@ const messages: Record<string, string> = {
   "Your NEAR wallet is empty.": "NEAR ウォレットが空です。",
   "Your name": "あなたの名前",
   "Your private balance is empty.": "非公開残高が空です。",
-  "Your question": "あなたの質問"
+  "Your question": "あなたの質問",
+  "{agent} asks to pay a vendor": "{agent} が取引先への支払いを依頼しています",
+  "{agent} asks to pay over its per payment limit": "{agent} が1回あたりの上限を超える支払いを依頼しています",
+  "{agent} asks to pay someone not on its list": "{agent} がリストにない相手への支払いを依頼しています",
+  "Scrim checks the rules": "Scrim がルールを確認しています",
+  "Inside its limits": "上限の範囲内",
+  "Not on the allowed list": "許可リストにありません",
+  "Approved by you": "あなたが承認しました",
+  "Checking": "確認中",
+  "Inside limits": "上限内",
+  "Waits for you": "あなたの判断待ち",
+  "Refused": "拒否",
+  "Stopped": "停止"
 };
 export default messages;

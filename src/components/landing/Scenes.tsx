@@ -1,5 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/i18n/I18n";
+import { StatusMark } from "@/components/StatusMark";
+import { ClaudeMark, CursorMark, GeminiMark, OpenAIMark } from "./AgentMarks";
 
 export type Coin = { symbol: string; icon: string | null };
 export type Net = { name: string; icon: string | null };
@@ -136,24 +139,35 @@ export function ProofScene() {
 
 /* Agents: software asks to pay, its limits check every request, people approve, anything outside the limits is stopped. */
 export function AgentScene() {
-  const requests = [
-    { label: "Within limits", ok: true },
-    { label: "Over the daily limit", ok: false },
-    { label: "Recipient not on the list", ok: false },
+  const t = useT();
+  const agents = [
+    { name: "Claude Code", Mark: ClaudeMark, ask: "{agent} asks to pay a vendor", check: "Inside its limits", pill: "Inside limits", result: "Paid", end: "ok" as const },
+    { name: "Codex", Mark: OpenAIMark, ask: "{agent} asks to pay over its per payment limit", check: "Waiting for you", pill: "Waits for you", result: "Approved by you", end: "wait" as const },
+    { name: "Cursor", Mark: CursorMark, ask: "{agent} asks to pay someone not on its list", check: "Not on the allowed list", pill: "Refused", result: "Stopped", end: "no" as const },
+    { name: "Gemini CLI", Mark: GeminiMark, ask: "{agent} asks to pay a vendor", check: "Inside its limits", pill: "Inside limits", result: "Paid", end: "ok" as const },
   ];
-  const { ref, step } = useLoop(requests.length * 3, 900);
-  const r = requests[Math.floor(step / 3)];
-  const phase = step % 3; // 0 asks, 1 checked, 2 result
+  const { ref, step } = useLoop(agents.length * 4, 1100);
+  const index = Math.floor(step / 4);
+  const phase = step % 4; // 0 asks, 1 checked, 2 result, 3 holds
+  const a = agents[index];
+  const refused = a.end === "no";
+  const line = phase === 0 ? t(a.ask, { agent: a.name }) : a.name;
+  const sub = phase === 0 ? t("Scrim checks the rules") : phase === 1 ? t(a.check) : t(a.result);
+  const pill = phase === 0 ? { cls: "idle", text: t("Checking") } : phase === 1 ? { cls: a.end, text: t(a.pill) } : refused ? { cls: "no", text: t("Stopped") } : { cls: "ok", text: t("Done") };
   return (
     <div ref={ref} className="sc-card sc-agent">
-      <div className="sc-agent-head"><span className="sc-agent-bot" aria-hidden="true">⌘</span><b>Agent</b><em className={phase === 0 ? "on" : ""}>Asks to pay</em></div>
-      <div className="sc-agent-limits">
-        <span className={phase >= 1 ? (r.ok || r.label !== "Over the daily limit" ? "pass" : "fail") : ""}>Daily limit</span>
-        <span className={phase >= 1 ? "pass" : ""}>Per payment</span>
-        <span className={phase >= 1 ? (r.ok || r.label !== "Recipient not on the list" ? "pass" : "fail") : ""}>Allowed recipients</span>
+      <div className="sc-agent-chips">
+        {agents.map(({ name, Mark }, i) => <div key={name} className={i === index ? "on" : ""}><span className="sc-agent-logo"><Mark /></span><span>{name}</span></div>)}
       </div>
-      <div className={`sc-agent-out ${phase === 2 ? (r.ok ? "ok" : "stop") : ""}`} key={step}>
-        {phase < 2 ? r.label : r.ok ? "✓ Sent to you to approve" : "✕ Stopped before anyone sees it"}
+      <svg className="sc-agent-rail" key={index} viewBox="0 0 400 44" preserveAspectRatio="none" aria-hidden="true">
+        <defs><linearGradient id="agent-rail-light" x1="0" x2="1"><stop offset="0" stopColor="#ff5b2d" stopOpacity="0" /><stop offset="1" stopColor="#ff5b2d" /></linearGradient></defs>
+        <path className="base" d={`M${50 + index * 100} 0V22H200V44`} />
+        <path className="lit" d={`M${50 + index * 100} 0V22H200V44`} stroke="url(#agent-rail-light)" />
+      </svg>
+      <div className="sc-agent-req" aria-live="polite">
+        <StatusMark key={step} state={phase === 2 && !refused ? "done" : "moving"} size={40} className={phase === 2 && refused ? "is-off" : ""} />
+        <div className="sc-agent-text" key={`t${step}`}><b>{line}</b><span>{sub}</span></div>
+        <span className={`sc-agent-pill ${pill.cls}`}>{pill.text}</span>
       </div>
     </div>
   );

@@ -366,6 +366,18 @@ const messages: Record<string, string> = {
   "Your NEAR wallet is empty.": "Ví NEAR của bạn đang trống.",
   "Your name": "Tên của bạn",
   "Your private balance is empty.": "Số dư riêng tư của bạn đang trống.",
-  "Your question": "Câu hỏi của bạn"
+  "Your question": "Câu hỏi của bạn",
+  "{agent} asks to pay a vendor": "{agent} xin trả tiền cho một nhà cung cấp",
+  "{agent} asks to pay over its per payment limit": "{agent} xin trả vượt hạn mức mỗi khoản",
+  "{agent} asks to pay someone not on its list": "{agent} xin trả cho người không có trong danh sách",
+  "Scrim checks the rules": "Scrim kiểm tra quy tắc",
+  "Inside its limits": "Trong hạn mức",
+  "Not on the allowed list": "Không có trong danh sách cho phép",
+  "Approved by you": "Bạn đã duyệt",
+  "Checking": "Đang kiểm tra",
+  "Inside limits": "Trong hạn mức",
+  "Waits for you": "Chờ bạn",
+  "Refused": "Bị từ chối",
+  "Stopped": "Đã dừng"
 };
 export default messages;

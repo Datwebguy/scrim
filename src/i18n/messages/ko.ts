@@ -144,7 +144,7 @@ const messages: Record<string, string> = {
   "Share a link. Get paid.": "링크를 공유하고 입금 받으세요.",
   "They pay from any coin. No account needed.": "상대는 어떤 코인으로든 결제할 수 있습니다. 계정이 필요 없습니다.",
   "Let software pay. Within your rules.": "소프트웨어가 결제하게 하세요. 당신의 규칙 안에서.",
-  "Give an agent its own key and spending limits. It asks and people approve, or it pays by itself from a wallet of its own. Anything outside the limits is stopped.": "에이전트에 전용 키와 지출 한도를 주세요. 에이전트가 요청하면 사람이 승인하거나, 에이전트가 자신의 지갑으로 직접 결제합니다. 한도를 벗어난 것은 차단됩니다.",
+  "Each agent gets its own key, a limit per payment, a limit over a time window you choose, and a list of who it may pay. Inside those limits it pays by itself from its own wallet, or asks and people approve. Above them, the payment waits for you.": "에이전트마다 자기 키, 결제 한도, 직접 정한 기간 안의 한도, 결제할 수 있는 대상 목록이 있습니다. 한도 안에서는 자기 지갑으로 직접 결제하거나, 요청하면 사람이 승인합니다. 한도를 넘는 결제는 당신을 기다립니다.",
   "Pay for APIs. Get paid by agents.": "API 비용을 내고, 에이전트에게 입금 받으세요.",
   "Agents find paid APIs and data, and pay them on Base, Solana and six more chains, within your limits. Choose private or public for each agent wallet. And you can sell to agents too: a file, a report or your API, paid into your private balance or your wallet.": "에이전트는 유료 API와 데이터를 찾아 한도 안에서 Base, Solana 및 여섯 개 체인에서 결제합니다. 에이전트 지갑마다 비공개 또는 공개를 선택하세요. 에이전트에게 판매할 수도 있습니다. 파일, 보고서 또는 API를 팔고 비공개 잔액이나 지갑으로 받으세요.",
   "Ask your money. Keep it between you and the AI.": "내 자금에 대해 물어보세요. 당신과 AI 사이에서만.",

@@ -144,7 +144,7 @@ const messages: Record<string, string> = {
   "Share a link. Get paid.": "分享链接，即可收款。",
   "They pay from any coin. No account needed.": "对方可用任何币种付款，无需账户。",
   "Let software pay. Within your rules.": "让软件付款，但遵守你的规则。",
-  "Give an agent its own key and spending limits. It asks and people approve, or it pays by itself from a wallet of its own. Anything outside the limits is stopped.": "给代理专属密钥和支出额度。它提出请求、由人批准，或用自己的钱包自行付款。超出额度的一律拦下。",
+  "Each agent gets its own key, a limit per payment, a limit over a time window you choose, and a list of who it may pay. Inside those limits it pays by itself from its own wallet, or asks and people approve. Above them, the payment waits for you.": "每个代理都有自己的密钥、单笔限额、你设定时间窗口内的限额，以及可付款对象名单。在限额内，它用自己的钱包自行付款，或提出请求由人批准。超出限额的付款会等你决定。",
   "Pay for APIs. Get paid by agents.": "为 API 付费，从代理处收款。",
   "Agents find paid APIs and data, and pay them on Base, Solana and six more chains, within your limits. Choose private or public for each agent wallet. And you can sell to agents too: a file, a report or your API, paid into your private balance or your wallet.": "代理能找到付费 API 和数据，并在 Base、Solana 以及另外六条链上、在你的额度内付款。每个代理钱包可选择隐私或公开。你也可以向代理出售：文件、报告或你的 API，款项进入你的隐私余额或钱包。",
   "Ask your money. Keep it between you and the AI.": "向你的资金提问，只在你和 AI 之间。",

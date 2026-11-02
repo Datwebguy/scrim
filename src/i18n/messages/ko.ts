@@ -366,6 +366,18 @@ const messages: Record<string, string> = {
   "Your NEAR wallet is empty.": "NEAR 지갑이 비어 있습니다.",
   "Your name": "내 이름",
   "Your private balance is empty.": "비공개 잔액이 비어 있습니다.",
-  "Your question": "내 질문"
+  "Your question": "내 질문",
+  "{agent} asks to pay a vendor": "{agent}이(가) 거래처에 결제를 요청합니다",
+  "{agent} asks to pay over its per payment limit": "{agent}이(가) 결제 건당 한도를 넘는 결제를 요청합니다",
+  "{agent} asks to pay someone not on its list": "{agent}이(가) 목록에 없는 상대에게 결제를 요청합니다",
+  "Scrim checks the rules": "Scrim이 규칙을 확인합니다",
+  "Inside its limits": "한도 안입니다",
+  "Not on the allowed list": "허용 목록에 없습니다",
+  "Approved by you": "당신이 승인했습니다",
+  "Checking": "확인 중",
+  "Inside limits": "한도 안",
+  "Waits for you": "당신을 기다립니다",
+  "Refused": "거부됨",
+  "Stopped": "중지됨"
 };
 export default messages;

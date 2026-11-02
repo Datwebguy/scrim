@@ -1,5 +1,5 @@
-import { cookies, headers } from "next/headers";
-import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, matchLocale, type Locale } from "./locales";
+import { cookies } from "next/headers";
+import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, type Locale } from "./locales";
 
 type Messages = Record<string, string>;
 
@@ -16,11 +16,10 @@ const loaders: Record<Locale, () => Promise<Messages>> = {
   ja: () => import("./messages/ja").then((m) => m.default),
 };
 
-// The person's saved language, else the one their browser asks for, else English.
+// The language the person picked, else English. Scrim never switches language on its own.
 export async function getLocale(): Promise<Locale> {
   const saved = (await cookies()).get(LOCALE_COOKIE)?.value;
-  if (isLocale(saved)) return saved;
-  return matchLocale((await headers()).get("accept-language")) ?? DEFAULT_LOCALE;
+  return isLocale(saved) ? saved : DEFAULT_LOCALE;
 }
 
 export const getMessages = (locale: Locale) => loaders[locale]();

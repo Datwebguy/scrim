@@ -1214,3 +1214,8 @@ html:lang(ru) .site-nav nav, html:lang(vi) .site-nav nav, html:lang(tr) .site-na
 html:lang(ru) .l-hero h1, html:lang(ru) .hero h1 { font-size: clamp(36px, 4.6vw, 62px); }
 html:lang(ja) .l-hero h1, html:lang(ja) .hero h1 { font-size: clamp(30px, 3.7vw, 50px); line-height: 1.12; text-wrap: balance; }
 html:lang(ja) .section-head h2, html:lang(ja) .l-row h2 { text-wrap: balance; }
+
+/* The offer to read Scrim in the browser's language: a small card at the bottom, like a translate bar. */
+.lang-offer { position: fixed; z-index: 60; left: 50%; bottom: 20px; display: flex; align-items: center; gap: 12px; max-width: calc(100vw - 32px); padding: 10px 10px 10px 16px; border-radius: 14px; border: 1px solid var(--line-2); background: var(--card); color: var(--ink); box-shadow: var(--shadow-lg); font-size: 14px; transform: translateX(-50%); animation: rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.lang-offer .icon-btn { width: 30px; height: 30px; font-size: 13px; }
+@media (max-width: 520px) { .lang-offer { width: calc(100vw - 32px); justify-content: space-between; } }

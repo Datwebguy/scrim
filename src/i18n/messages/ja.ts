@@ -144,7 +144,7 @@ const messages: Record<string, string> = {
   "Share a link. Get paid.": "リンクを共有して、受け取る。",
   "They pay from any coin. No account needed.": "どのコインでも支払えます。アカウントは不要です。",
   "Let software pay. Within your rules.": "ソフトウェアに支払わせる。あなたのルールの中で。",
-  "Give an agent its own key and spending limits. It asks and people approve, or it pays by itself from a wallet of its own. Anything outside the limits is stopped.": "エージェントに専用のキーと支出上限を与えます。エージェントが求め、人が承認するか、専用のウォレットから自分で支払います。上限を超えるものはすべて止められます。",
+  "Each agent gets its own key, a limit per payment, a limit over a time window you choose, and a list of who it may pay. Inside those limits it pays by itself from its own wallet, or asks and people approve. Above them, the payment waits for you.": "各エージェントには専用のキー、1回ごとの上限、選んだ期間の上限、支払える相手のリストがあります。上限の中では自分のウォレットから自分で支払うか、依頼して人が承認します。上限を超える支払いは、あなたの判断を待ちます。",
   "Pay for APIs. Get paid by agents.": "API に支払う。エージェントから受け取る。",
   "Agents find paid APIs and data, and pay them on Base, Solana and six more chains, within your limits. Choose private or public for each agent wallet. And you can sell to agents too: a file, a report or your API, paid into your private balance or your wallet.": "エージェントは有料の API やデータを見つけ、あなたの上限の範囲内で Base、Solana、ほか 6 つのチェーンで支払います。エージェントのウォレットごとに非公開か公開かを選べます。エージェントに販売することもできます。ファイル、レポート、API の代金は、非公開残高またはウォレットに入ります。",
   "Ask your money. Keep it between you and the AI.": "お金について質問しよう。あなたと AI の間だけで。",

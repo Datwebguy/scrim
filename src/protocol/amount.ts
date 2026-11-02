@@ -28,3 +28,11 @@ export function formatAmount(minor: bigint | string, decimals = USDC_DECIMALS, m
   if (fraction.length < minFraction) fraction = fraction.padEnd(minFraction, "0");
   return `${negative ? "-" : ""}${whole}${fraction ? `.${fraction}` : ""}`;
 }
+
+// For showing a balance: the same as formatAmount, cut to at most maxFraction decimal places (never rounded up),
+// so a 24-decimal NEAR balance reads 0.030005 rather than every digit.
+export function formatBalance(minor: bigint | string, decimals: number, maxFraction = 6): string {
+  const value = BigInt(minor);
+  const cut = decimals > maxFraction ? 10n ** BigInt(decimals - maxFraction) : 1n;
+  return formatAmount((value / cut) * cut, decimals, 2);
+}

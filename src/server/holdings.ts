@@ -1,6 +1,6 @@
 // A person's public on-chain holdings on either network: native NEAR plus every token contract they
 // hold, with each token's name, symbol, decimals and logo read from the token contract itself.
-import { formatAmount } from "@/protocol/amount";
+import { formatBalance } from "@/protocol/amount";
 import type { Network } from "@/protocol/networks";
 import { getJson, memo, nearCoin } from "./assets";
 import { endpoints } from "./config";
@@ -59,13 +59,13 @@ export async function publicHoldings(network: Network, accountId: string): Promi
     nearCoin().catch(() => null),
     getJson<{ tokens?: { contract_id: string; balance: string }[] }>(`${endpoints(network).indexerUrl}/v1/account/${accountId}/ft`, 0).catch(() => ({ tokens: [] as { contract_id: string; balance: string }[] })),
   ]);
-  const holdings: PublicHolding[] = [{ id: "near", symbol: "NEAR", name: "NEAR", decimals: 24, amount: native, display: formatAmount(BigInt(native), 24, 2), icon: coin?.icon ?? null }];
+  const holdings: PublicHolding[] = [{ id: "near", symbol: "NEAR", name: "NEAR", decimals: 24, amount: native, display: formatBalance(BigInt(native), 24), icon: coin?.icon ?? null }];
   const held = (tokens.tokens ?? []).filter((t) => BigInt(t.balance || "0") > 0n).slice(0, 25);
   const metadata = await Promise.all(held.map((t) => tokenMetadata(network, t.contract_id)));
   held.forEach((t, i) => {
     const m = metadata[i];
     if (!m) return;
-    holdings.push({ id: t.contract_id, symbol: m.symbol, name: m.name, decimals: m.decimals, amount: t.balance, display: formatAmount(BigInt(t.balance), m.decimals, 2), icon: safeIcon(m.icon) });
+    holdings.push({ id: t.contract_id, symbol: m.symbol, name: m.name, decimals: m.decimals, amount: t.balance, display: formatBalance(BigInt(t.balance), m.decimals), icon: safeIcon(m.icon) });
   });
   return holdings;
 }

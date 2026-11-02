@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext, useMemo } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { LOCALE_COOKIE, LOCALES, type Locale } from "./locales";
 
 type Messages = Record<string, string>;
@@ -39,5 +39,44 @@ export function LanguageMenu({ className = "" }: { className?: string }) {
         {LOCALES.map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
       </select>
     </label>
+  );
+}
+
+// What the offer says, written in the language it offers, since the page is still in English when it shows.
+const OFFER: Record<Exclude<Locale, "en">, { text: string; action: string }> = {
+  zh: { text: "Scrim 提供简体中文", action: "切换" },
+  id: { text: "Scrim tersedia dalam Bahasa Indonesia", action: "Ganti" },
+  ko: { text: "Scrim을 한국어로 볼 수 있어요", action: "전환" },
+  es: { text: "Scrim está disponible en español", action: "Cambiar" },
+  pt: { text: "A Scrim está disponível em português", action: "Mudar" },
+  ru: { text: "Scrim доступен на русском", action: "Переключить" },
+  tr: { text: "Scrim Türkçe olarak da mevcut", action: "Geç" },
+  vi: { text: "Scrim có tiếng Việt", action: "Chuyển" },
+  ja: { text: "Scrim は日本語でも使えます", action: "切り替える" },
+};
+const HINT_COOKIE = "scrim_lang_hint";
+const saveCookie = (name: string, value: string) => { document.cookie = `${name}=${value}; path=/; max-age=31536000; samesite=lax`; };
+
+// Like the browser's own translate bar: when the browser prefers a language Scrim speaks and the person hasn't
+// chosen one, offer it. Nothing changes until they say yes, and "no" is remembered for a year.
+export function LanguageOffer() {
+  const locale = useLocale();
+  const [offer, setOffer] = useState<Exclude<Locale, "en"> | null>(null);
+  useEffect(() => {
+    if (locale !== "en" || document.cookie.includes(`${LOCALE_COOKIE}=`) || document.cookie.includes(`${HINT_COOKIE}=`)) return;
+    for (const tag of navigator.languages ?? []) {
+      const primary = tag.toLowerCase().split("-")[0] === "in" ? "id" : tag.toLowerCase().split("-")[0];
+      if (primary === "en") return;
+      if (primary in OFFER) { setOffer(primary as Exclude<Locale, "en">); return; }
+    }
+  }, [locale]);
+  if (!offer) return null;
+  const { text, action } = OFFER[offer];
+  return (
+    <div className="lang-offer" role="region" aria-label="Language">
+      <span>{text}</span>
+      <button type="button" className="btn btn-primary btn-sm" onClick={() => { saveCookie(LOCALE_COOKIE, offer); window.location.reload(); }}>{action}</button>
+      <button type="button" className="icon-btn" aria-label="Keep English" onClick={() => { saveCookie(HINT_COOKIE, "no"); setOffer(null); }}>✕</button>
+    </div>
   );
 }

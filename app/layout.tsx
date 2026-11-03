@@ -9,10 +9,15 @@ import { getLocale, getMessages } from "@/i18n/server";
 const sans = Manrope({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 const mono = DM_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono", display: "swap" });
 
+const DESCRIPTION =
+  "Hold, send, swap and get paid on NEAR, in public or in private, your choice. Set limits, share approvals, and let agents pay within your rules.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.SCRIM_SITE_URL?.trim() || "https://scrim.exchange"),
   title: { default: "Scrim · Money on NEAR, private when you want it", template: "%s · Scrim" },
-  description:
-    "Hold, send, swap and get paid on NEAR, in public or in private, your choice. Set limits, share approvals, and let agents pay within your rules.",
+  description: DESCRIPTION,
+  openGraph: { type: "website", siteName: "Scrim", title: "Scrim · The private payments layer for every chain and every agent", description: DESCRIPTION },
+  twitter: { card: "summary_large_image", title: "Scrim · The private payments layer for every chain and every agent", description: DESCRIPTION },
 };
 
 export const viewport: Viewport = { themeColor: "#151512" };

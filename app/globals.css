@@ -1235,3 +1235,10 @@ html:lang(ja) .section-head h2, html:lang(ja) .l-row h2 { text-wrap: balance; }
 .lang-offer { position: fixed; z-index: 60; left: 50%; bottom: 20px; display: flex; align-items: center; gap: 12px; max-width: calc(100vw - 32px); padding: 10px 10px 10px 16px; border-radius: 14px; border: 1px solid var(--line-2); background: var(--card); color: var(--ink); box-shadow: var(--shadow-lg); font-size: 14px; transform: translateX(-50%); animation: rise 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .lang-offer .icon-btn { width: 30px; height: 30px; font-size: 13px; }
 @media (max-width: 520px) { .lang-offer { width: calc(100vw - 32px); justify-content: space-between; } }
+/* The app sidebar is narrow: its language picker is the globe button, and its round buttons are a size smaller so the row fits. */
+.ws-side-head .brand { padding-left: 4px; min-width: 0; }
+.ws-side-head .ws-top-actions { gap: 6px; }
+.ws-side-head .bell, .ws-side-head .theme-toggle, .ws-side-head .lang-menu { width: 30px; height: 30px; }
+.ws-side-head .lang-menu { border-radius: 50%; border: 1px solid #34342d; background: transparent; color: #e9e8e0; align-items: center; justify-content: center; }
+.ws-side-head .lang-menu .lang-ico { display: block; width: 15px; height: 15px; pointer-events: none; }
+.ws-side-head .lang-menu select { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; opacity: 0; border-radius: 50%; }

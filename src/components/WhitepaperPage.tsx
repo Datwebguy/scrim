@@ -147,7 +147,9 @@ export function WhitepaperPage() {
               By default an agent asks and people approve. An owner can also give it a wallet of its own, an OutLayer agent wallet whose key is
               created and kept inside a secure enclave. With that wallet the agent pays by itself, still inside the same Scrim limits, while the
               wallet enforces a second, independent set of rules the owner sets on OutLayer. On mainnet the wallet can pay from a private balance,
-              so recipients see a payment arrive, not which wallet sent it.
+              so recipients see a payment arrive, not which wallet sent it. A request that repeats a recent one, the same recipient and amount
+              within ten minutes, waits for a person even inside the limits, because a false &ldquo;the payment failed, retry&rdquo; note is how an
+              agent would pay twice.
             </p>
             <p>
               x402 is how software pays for things on the web: a site answers a request with a price, the buyer pays, and the site returns what

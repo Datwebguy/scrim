@@ -50,7 +50,7 @@ export function Proofs() {
       {fresh ? (
         <div className="card card-pad form-grid">
           <h2>{t("Your proof is ready")}</h2>
-          <p className="muted">{t("For")} <b>{fresh.reader}</b> · it says you <b>{describeClaim(fresh.summary)}</b> · valid until {new Date(fresh.expiresAt).toLocaleDateString()}</p>
+          <p className="muted">{t("For")} <b>{fresh.reader}</b> · it says you <b>{describeClaim(fresh.summary).replace(/^holds /, "hold ")}</b> · valid until {new Date(fresh.expiresAt).toLocaleDateString()}</p>
           <CopyField label={t("Send them this link")} value={link(fresh)} />
           <p className="muted small-print">{t("They open the link and see a pass or fail check. They don't need an account.")}</p>
           <button className="btn btn-ghost" style={{ justifySelf: "start" }} onClick={() => setFresh(null)}>Make another</button>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ed25519 } from "@noble/curves/ed25519.js";
-import { formatAmount, parseAmount } from "@/protocol/amount";
+import { formatAmount, formatBalance, parseAmount } from "@/protocol/amount";
 import { canonicalJson, commitment } from "@/protocol/canonical";
 import { normalizeEvmAddress, normalizeNearAccount } from "@/protocol/identifiers";
 import { encodePublicKey, nep413Digest, serializeNep413, verifyNep413 } from "@/protocol/nep413";
@@ -29,6 +29,10 @@ describe("amounts", () => {
   it("formats minor units", () => {
     expect(formatAmount(1_234_567_890n)).toBe("1,234.56789");
     expect(formatAmount(5_000_000n)).toBe("5.00");
+    // A balance keeps at most six decimal places and is never rounded up.
+    expect(formatBalance(30005166414749599999997n, 24)).toBe("0.030005");
+    expect(formatBalance(85n * 10n ** 24n, 24)).toBe("85.00");
+    expect(formatBalance(67207n, 6)).toBe("0.067207");
   });
 });
 

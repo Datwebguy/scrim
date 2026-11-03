@@ -48,7 +48,7 @@ Five minutes from a new key to a first payment request.
 **2. See the limits.**
 
 ```sh
-curl https://scrimfinance.vercel.app/api/v1/agent \
+curl https://scrim.exchange/api/v1/agent \
   -H "Authorization: Bearer scrim_sk_..."
 ```
 
@@ -57,7 +57,7 @@ The answer lists the agent's limits and how much it can still spend in the curre
 **3. Ask to pay.**
 
 ```sh
-curl -X POST https://scrimfinance.vercel.app/api/v1/agent/payments \
+curl -X POST https://scrim.exchange/api/v1/agent/payments \
   -H "Authorization: Bearer scrim_sk_..." \
   -H "Idempotency-Key: invoice-1042" \
   -H "Content-Type: application/json" \
@@ -69,7 +69,7 @@ A request inside the rules comes back as `awaiting_approval`, or as `submitting`
 **4. Follow it.**
 
 ```sh
-curl https://scrimfinance.vercel.app/api/v1/agent/payments/<payment id> \
+curl https://scrim.exchange/api/v1/agent/payments/<payment id> \
   -H "Authorization: Bearer scrim_sk_..."
 ```
 
@@ -96,7 +96,7 @@ The key is made to be safe to hand to software:
 
 ## The agent API
 
-All paths are relative to your site, for example `https://scrimfinance.vercel.app`. Requests and responses are JSON.
+All paths are relative to your site, for example `https://scrim.exchange`. Requests and responses are JSON.
 
 | Call | What it does |
 | --- | --- |
@@ -255,7 +255,7 @@ Text that comes back from sellers is labelled as data. It never changes the agen
 **1. Find a seller.**
 
 ```sh
-curl "https://scrimfinance.vercel.app/api/v1/agent/x402/search?q=weather&limit=5" \
+curl "https://scrim.exchange/api/v1/agent/x402/search?q=weather&limit=5" \
   -H "Authorization: Bearer scrim_sk_..."
 ```
 
@@ -269,7 +269,7 @@ Each result has the seller's address, its price in US dollars, the chains it acc
 **3. Buy.**
 
 ```sh
-curl -X POST https://scrimfinance.vercel.app/api/v1/agent/x402 \
+curl -X POST https://scrim.exchange/api/v1/agent/x402 \
   -H "Authorization: Bearer scrim_sk_..." \
   -H "Idempotency-Key: weather-2026-10-26" \
   -H "Content-Type: application/json" \

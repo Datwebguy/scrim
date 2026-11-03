@@ -2,7 +2,7 @@
 
 Scrim ships in steps. Each one makes private money easier to use for people, teams and the software that pays for them. Here is what is live, what we are building now, and what is coming soon.
 
-Also online at [scrimfinance.vercel.app/roadmap](https://scrimfinance.vercel.app/roadmap). The design behind it is in the [whitepaper](docs/WHITEPAPER.md).
+Also online at [scrim.exchange/roadmap](https://scrim.exchange/roadmap). The design behind it is in the [whitepaper](docs/WHITEPAPER.md).
 
 ## Live
 

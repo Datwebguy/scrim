@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://scrimfinance.vercel.app">Live site</a> ·
+  <a href="https://scrim.exchange">Live site</a> ·
   <a href="docs/TRY_IT.md">Try it</a> ·
   <a href="docs/DEVELOPERS.md">Developers</a> ·
   <a href="docs/SELF_HOSTING.md">Run it yourself</a> ·

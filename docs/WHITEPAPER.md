@@ -1,6 +1,6 @@
 # Scrim: money on NEAR, private when you want it
 
-*Version 1.0 · November 2026* · [Read online](https://scrimfinance.vercel.app/whitepaper) · [PDF](https://scrimfinance.vercel.app/scrim-whitepaper.pdf)
+*Version 1.0 · November 2026* · [Read online](https://scrim.exchange/whitepaper) · [PDF](https://scrim.exchange/scrim-whitepaper.pdf)
 
 ## Abstract
 
@@ -76,7 +76,7 @@ The public chain sees money enter and leave NEAR Intents, and nothing that links
 
 ## Roadmap
 
-Scrim ships in steps. The full list, with a line on each item, is on the [roadmap](https://scrimfinance.vercel.app/roadmap).
+Scrim ships in steps. The full list, with a line on each item, is on the [roadmap](https://scrim.exchange/roadmap).
 
 **Live:** Private balance · Add, send and swap on 30+ chains · Payment links · Sell to people and agents · Proofs · Shared accounts · Agents with limits · Ask your money · Ten languages · Wallets and alerts
 

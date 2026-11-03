@@ -135,8 +135,8 @@ export function Home() {
             ) : (
               <div>
                 <span className="muted-on-dark">{t("Anyone looking at the blockchain")}</span>
-                <strong className="balance-figure faint">{t("Nothing")}</strong>
-                <span className="muted-on-dark">{t("No balance. No payments. No link between what you add and what you send.")}</span>
+                <strong className="balance-figure masked" aria-label={t("Hidden")}>••••••</strong>
+                <span className="muted-on-dark">{t("Balance and payments stay hidden.")}</span>
               </div>
             )}
             <div className="quick">

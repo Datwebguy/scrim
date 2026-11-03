@@ -57,15 +57,15 @@ async function records(session: Session) {
   return {
     network: session.network,
     today: day(new Date()),
-    privateBalance: holdings,
-    privateActivity: transfers.filter((t) => t.status !== "cancelled").map((t) => ({
+    "private balance": holdings,
+    "private payments": transfers.filter((t) => t.status !== "cancelled").map((t) => ({
       date: day(t.createdAt), what: t.kind, status: t.status,
       sent: `${formatAmount(BigInt(t.amountIn), t.fromAsset.decimals, 2)} ${t.fromAsset.symbol} (${t.fromAsset.chainName})`,
       received: `${formatAmount(BigInt(t.amountOut), t.toAsset.decimals, 2)} ${t.toAsset.symbol} (${t.toAsset.chainName})`,
       to: t.recipient, note: t.note || undefined,
     })),
-    teamPayments,
-    walletTransactions: wallet.map((w) => ({
+    "team payments": teamPayments,
+    "wallet transactions": wallet.map((w) => ({
       date: day(w.at), what: w.label, with: w.counterparty, amount: w.amount && w.token ? `${formatAmount(BigInt(w.amount), w.token.decimals, 2)} ${w.token.symbol}` : undefined, ok: w.ok,
     })),
   };
@@ -119,7 +119,7 @@ async function answer(session: Session, q: string, model: string): Promise<AskAn
     temperature: 0.2,
     max_tokens: 700,
     messages: [
-      { role: "system", content: "You answer questions about one person's money in Scrim, using only the records given. Plain, short sentences. Use the amounts and dates exactly as written; add them up when asked. If the records don't contain the answer, say so. Never invent payments, people or numbers. Statuses: settled means paid, policy_rejected means stopped by the agent's limits, awaiting_approval means waiting for approval." },
+      { role: "system", content: "You answer questions about one person's money in Scrim, using only the records given. Write the way a calm person would say it aloud: the answer first, in one or two short sentences. Write money as $12.50 or 0.2 NEAR, and dates as people say them, such as 3 November. Use the amounts and dates exactly as given, and add them up when asked. Never mention the records, lists, fields or JSON, and never use technical names. If there is nothing to report, say so simply, for example: You haven't sent any payments this month. Wallet entries without an amount are not payments, so leave them out. When there are several items, put each on its own line. If the records don't hold the answer, say so in one sentence. Never invent payments, people or numbers. Statuses: settled means paid, policy_rejected means stopped by the agent's limits, awaiting_approval means waiting for approval." },
       { role: "user", content: `My records (JSON):\n${JSON.stringify(await records(session))}\n\nQuestion: ${q}` },
     ],
   });

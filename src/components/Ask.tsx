@@ -147,8 +147,8 @@ export function Ask() {
 
       {result && v && (
         <div className="card card-pad form-grid" style={{ marginTop: 16 }}>
-          <span className="section-label">{result.question}</span>
-          <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{result.answer.answer}</p>
+          <p className="ask-q">{result.question}</p>
+          <p className="ask-a">{result.answer.answer}</p>
           <div className={`notice ${v.attested ? "good" : "info"}`}>
             <b>{v.attested ? "Signed by the attested key" : v.signed ? "Signed answer" : "Answer not verified"}</b>
             <span style={{ display: "block" }}>{v.detail}</span>

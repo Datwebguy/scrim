@@ -379,6 +379,22 @@ const messages: Record<string, string> = {
   "Inside limits": "限额内",
   "Waits for you": "等你决定",
   "Refused": "已拒绝",
-  "Stopped": "已停止"
+  "Stopped": "已停止",
+  "Address on": "地址 ·",
+  "Balance": "余额",
+  "Coin to send": "要发送的币种",
+  "From your balance": "从你的余额",
+  "From your wallet": "从你的钱包",
+  "Max": "最大",
+  "My wallet": "我的钱包",
+  "See the price": "查看价格",
+  "Send with my wallet": "用我的钱包发送",
+  "Switch coins": "对调币种",
+  "Their address": "对方地址",
+  "You see the price on the next step.": "你会在下一步看到价格。",
+  "optional, only you can see it": "可选，仅你可见",
+  "Get my deposit address": "获取我的充值地址",
+  "Create link": "创建链接",
+  "Start selling": "开始销售",
 };
 export default messages;

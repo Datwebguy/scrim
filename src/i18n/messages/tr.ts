@@ -379,6 +379,22 @@ const messages: Record<string, string> = {
   "Inside limits": "Limit içinde",
   "Waits for you": "Sizi bekliyor",
   "Refused": "Reddedildi",
-  "Stopped": "Durduruldu"
+  "Stopped": "Durduruldu",
+  "Address on": "Adres:",
+  "Balance": "Bakiye",
+  "Coin to send": "Gönderilecek coin",
+  "From your balance": "Bakiyenizden",
+  "From your wallet": "Cüzdanınızdan",
+  "Max": "Maks.",
+  "My wallet": "Cüzdanım",
+  "See the price": "Fiyatı gör",
+  "Send with my wallet": "Cüzdanımla gönder",
+  "Switch coins": "Coinleri değiştir",
+  "Their address": "Alıcı adresi",
+  "You see the price on the next step.": "Fiyatı bir sonraki adımda görürsünüz.",
+  "optional, only you can see it": "isteğe bağlı, yalnızca siz görürsünüz",
+  "Get my deposit address": "Yatırma adresimi al",
+  "Create link": "Bağlantı oluştur",
+  "Start selling": "Satışa başla",
 };
 export default messages;

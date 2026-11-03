@@ -379,6 +379,22 @@ const messages: Record<string, string> = {
   "Inside limits": "上限内",
   "Waits for you": "あなたの判断待ち",
   "Refused": "拒否",
-  "Stopped": "停止"
+  "Stopped": "停止",
+  "Address on": "宛先アドレス ·",
+  "Balance": "残高",
+  "Coin to send": "送るコイン",
+  "From your balance": "残高から",
+  "From your wallet": "ウォレットから",
+  "Max": "最大",
+  "My wallet": "自分のウォレット",
+  "See the price": "価格を見る",
+  "Send with my wallet": "ウォレットで送る",
+  "Switch coins": "コインを入れ替える",
+  "Their address": "相手のアドレス",
+  "You see the price on the next step.": "価格は次のステップで表示されます。",
+  "optional, only you can see it": "任意、あなただけに表示",
+  "Get my deposit address": "入金アドレスを取得",
+  "Create link": "リンクを作成",
+  "Start selling": "販売を開始",
 };
 export default messages;

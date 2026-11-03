@@ -1280,3 +1280,4 @@ html:lang(ja) .section-head h2, html:lang(ja) .l-row h2 { text-wrap: balance; }
 .picker.pill .picker-panel { left: auto; right: 0; width: min(380px, calc(100vw - 48px)); }
 .trade-go { width: 100%; margin-top: 4px; }
 .trade .form-error, .trade .notice { margin: 0; }
+.tp-paywith { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--line-2); color: var(--muted); font-size: 13px; font-weight: 600; }

@@ -379,6 +379,19 @@ const messages: Record<string, string> = {
   "Inside limits": "한도 안",
   "Waits for you": "당신을 기다립니다",
   "Refused": "거부됨",
-  "Stopped": "중지됨"
+  "Stopped": "중지됨",
+  "Address on": "주소 ·",
+  "Balance": "잔액",
+  "Coin to send": "보낼 코인",
+  "From your balance": "내 잔액에서",
+  "From your wallet": "내 지갑에서",
+  "Max": "최대",
+  "My wallet": "내 지갑",
+  "See the price": "가격 보기",
+  "Send with my wallet": "내 지갑으로 보내기",
+  "Switch coins": "코인 바꾸기",
+  "Their address": "상대방 주소",
+  "You see the price on the next step.": "가격은 다음 단계에서 볼 수 있습니다.",
+  "optional, only you can see it": "선택 사항, 나만 볼 수 있음",
 };
 export default messages;

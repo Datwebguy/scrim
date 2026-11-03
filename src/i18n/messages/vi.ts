@@ -393,5 +393,8 @@ const messages: Record<string, string> = {
   "Their address": "Địa chỉ của họ",
   "You see the price on the next step.": "Bạn sẽ thấy giá ở bước tiếp theo.",
   "optional, only you can see it": "không bắt buộc, chỉ bạn thấy",
+  "Get my deposit address": "Lấy địa chỉ nạp tiền",
+  "Create link": "Tạo liên kết",
+  "Start selling": "Bắt đầu bán",
 };
 export default messages;

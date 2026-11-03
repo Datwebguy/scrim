@@ -393,5 +393,8 @@ const messages: Record<string, string> = {
   "Their address": "상대방 주소",
   "You see the price on the next step.": "가격은 다음 단계에서 볼 수 있습니다.",
   "optional, only you can see it": "선택 사항, 나만 볼 수 있음",
+  "Get my deposit address": "입금 주소 받기",
+  "Create link": "링크 만들기",
+  "Start selling": "판매 시작",
 };
 export default messages;

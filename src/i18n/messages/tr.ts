@@ -393,5 +393,8 @@ const messages: Record<string, string> = {
   "Their address": "Alıcı adresi",
   "You see the price on the next step.": "Fiyatı bir sonraki adımda görürsünüz.",
   "optional, only you can see it": "isteğe bağlı, yalnızca siz görürsünüz",
+  "Get my deposit address": "Yatırma adresimi al",
+  "Create link": "Bağlantı oluştur",
+  "Start selling": "Satışa başla",
 };
 export default messages;

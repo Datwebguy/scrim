@@ -393,5 +393,8 @@ const messages: Record<string, string> = {
   "Their address": "Их адрес",
   "You see the price on the next step.": "Цену вы увидите на следующем шаге.",
   "optional, only you can see it": "необязательно, видите только вы",
+  "Get my deposit address": "Получить адрес для пополнения",
+  "Create link": "Создать ссылку",
+  "Start selling": "Начать продавать",
 };
 export default messages;

@@ -393,5 +393,8 @@ const messages: Record<string, string> = {
   "Their address": "对方地址",
   "You see the price on the next step.": "你会在下一步看到价格。",
   "optional, only you can see it": "可选，仅你可见",
+  "Get my deposit address": "获取我的充值地址",
+  "Create link": "创建链接",
+  "Start selling": "开始销售",
 };
 export default messages;

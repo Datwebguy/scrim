@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
-import { AssetPicker, CopyField, Heading, useAssets } from "./money";
+import { AssetPicker, CopyField, Heading, usd, useAssets } from "./money";
 import { ReceiveChoice, type Receive } from "./ReceiveChoice";
 import { Spinner, useToast } from "./ui";
 import { useT } from "@/i18n/I18n";
@@ -19,7 +19,10 @@ export function Requests() {
   const [note, setNote] = useState("");
   const [days, setDays] = useState(7);
   const [receive, setReceive] = useState<Receive>("private");
-  const onNear = assets.find((a) => a.assetId === assetId)?.chain === "near";
+  const picked = assets.find((a) => a.assetId === assetId);
+  const onNear = picked?.chain === "near";
+  const amountNum = Number(amount.replace(/,/g, ""));
+  const amountUsd = picked?.priceUsd != null && amountNum > 0 ? amountNum * picked.priceUsd : null;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [fresh, setFresh] = useState<Link | null>(null);
@@ -45,7 +48,7 @@ export function Requests() {
 
   return (
     <div className="narrow">
-      <Heading eyebrow="Get paid" title={t("Ask for money with a link")} text="Share a link. Whoever opens it can pay from any chain, with no account. You choose where the money lands: your private balance or your wallet." />
+      <Heading eyebrow="Get paid" title={t("Ask for money with a link")} text="Share a link. Anyone can pay from any chain, with no account." />
       {fresh ? (
         <div className="card card-pad form-grid">
           <h2>{t("Your link is ready")}</h2>
@@ -59,17 +62,26 @@ export function Requests() {
           </div>
         </div>
       ) : (
-        <form className="card card-pad form-grid" onSubmit={create}>
-          <AssetPicker label={t("You want to receive")} assets={assets} value={assetId} onChange={setAssetId} />
-          <ReceiveChoice value={onNear ? receive : "private"} onChange={setReceive} onNear={onNear} />
-          <div className="form-row">
-            <label className="field">{t("Amount")}<input className="input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" required /></label>
-            <label className="field">{t("Link stays open for")}
-              <select className="select" value={days} onChange={(e) => setDays(Number(e.target.value))}><option value={1}>{t("1 day")}</option><option value={7}>{t("7 days")}</option><option value={30}>{t("30 days")}</option></select></label>
+        <form className="trade" onSubmit={create}>
+          <div className="tp">
+            <div className="tp-top"><span>{t("You want to receive")}</span></div>
+            <div className="tp-main">
+              <input className="tp-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" aria-label={t("Amount")} required />
+              <AssetPicker pill label={t("You want to receive")} assets={assets} value={assetId} onChange={setAssetId} />
+            </div>
+            <div className="tp-sub">{amountUsd !== null ? `≈ ${usd(amountUsd)}` : "\u00a0"}</div>
           </div>
-          <label className="field">{t("What is it for?")} <small>{t("The payer sees this.")}</small><input className="input" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder={t("What it is for")} /></label>
+          <ReceiveChoice value={onNear ? receive : "private"} onChange={setReceive} onNear={onNear} />
+          <span className="trade-label">{t("Link stays open for")}</span>
+          <div className="trade-src three" role="radiogroup" aria-label={t("Link stays open for")}>
+            {([[1, "1 day"], [7, "7 days"], [30, "30 days"]] as const).map(([d, label]) => (
+              <button key={d} type="button" role="radio" aria-checked={days === d} onClick={() => setDays(d)}>{t(label)}</button>
+            ))}
+          </div>
+          <input className="tp-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder={t("What is it for?")} aria-label={t("What is it for?")} />
+          <p className="trade-note">{t("The payer sees this.")}</p>
           {error && <p className="form-error" role="alert">{error}</p>}
-          <button className="btn btn-primary btn-lg" disabled={busy || !assetId}>{busy && <Spinner />} Create link</button>
+          <button className="btn btn-primary btn-lg trade-go" disabled={busy || !assetId}>{busy && <Spinner />} {t("Create link")}</button>
         </form>
       )}
 

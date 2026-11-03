@@ -7,18 +7,18 @@ export type Receive = "private" | "wallet";
 export function ReceiveChoice({ value, onChange, onNear }: { value: Receive; onChange: (v: Receive) => void; onNear: boolean }) {
   const t = useT();
   return (
-    <div className="field">
-      <span className="picker-label">{t("Where it lands")}</span>
-      <div className="segmented" role="radiogroup" aria-label="Where it lands">
-        <button type="button" role="radio" aria-checked={value === "private"} onClick={() => onChange("private")}>Private balance</button>
-        <button type="button" role="radio" aria-checked={value === "wallet"} disabled={!onNear} onClick={() => onChange("wallet")}>My wallet</button>
+    <>
+      <span className="trade-label">{t("Where it lands")}</span>
+      <div className="trade-src" role="radiogroup" aria-label={t("Where it lands")}>
+        <button type="button" role="radio" aria-checked={value === "private"} onClick={() => onChange("private")}>{t("Private balance")}</button>
+        <button type="button" role="radio" aria-checked={value === "wallet"} disabled={!onNear} onClick={() => onChange("wallet")}>{t("My wallet")}</button>
       </div>
-      <small className="muted">
+      <p className="trade-note">
         {value === "private"
-          ? "Lands in your private balance: payers can't see what you hold or receive."
-          : "Lands in your NEAR wallet, like any transfer: it shows on the blockchain."}
+          ? "Lands in your private balance. Payers can't see what you hold."
+          : "Lands in your NEAR wallet and shows on the blockchain."}
         {!onNear && " To receive in your wallet, pick a coin on NEAR."}
-      </small>
-    </div>
+      </p>
+    </>
   );
 }

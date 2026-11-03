@@ -393,5 +393,8 @@ const messages: Record<string, string> = {
   "Their address": "Alamat mereka",
   "You see the price on the next step.": "Anda akan melihat harga di langkah berikutnya.",
   "optional, only you can see it": "opsional, hanya Anda yang melihat",
+  "Get my deposit address": "Dapatkan alamat deposit saya",
+  "Create link": "Buat tautan",
+  "Start selling": "Mulai berjualan",
 };
 export default messages;

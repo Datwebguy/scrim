@@ -50,7 +50,7 @@ function sortForPicking(assets: AssetInfo[]) {
 }
 
 // Choose a coin and the chain it lives on from one searchable list, each with its real logo.
-export function AssetPicker({ label, assets, value, onChange, hint, empty, pill }: { label: string; assets: AssetInfo[]; value: string; onChange: (assetId: string) => void; hint?: string; empty?: string; pill?: boolean }) {
+export function AssetPicker({ label, assets, value, onChange, hint, empty, pill, wide }: { label: string; assets: AssetInfo[]; value: string; onChange: (assetId: string) => void; hint?: string; empty?: string; pill?: boolean; wide?: boolean }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -76,7 +76,7 @@ export function AssetPicker({ label, assets, value, onChange, hint, empty, pill 
   const shown = q ? sorted.filter((a) => `${a.symbol} ${a.chainName}`.toLowerCase().includes(q)) : sorted;
 
   return (
-    <div className={`field picker${pill ? " pill" : ""}`} ref={box}>
+    <div className={`field picker${pill ? " coinpill" : ""}${wide ? " wide" : ""}`} ref={box}>
       {!pill && <span className="picker-label">{label}</span>}
       {!pill && hint && <small>{hint}</small>}
       <button type="button" className="picker-button" aria-label={pill ? label : undefined} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((v) => !v)}>

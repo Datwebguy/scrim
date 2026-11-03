@@ -393,5 +393,8 @@ const messages: Record<string, string> = {
   "Their address": "相手のアドレス",
   "You see the price on the next step.": "価格は次のステップで表示されます。",
   "optional, only you can see it": "任意、あなただけに表示",
+  "Get my deposit address": "入金アドレスを取得",
+  "Create link": "リンクを作成",
+  "Start selling": "販売を開始",
 };
 export default messages;

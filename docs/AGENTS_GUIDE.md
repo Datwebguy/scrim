@@ -8,6 +8,8 @@ An **agent** is a helper that spends for you, only inside the rules you set: an 
 
 **Limits.** Per payment, per time window (for example per day), a list of allowed recipients, and an optional expiry. Every change creates a new version with a fingerprint, so there is a record of what applied when. Requests outside the limits are stopped before any person sees them. Anyone who approves on the account can pause an agent; only the owner can resume it.
 
+**Repeats.** A request that repeats one from the last 10 minutes (same recipient, same amount) waits for a person, even inside the limits, and an agent with its own wallet does not pay it by itself. A false "the payment failed, retry" note is how an agent would pay twice. A payment that really failed or was cancelled can be retried at once, and x402 purchases are not held.
+
 **Connect an AI assistant (MCP).** Scrim is an MCP server at `/api/mcp`:
 
 ```json

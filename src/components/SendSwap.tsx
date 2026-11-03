@@ -216,15 +216,13 @@ export function SendSwap({ initial }: { initial: Mode }) {
           )}
           {mode === "address" && (
             <div className="tp">
-              <div className="tp-top">
-                <span>{fromWallet ? t("From your wallet") : t("From your balance")}</span>
-                {held && <span className="tp-max static">{t("Balance")} {held.display}</span>}
-              </div>
-              <div className="tp-main">
-                <input className="tp-text mono" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder={`${t("Address on")} ${to?.chainName ?? "…"}`} autoComplete="off" spellCheck={false} aria-label={t("Their address")} required />
+              <div className="tp-top"><span>{t("Their address")}</span></div>
+              <input className="tp-text mono" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder={`${t("Address on")} ${to?.chainName ?? "…"}`} autoComplete="off" spellCheck={false} aria-label={t("Their address")} required />
+              {to?.chain === "zec" && <div className="tp-sub">{t("A shielded address (starting u1 or zs1) works too. It keeps the receiving side private on Zcash.")}</div>}
+              <div className="tp-paywith">
+                <span>{fromWallet ? t("From your wallet") : t("From your balance")}{held ? ` · ${t("Balance")} ${held.display}` : ""}</span>
                 <AssetPicker pill label={t("Coin to send")} assets={fromAssets} value={fromId} onChange={setFromId} empty={ready && holdings.length === 0 ? "No coins yet" : undefined} />
               </div>
-              {to?.chain === "zec" && <div className="tp-sub">{t("A shielded address (starting u1 or zs1) works too. It keeps the receiving side private on Zcash.")}</div>}
             </div>
           )}
           {mode !== "swap" && <input className="tp-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder={`${t("Note")} (${t("optional, only you can see it")})`} aria-label={t("Note")} />}

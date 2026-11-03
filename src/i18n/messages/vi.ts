@@ -379,6 +379,19 @@ const messages: Record<string, string> = {
   "Inside limits": "Trong hạn mức",
   "Waits for you": "Chờ bạn",
   "Refused": "Bị từ chối",
-  "Stopped": "Đã dừng"
+  "Stopped": "Đã dừng",
+  "Address on": "Địa chỉ trên",
+  "Balance": "Số dư",
+  "Coin to send": "Coin cần gửi",
+  "From your balance": "Từ số dư của bạn",
+  "From your wallet": "Từ ví của bạn",
+  "Max": "Tối đa",
+  "My wallet": "Ví của tôi",
+  "See the price": "Xem giá",
+  "Send with my wallet": "Gửi bằng ví của tôi",
+  "Switch coins": "Đổi chỗ hai coin",
+  "Their address": "Địa chỉ của họ",
+  "You see the price on the next step.": "Bạn sẽ thấy giá ở bước tiếp theo.",
+  "optional, only you can see it": "không bắt buộc, chỉ bạn thấy",
 };
 export default messages;

@@ -144,15 +144,18 @@ export function SendSwap({ initial }: { initial: Mode }) {
   }
 
   const titles: Record<Mode, [string, string, string]> = fromWallet ? {
-    swap: ["Swap", "Trade one coin for another", "Swap coins in your NEAR wallet. The new coins come back to your wallet."],
-    person: ["Send", "Pay someone", "Send from your NEAR wallet to any NEAR account, like any wallet transfer."],
-    address: ["Send", "Pay out to any address", "Send from your NEAR wallet to a wallet or exchange on any chain."],
+    swap: ["Swap", "Trade one coin for another", "In your NEAR wallet. The new coins come back to it."],
+    person: ["Send", "Pay someone", "From your NEAR wallet to any NEAR account."],
+    address: ["Send", "Pay out to any address", "From your NEAR wallet to any wallet or exchange."],
   } : {
-    swap: ["Swap", "Trade one coin for another", "Swap inside your private balance. Nobody sees what you traded."],
-    person: ["Send", "Pay someone", "From your private balance, money moves between private balances and the public sees nothing."],
-    address: ["Send", "Pay out to any address", "Send to a wallet or exchange on any chain. From your private balance, the payment can't be traced back to you."],
+    swap: ["Swap", "Trade one coin for another", "Inside your private balance. Nobody sees what you traded."],
+    person: ["Send", "Pay someone", "From your private balance. The public sees nothing."],
+    address: ["Send", "Pay out to any address", "To any wallet or exchange, on any chain. It can't be traced back to you."],
   };
 
+  const amtAsset = mode === "address" ? to : from;
+  const amtNum = Number(amount.replace(/,/g, ""));
+  const amountUsd = amtAsset?.priceUsd != null && amtNum > 0 ? amtNum * amtAsset.priceUsd : null;
   const enough = transfer && held ? BigInt(held.amount) >= BigInt(transfer.amountIn) : null;
   const fee = transfer && from?.priceUsd != null && to?.priceUsd != null ? Math.max(0, Number(transfer.amountIn) / 10 ** transfer.fromAsset.decimals * from.priceUsd - Number(transfer.amountOut) / 10 ** transfer.toAsset.decimals * to.priceUsd) : null;
 
@@ -167,47 +170,67 @@ export function SendSwap({ initial }: { initial: Mode }) {
         </div>
       )}
 
-      {!transfer && network === "mainnet" && (
-        <div className="field">
-          <span className="picker-label">{t("Pay from")}</span>
-          <div className="segmented" role="radiogroup" aria-label="Pay from">
-            <button type="button" role="radio" aria-checked={!fromWallet} onClick={() => setSource("private")}>Private balance</button>
-            <button type="button" role="radio" aria-checked={fromWallet} onClick={() => setSource("wallet")}>My wallet</button>
-          </div>
-          <small className="muted">{fromWallet ? "Paid from your NEAR wallet, like any transfer: it shows on the blockchain." : "Paid from your private balance: nobody can see what you hold or who you pay."}</small>
-        </div>
-      )}
-
       {!fromWallet && priv && priv.status !== "active" && <div className="notice">{t("Unlock your private balance on the")} <Link href="/app">{t("home screen")}</Link> first.</div>}
       {fromWallet && pub && holdings.length === 0 && <div className="notice">{t("Your wallet holds no coins on NEAR yet.")}</div>}
       {!fromWallet && priv?.status === "active" && holdings.length === 0 && <div className="notice">{t("Your private balance is empty.")} <Link href="/app/add">{t("Add money")}</Link> to get started.</div>}
 
       {!transfer ? (
-        <form className="card card-pad form-grid" onSubmit={(e) => { e.preventDefault(); getPrice(); }}>
-          <AssetPicker label={mode === "swap" ? "You pay with" : mode === "address" ? (fromWallet ? "Take from your wallet" : "Take from your balance") : "Coin to send"} assets={fromAssets} value={fromId} onChange={setFromId}
-            hint={held ? `You hold ${held.display} ${held.symbol}` : undefined} empty={ready && holdings.length === 0 ? "No coins yet" : undefined} />
-          {mode === "swap" && <AssetPicker label={t("You get")} assets={assets.filter((a) => a.assetId !== fromId && (!fromWallet || a.chain === "near"))} value={toId} onChange={setToId} />}
-          {mode === "person" && (
-            <label className="field">{t("Send to")}<small>{t("Their NEAR account, ending in .near")}</small>
-              <input className="input" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="account.near" autoComplete="off" spellCheck={false} required /></label>
+        <form className="trade" onSubmit={(e) => { e.preventDefault(); getPrice(); }}>
+          {network === "mainnet" && (
+            <div className="trade-src" role="radiogroup" aria-label={t("Pay from")}>
+              <button type="button" role="radio" aria-checked={!fromWallet} onClick={() => setSource("private")}>{t("Private balance")}</button>
+              <button type="button" role="radio" aria-checked={fromWallet} onClick={() => setSource("wallet")}>{t("My wallet")}</button>
+            </div>
           )}
-          {mode === "address" && (
+          <div className="tp">
+            <div className="tp-top">
+              <span>{mode === "swap" ? t("You pay") : mode === "address" ? t("They receive") : t("Amount")}</span>
+              {mode !== "address" && held && <button type="button" className="tp-max" onClick={() => setAmount(held.display.replace(/,/g, ""))}>{t("Balance")} {held.display} · <b>{t("Max")}</b></button>}
+            </div>
+            <div className="tp-main">
+              <input className="tp-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" aria-label={t("Amount")} required />
+              {mode === "address"
+                ? <AssetPicker pill label={t("They receive")} assets={assets} value={toId} onChange={setToId} />
+                : <AssetPicker pill label={t("Coin to send")} assets={fromAssets} value={fromId} onChange={setFromId} empty={ready && holdings.length === 0 ? "No coins yet" : undefined} />}
+            </div>
+            <div className="tp-sub">{amountUsd !== null ? `≈ ${usd(amountUsd)}` : "\u00a0"}</div>
+          </div>
+          {mode === "swap" && (
             <>
-              <AssetPicker label={t("They receive")} assets={assets} value={toId} onChange={setToId} hint={t("Any coin on any network. Scrim converts for you.")} />
-              <label className="field">Their address on {to?.chainName ?? "that network"}
-                {to?.chain === "zec" && <small>{t("A shielded address (starting u1 or zs1) works too. It keeps the receiving side private on Zcash.")}</small>}
-                <input className="input mono" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder={t("Paste the address")} autoComplete="off" spellCheck={false} required /></label>
+              <button type="button" className="tp-flip" aria-label={t("Switch coins")} disabled={!fromAssets.some((a) => a.assetId === toId)} onClick={() => { setFromId(toId); setToId(fromId); }}>⇅</button>
+              <div className="tp">
+                <div className="tp-top"><span>{t("You get")}</span></div>
+                <div className="tp-main">
+                  <span className="tp-amount quiet">—</span>
+                  <AssetPicker pill label={t("You get")} assets={assets.filter((a) => a.assetId !== fromId && (!fromWallet || a.chain === "near"))} value={toId} onChange={setToId} />
+                </div>
+                <div className="tp-sub">{t("You see the price on the next step.")}</div>
+              </div>
             </>
           )}
-          <label className="field">{mode === "swap" ? "Amount to swap" : mode === "address" ? "Amount they receive" : "Amount"}
-            <span className="input-affix"><input className="input" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" required />
-              <span>{(mode === "swap" ? from : mode === "address" ? to : from)?.symbol}</span></span>
-            {mode === "swap" && held && <button type="button" className="linklike" onClick={() => setAmount(held.display.replace(/,/g, ""))}>Use everything I hold ({held.display})</button>}
-          </label>
-          {mode !== "swap" && <label className="field">{t("Note")} <small>{t("Optional. Only you can see it.")}</small><input className="input" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder={t("What it is for")} /></label>}
+          {mode === "person" && (
+            <div className="tp">
+              <div className="tp-top"><span>{t("Send to")}</span></div>
+              <input className="tp-text" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="account.near" autoComplete="off" spellCheck={false} aria-label={t("Send to")} required />
+            </div>
+          )}
+          {mode === "address" && (
+            <div className="tp">
+              <div className="tp-top">
+                <span>{fromWallet ? t("From your wallet") : t("From your balance")}</span>
+                {held && <span className="tp-max static">{t("Balance")} {held.display}</span>}
+              </div>
+              <div className="tp-main">
+                <input className="tp-text mono" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder={`${t("Address on")} ${to?.chainName ?? "…"}`} autoComplete="off" spellCheck={false} aria-label={t("Their address")} required />
+                <AssetPicker pill label={t("Coin to send")} assets={fromAssets} value={fromId} onChange={setFromId} empty={ready && holdings.length === 0 ? "No coins yet" : undefined} />
+              </div>
+              {to?.chain === "zec" && <div className="tp-sub">{t("A shielded address (starting u1 or zs1) works too. It keeps the receiving side private on Zcash.")}</div>}
+            </div>
+          )}
+          {mode !== "swap" && <input className="tp-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder={`${t("Note")} (${t("optional, only you can see it")})`} aria-label={t("Note")} />}
           {error && <p className="form-error" role="alert">{error}</p>}
           {sentHash && <div className="notice good">{t("Sent from your wallet.")} <span className="muted mono">Receipt {sentHash.slice(0, 10)}…</span> <Link href="/app/activity">{t("Activity")}</Link></div>}
-          <button className="btn btn-primary btn-lg" disabled={busy !== "" || !ready}>{busy === "price" && <Spinner />} {fromWallet && mode === "person" ? "Send with my wallet" : "See the price"}</button>
+          <button className="btn btn-primary btn-lg trade-go" disabled={busy !== "" || !ready}>{busy === "price" && <Spinner />} {fromWallet && mode === "person" ? t("Send with my wallet") : t("See the price")}</button>
         </form>
       ) : (
         <div className="card card-pad form-grid">

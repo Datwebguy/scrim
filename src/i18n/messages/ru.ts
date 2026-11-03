@@ -379,6 +379,19 @@ const messages: Record<string, string> = {
   "Inside limits": "В лимите",
   "Waits for you": "Ждёт вас",
   "Refused": "Отказано",
-  "Stopped": "Остановлено"
+  "Stopped": "Остановлено",
+  "Address on": "Адрес в сети",
+  "Balance": "Баланс",
+  "Coin to send": "Монета для отправки",
+  "From your balance": "С вашего баланса",
+  "From your wallet": "Из вашего кошелька",
+  "Max": "Макс.",
+  "My wallet": "Мой кошелёк",
+  "See the price": "Узнать цену",
+  "Send with my wallet": "Отправить из кошелька",
+  "Switch coins": "Поменять монеты",
+  "Their address": "Их адрес",
+  "You see the price on the next step.": "Цену вы увидите на следующем шаге.",
+  "optional, only you can see it": "необязательно, видите только вы",
 };
 export default messages;

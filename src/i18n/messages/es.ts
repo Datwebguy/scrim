@@ -379,6 +379,19 @@ const messages: Record<string, string> = {
   "Inside limits": "Dentro del límite",
   "Waits for you": "Espera tu decisión",
   "Refused": "Rechazado",
-  "Stopped": "Detenido"
+  "Stopped": "Detenido",
+  "Address on": "Dirección en",
+  "Balance": "Saldo",
+  "Coin to send": "Moneda a enviar",
+  "From your balance": "De tu saldo",
+  "From your wallet": "De tu billetera",
+  "Max": "Máx.",
+  "My wallet": "Mi billetera",
+  "See the price": "Ver el precio",
+  "Send with my wallet": "Enviar con mi billetera",
+  "Switch coins": "Intercambiar monedas",
+  "Their address": "Su dirección",
+  "You see the price on the next step.": "Verás el precio en el siguiente paso.",
+  "optional, only you can see it": "opcional, solo tú la ves",
 };
 export default messages;

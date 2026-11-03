@@ -47,30 +47,30 @@ export function AddMoney() {
 
   return (
     <div className="narrow">
-      <Heading eyebrow="Add money" title={t("Bring money in from any chain")} text="Pick a coin and its network, and Scrim gives you a one-time address. Send to it from any wallet or exchange. It lands in your private balance or your NEAR wallet, as you choose." />
+      <Heading eyebrow="Add money" title={t("Bring money in from any chain")} text="Pick a coin and its network. Send to the one-time address from any wallet or exchange." />
       {!transfer ? (
-        <div className="card card-pad form-grid">
-          <div className="field">
-            <span className="picker-label">{t("Where it lands")}</span>
-            <div className="segmented" role="radiogroup" aria-label="Where it lands">
-              <button type="button" role="radio" aria-checked={!toWallet} onClick={() => { setInto("private"); setAssetId(""); }}>Private balance</button>
-              <button type="button" role="radio" aria-checked={toWallet} onClick={() => { setInto("wallet"); setAssetId(""); }}>My wallet</button>
-            </div>
-            <small className="muted">{toWallet ? "Lands in your NEAR wallet, like any transfer: it shows on the blockchain. If it can't be delivered, it comes back to you in Scrim." : "Lands in your private balance: nobody can link what you add to what you send later."}</small>
+        <form className="trade" onSubmit={(e) => { e.preventDefault(); if (!direct && assetId) void start(); }}>
+          <div className="trade-src" role="radiogroup" aria-label={t("Where it lands")}>
+            <button type="button" role="radio" aria-checked={!toWallet} onClick={() => { setInto("private"); setAssetId(""); }}>{t("Private balance")}</button>
+            <button type="button" role="radio" aria-checked={toWallet} onClick={() => { setInto("wallet"); setAssetId(""); }}>{t("My wallet")}</button>
           </div>
-          <AssetPicker label={t("What are you sending?")} assets={assets} value={assetId} onChange={setAssetId} />
+          <p className="trade-note">{toWallet ? "Lands in your NEAR wallet and shows on the blockchain. If it can't be delivered, it comes back to you in Scrim." : "Lands in your private balance. Nobody can link what you add to what you send later."}</p>
+          <div className="tp">
+            <div className="tp-top"><span>{t("What are you sending?")}</span></div>
+            <AssetPicker pill wide label={t("What are you sending?")} assets={assets} value={assetId} onChange={setAssetId} />
+          </div>
           {direct ? (
-            <>
+            <div className="tp">
               <CopyField label={t("Your NEAR wallet address")} value={accountId} />
-              <small className="muted">Send {picked.symbol} on NEAR straight to this address from any wallet or exchange.</small>
-            </>
+              <div className="tp-sub">Send {picked.symbol} on NEAR straight to this address from any wallet or exchange.</div>
+            </div>
           ) : (
             <>
               {error && <p className="form-error" role="alert">{error}</p>}
-              <button className="btn btn-primary btn-lg" onClick={start} disabled={busy || !assetId}>{busy && <Spinner />} Get my deposit address</button>
+              <button className="btn btn-primary btn-lg trade-go" disabled={busy || !assetId}>{busy && <Spinner />} {t("Get my deposit address")}</button>
             </>
           )}
-        </div>
+        </form>
       ) : (
         <div className="card card-pad form-grid">
           <div className="between"><h2>Send {transfer.fromAsset.symbol} on {transfer.fromAsset.chainName}</h2><StateChip status={transfer.status} /></div>

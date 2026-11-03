@@ -379,6 +379,22 @@ const messages: Record<string, string> = {
   "Inside limits": "Dalam batas",
   "Waits for you": "Menunggu Anda",
   "Refused": "Ditolak",
-  "Stopped": "Dihentikan"
+  "Stopped": "Dihentikan",
+  "Address on": "Alamat di",
+  "Balance": "Saldo",
+  "Coin to send": "Koin yang dikirim",
+  "From your balance": "Dari saldo Anda",
+  "From your wallet": "Dari dompet Anda",
+  "Max": "Maks",
+  "My wallet": "Dompet saya",
+  "See the price": "Lihat harga",
+  "Send with my wallet": "Kirim dengan dompet saya",
+  "Switch coins": "Tukar koin",
+  "Their address": "Alamat mereka",
+  "You see the price on the next step.": "Anda akan melihat harga di langkah berikutnya.",
+  "optional, only you can see it": "opsional, hanya Anda yang melihat",
+  "Get my deposit address": "Dapatkan alamat deposit saya",
+  "Create link": "Buat tautan",
+  "Start selling": "Mulai berjualan",
 };
 export default messages;

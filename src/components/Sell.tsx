@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
-import { AssetPicker, CopyField, Heading, StateChip, useAssets } from "./money";
+import { AssetPicker, CopyField, Heading, StateChip, usd, useAssets } from "./money";
 import { ReceiveChoice, type Receive } from "./ReceiveChoice";
 import { Spinner, useToast } from "./ui";
 import { useT } from "@/i18n/I18n";
@@ -20,7 +20,10 @@ export function Sell() {
   const [form, setForm] = useState({ name: "", description: "", amount: "", kind: "text" as "text" | "api", text: "", url: "", headerName: "", headerValue: "" });
   const [assetId, setAssetId] = useState("");
   const [receive, setReceive] = useState<Receive>("private");
-  const onNear = assets.find((a) => a.assetId === assetId)?.chain === "near";
+  const picked = assets.find((a) => a.assetId === assetId);
+  const onNear = picked?.chain === "near";
+  const priceNum = Number(form.amount.replace(/,/g, ""));
+  const priceUsd = picked?.priceUsd != null && priceNum > 0 ? priceNum * picked.priceUsd : null;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [openCode, setOpenCode] = useState<string | null>(null);
@@ -58,7 +61,7 @@ export function Sell() {
   const products = data?.products ?? [];
   return (
     <div className="narrow wide">
-      <Heading eyebrow="Sell" title={t("Sell to agents and people")} text="Sell a file, a code, a report or your API. Agents pay over x402, people on a pay page, from any coin on any chain. Each sale lands where you choose, your private balance or your wallet, and buyers get what you sell once the payment is confirmed." />
+      <Heading eyebrow="Sell" title={t("Sell to agents and people")} text="Sell a file, a code, a report or your API. Agents pay over x402 and people on a pay page, from any coin on any chain." />
 
       {products.length > 0 && (
         <div className="form-grid" style={{ marginBottom: 20 }}>
@@ -90,30 +93,54 @@ export function Sell() {
         </div>
       )}
 
-      <form className="card card-pad form-grid" onSubmit={create}>
-        <h2 style={{ margin: 0 }}>{products.length ? "Sell something else" : "Sell something"}</h2>
-        <label className="field">{t("What is it?")}<input className="input" value={form.name} onChange={set("name")} placeholder={t("Market report, API access, a download")} maxLength={80} required /></label>
-        <label className="field">{t("Short description")}<small>{t("Buyers and agents see this before they pay.")}</small><input className="input" value={form.description} onChange={set("description")} maxLength={280} /></label>
-        <AssetPicker label={t("You receive")} assets={assets} value={assetId} onChange={setAssetId} />
+      <form className="trade" onSubmit={create}>
+        <h2 className="trade-title">{products.length ? "Sell something else" : "Sell something"}</h2>
+        <div className="tp">
+          <div className="tp-top"><span>{t("What is it?")}</span></div>
+          <input className="tp-text" value={form.name} onChange={set("name")} placeholder={t("Market report, API access, a download")} maxLength={80} aria-label={t("What is it?")} required />
+        </div>
+        <div className="tp">
+          <div className="tp-top"><span>{t("Short description")}</span></div>
+          <input className="tp-text" value={form.description} onChange={set("description")} maxLength={280} aria-label={t("Short description")} />
+          <div className="tp-sub">{t("Buyers and agents see this before they pay.")}</div>
+        </div>
+        <div className="tp">
+          <div className="tp-top"><span>{t("Price")}</span></div>
+          <div className="tp-main">
+            <input className="tp-amount" inputMode="decimal" value={form.amount} onChange={set("amount")} placeholder="0" aria-label={t("Price")} required />
+            <AssetPicker pill label={t("You receive")} assets={assets} value={assetId} onChange={setAssetId} />
+          </div>
+          <div className="tp-sub">{priceUsd !== null ? `≈ ${usd(priceUsd)}` : "\u00a0"}</div>
+        </div>
         <ReceiveChoice value={onNear ? receive : "private"} onChange={setReceive} onNear={onNear} />
-        <label className="field">{t("Price")}<input className="input" inputMode="decimal" value={form.amount} onChange={set("amount")} placeholder="0.00" required /></label>
-        <div className="segmented" role="radiogroup" aria-label="What the buyer gets">
+        <div className="trade-src" role="radiogroup" aria-label="What the buyer gets">
           <button type="button" role="radio" aria-checked={form.kind === "text"} onClick={() => setForm({ ...form, kind: "text" })}>A text or link</button>
           <button type="button" role="radio" aria-checked={form.kind === "api"} onClick={() => setForm({ ...form, kind: "api" })}>My API</button>
         </div>
         {form.kind === "text" ? (
-          <label className="field">{t("What the buyer gets")}<small>{t("A message, a code or a download link. Shown only after payment.")}</small><textarea className="input" rows={4} value={form.text} onChange={set("text")} maxLength={4000} required /></label>
+          <div className="tp">
+            <div className="tp-top"><span>{t("What the buyer gets")}</span></div>
+            <textarea className="tp-text area" rows={4} value={form.text} onChange={set("text")} maxLength={4000} aria-label={t("What the buyer gets")} required />
+            <div className="tp-sub">{t("A message, a code or a download link. Shown only after payment.")}</div>
+          </div>
         ) : (
           <>
-            <label className="field">{t("Your API address")}<small>{t("Scrim calls it after each confirmed payment and passes the answer to the buyer.")}</small><input className="input mono" value={form.url} onChange={set("url")} placeholder="https://api.example.com/report" required /></label>
-            <div className="connect-row">
-              <label className="field" style={{ flex: 1 }}>{t("Secret header (optional)")}<input className="input mono" value={form.headerName} onChange={set("headerName")} placeholder={t("X-Api-Key")} /></label>
-              <label className="field" style={{ flex: 1 }}>{t("Value")}<input className="input mono" value={form.headerValue} onChange={set("headerValue")} type="password" /></label>
+            <div className="tp">
+              <div className="tp-top"><span>{t("Your API address")}</span></div>
+              <input className="tp-text mono" value={form.url} onChange={set("url")} placeholder="https://api.example.com/report" aria-label={t("Your API address")} required />
+              <div className="tp-sub">{t("Scrim calls it after each confirmed payment and passes the answer to the buyer.")}</div>
+            </div>
+            <div className="tp">
+              <div className="tp-top"><span>{t("Secret header (optional)")}</span></div>
+              <div className="tp-main">
+                <input className="tp-text mono" value={form.headerName} onChange={set("headerName")} placeholder={t("X-Api-Key")} aria-label={t("Secret header (optional)")} />
+                <input className="tp-text mono" value={form.headerValue} onChange={set("headerValue")} type="password" placeholder={t("Value")} aria-label={t("Value")} />
+              </div>
             </div>
           </>
         )}
         {error && <p className="form-error" role="alert">{error}</p>}
-        <button className="btn btn-primary btn-lg" disabled={busy || !assetId}>{busy && <Spinner />} Start selling</button>
+        <button className="btn btn-primary btn-lg trade-go" disabled={busy || !assetId}>{busy && <Spinner />} {t("Start selling")}</button>
       </form>
     </div>
   );

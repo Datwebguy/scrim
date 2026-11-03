@@ -1247,3 +1247,48 @@ html:lang(ja) .section-head h2, html:lang(ja) .l-row h2 { text-wrap: balance; }
 /* Ask: the question as a plain sentence, the answer in easy reading type. */
 .ask-q { margin: 0; color: var(--muted); font-size: 14px; font-weight: 600; line-height: 1.4; }
 .ask-a { margin: 0; max-width: 60ch; font-size: 17px; line-height: 1.6; white-space: pre-wrap; text-wrap: pretty; }
+
+/* Send and Swap: one compact trade card. A big amount with its coin beside it, the balance under it. */
+.trade { display: grid; gap: 6px; padding: 10px; border: 1px solid var(--line); border-radius: 24px; background: var(--card); box-shadow: var(--shadow); }
+.trade-src { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 99px; background: var(--paper-2); }
+.trade-src button { height: 36px; border: 0; border-radius: 99px; background: none; color: var(--muted); font: 600 14px var(--sans); cursor: pointer; }
+.trade-src button[aria-checked="true"] { background: var(--card); color: var(--ink); box-shadow: 0 0 0 1px var(--line-2); }
+.tp { display: grid; gap: 6px; padding: 14px 16px 12px; border-radius: 18px; background: var(--paper-2); }
+.tp:focus-within { box-shadow: 0 0 0 2px var(--orange); }
+.tp-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 20px; color: var(--muted); font-size: 13px; font-weight: 600; }
+.tp-max { padding: 0; border: 0; background: none; color: var(--muted); font: 500 13px var(--sans); cursor: pointer; }
+.tp-max b { color: var(--orange-deep); font-weight: 700; }
+.tp-max.static { cursor: default; }
+.tp-main { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+.tp-amount { flex: 1; min-width: 0; width: 100%; padding: 0; border: 0; background: none; color: var(--ink); font: 700 34px/1.2 var(--sans); letter-spacing: -0.03em; }
+.tp-amount::placeholder { color: var(--faint); }
+.tp-amount:focus, .tp-text:focus, .tp-note:focus { outline: none; }
+.tp-amount.quiet { color: var(--faint); }
+.tp-text { flex: 1; min-width: 0; width: 100%; padding: 4px 0; border: 0; background: none; color: var(--ink); font: 600 17px var(--sans); }
+.tp-text.mono { font: 500 14px var(--mono); }
+.tp-text::placeholder, .tp-note::placeholder { color: var(--faint); font-weight: 500; }
+.tp-sub { min-height: 18px; color: var(--muted); font-size: 13px; }
+.tp-note { height: 44px; padding: 0 16px; border: 1px dashed var(--line-2); border-radius: 14px; background: none; color: var(--ink); font: 500 14px var(--sans); }
+.tp-flip { justify-self: center; position: relative; z-index: 2; width: 40px; height: 40px; margin: -22px 0; border: 4px solid var(--card); border-radius: 50%; background: var(--paper-2); color: var(--ink); font-size: 17px; line-height: 1; cursor: pointer; }
+.tp-flip:hover:not(:disabled) { color: var(--orange-deep); }
+.tp-flip:disabled { opacity: 0.45; cursor: default; }
+.trade .field.picker.coinpill { display: block; flex: none; width: auto; gap: 0; }
+.picker.coinpill .picker-button { width: auto; gap: 8px; padding: 5px 12px 5px 5px; border: 1px solid var(--line-2); border-radius: 99px; background: var(--card); }
+.picker.coinpill .picker-button b { font-size: 16px; }
+.picker.coinpill .picker-button small { display: none; }
+.picker.coinpill .picker-caret { margin-left: 2px; font-size: 12px; }
+.picker.coinpill .picker-panel { left: auto; right: 0; width: min(380px, calc(100vw - 48px)); }
+.trade-go { width: 100%; margin-top: 4px; }
+.trade .form-error, .trade .notice { margin: 0; }
+.tp-paywith { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--line-2); color: var(--muted); font-size: 13px; font-weight: 600; }
+.trade .field.picker.coinpill.wide { display: flex; width: 100%; }
+.picker.coinpill.wide .picker-button { flex: 1; width: auto; margin: 0; padding: 8px 14px 8px 8px; }
+.picker.coinpill.wide .picker-button small { display: block; }
+.picker.coinpill.wide .picker-panel { left: 0; right: 0; width: auto; }
+.trade-src.three { grid-template-columns: repeat(3, 1fr); }
+.trade-src button:disabled { opacity: 0.45; cursor: default; }
+.trade-label { margin: 6px 6px 0; color: var(--muted); font-size: 13px; font-weight: 600; }
+.trade-note { margin: 0 6px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.trade-title { margin: 6px 6px 2px; font-size: 18px; letter-spacing: -0.02em; }
+.tp-text.area { min-height: 96px; padding: 4px 0; resize: vertical; font: 500 15px/1.5 var(--sans); }
+.tp-main .tp-text + .tp-text { border-left: 1px solid var(--line-2); padding-left: 12px; }

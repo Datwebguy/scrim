@@ -379,6 +379,22 @@ const messages: Record<string, string> = {
   "Inside limits": "Dentro do limite",
   "Waits for you": "Espera por você",
   "Refused": "Recusado",
-  "Stopped": "Interrompido"
+  "Stopped": "Interrompido",
+  "Address on": "Endereço na",
+  "Balance": "Saldo",
+  "Coin to send": "Moeda a enviar",
+  "From your balance": "Do seu saldo",
+  "From your wallet": "Da sua carteira",
+  "Max": "Máx.",
+  "My wallet": "Minha carteira",
+  "See the price": "Ver o preço",
+  "Send with my wallet": "Enviar com minha carteira",
+  "Switch coins": "Trocar moedas",
+  "Their address": "Endereço deles",
+  "You see the price on the next step.": "Você verá o preço na próxima etapa.",
+  "optional, only you can see it": "opcional, só você vê",
+  "Get my deposit address": "Obter meu endereço de depósito",
+  "Create link": "Criar link",
+  "Start selling": "Começar a vender",
 };
 export default messages;

@@ -409,5 +409,6 @@ const messages: Record<string, string> = {
   "Or sign in without a wallet": "Ya da cüzdansız giriş yapın",
   "HOT, Meteor, Intear, MyNearWallet, Nightly and more": "HOT, Meteor, Intear, MyNearWallet, Nightly ve daha fazlası",
   "Email and Google create a wallet for you. No wallet app needed.": "E-posta ve Google sizin için bir cüzdan oluşturur. Cüzdan uygulaması gerekmez.",
+  "Optional. Scrim signs one message for you. It can't move money.": "İsteğe bağlı. Scrim sizin için bir mesajı imzalar. Para taşıyamaz.",
 };
 export default messages;

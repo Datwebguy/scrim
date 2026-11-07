@@ -409,5 +409,6 @@ const messages: Record<string, string> = {
   "Or sign in without a wallet": "或不用钱包登录",
   "HOT, Meteor, Intear, MyNearWallet, Nightly and more": "HOT、Meteor、Intear、MyNearWallet、Nightly 等",
   "Email and Google create a wallet for you. No wallet app needed.": "邮箱和 Google 会为你创建钱包，无需钱包应用。",
+  "Optional. Scrim signs one message for you. It can't move money.": "可选。Scrim 会替你签署一条消息，它无法转移资金。",
 };
 export default messages;

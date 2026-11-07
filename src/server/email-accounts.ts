@@ -4,6 +4,7 @@ import { encodePublicKey, nep413Digest, type Nep413Payload } from "@/protocol/ne
 import type { Network } from "@/protocol/networks";
 import { challengeIssuedTo, createSignInChallenge, signIn, type Session } from "./auth";
 import { sql } from "./db";
+import { allowedActions, broadcast, signedTransaction, type WalletAction } from "./email-send";
 import { badRequest, forbidden, unauthorized } from "./errors";
 import { transferIssuedTo } from "./transfers";
 
@@ -70,12 +71,15 @@ async function accountByLogin(accessToken: string): Promise<EmailAccount> {
 
 // Signs the NEP-413 digest of a message with the person's key. The digest carries NEP-413's own prefix, so the
 // signature can never be passed off as a NEAR transaction.
-async function signMessage(account: EmailAccount, payload: Nep413Payload): Promise<{ publicKey: string; signature: string }> {
-  const hash = "0x" + Buffer.from(nep413Digest(payload)).toString("hex");
-  const out = await privy().wallets().rawSign(account.walletId, { params: { hash } });
+async function signHash(account: EmailAccount, digest: Uint8Array): Promise<Uint8Array> {
+  const out = await privy().wallets().rawSign(account.walletId, { params: { hash: "0x" + Buffer.from(digest).toString("hex") } });
   const signature = Buffer.from(out.signature.replace(/^0x/, ""), "hex");
   if (signature.length !== 64) throw new Error("Privy returned a signature in an unexpected form.");
-  return { publicKey: account.publicKey, signature: signature.toString("base64") };
+  return new Uint8Array(signature);
+}
+
+async function signMessage(account: EmailAccount, payload: Nep413Payload): Promise<{ publicKey: string; signature: string }> {
+  return { publicKey: account.publicKey, signature: Buffer.from(await signHash(account, nep413Digest(payload))).toString("base64") };
 }
 
 // One call signs the person in: check the login, find their account, sign Scrim's sign in message, open a session.
@@ -94,4 +98,14 @@ export async function signForSession(session: Session, accessToken: string, payl
   // person (a sign in, an approval, an unlock or a transfer). A stolen session can't make it sign anything else.
   if (!(await challengeIssuedTo(session, payload)) && !(await transferIssuedTo(session, payload))) throw forbidden("Scrim didn't ask for this signature, so it wasn't signed.");
   return { accountId: account.accountId, ...(await signMessage(account, payload)) };
+}
+
+// For a signed in email person: sends from their own public balance. Only plain money moves are signed (see email-send.ts),
+// the account is the one in the session, and the person's live login is checked on every call.
+export async function sendForSession(session: Session, accessToken: string, input: { receiverId: string; actions: WalletAction[] }) {
+  const account = await accountByLogin(accessToken);
+  if (account.accountId !== session.accountId) throw unauthorized("Sign in with the account you are using.");
+  const { receiverId, actions } = allowedActions(session.network, input.receiverId, input.actions);
+  const signed = await signedTransaction(session.network, account.accountId, account.publicKey, receiverId, actions, (hash) => signHash(account, hash));
+  return broadcast(session.network, signed);
 }

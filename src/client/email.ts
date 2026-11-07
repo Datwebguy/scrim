@@ -90,6 +90,14 @@ export async function signWithEmail(accountId: string, params: { message: string
   return { accountId: signed.accountId || accountId, publicKey: signed.publicKey, signature: signed.signature };
 }
 
+// Sends a plain payment from the email account's own balance. The answer has the shape a wallet app gives back.
+export async function sendWithEmail(params: { receiverId: string; actions: unknown[] }): Promise<unknown> {
+  const client = await privy();
+  const accessToken = await client.getAccessToken();
+  if (!accessToken) throw new Error("Your email sign in ended. Sign in again.");
+  return api("/email/transaction", { body: { accessToken, receiverId: params.receiverId, actions: params.actions } });
+}
+
 export async function endEmailSession() {
   try { localStorage.removeItem(KEY); } catch { /* nothing stored */ }
   try { await (await privy()).auth.logout({}); } catch { /* already signed out */ }

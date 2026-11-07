@@ -2,9 +2,10 @@ import { createHash } from "node:crypto";
 import { PrivyClient } from "@privy-io/node";
 import { encodePublicKey, nep413Digest, type Nep413Payload } from "@/protocol/nep413";
 import type { Network } from "@/protocol/networks";
-import { createSignInChallenge, signIn, type Session } from "./auth";
+import { challengeIssuedTo, createSignInChallenge, signIn, type Session } from "./auth";
 import { sql } from "./db";
-import { badRequest, unauthorized } from "./errors";
+import { badRequest, forbidden, unauthorized } from "./errors";
+import { transferIssuedTo } from "./transfers";
 
 // Sign in with an email. Privy checks the person's login and keeps their key in split pieces. Scrim never holds the
 // key. Scrim asks Privy to sign, and does so only after checking the person's live login token on every request.
@@ -89,5 +90,8 @@ export async function signInWithEmailToken(accessToken: string, network: Network
 export async function signForSession(session: Session, accessToken: string, payload: Nep413Payload) {
   const account = await accountByLogin(accessToken);
   if (account.accountId !== session.accountId) throw unauthorized("Sign in with the account you are using.");
+  // An email account signs without a wallet window asking first, so it signs only what Scrim itself prepared for this
+  // person (a sign in, an approval, an unlock or a transfer). A stolen session can't make it sign anything else.
+  if (!(await challengeIssuedTo(session, payload)) && !(await transferIssuedTo(session, payload))) throw forbidden("Scrim didn't ask for this signature, so it wasn't signed.");
   return { accountId: account.accountId, ...(await signMessage(account, payload)) };
 }

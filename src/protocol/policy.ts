@@ -13,7 +13,17 @@ export type MandatePolicy = {
   expiresAt: string | null;
 };
 
-type PolicyCheck = { rule: "active" | "counterparty" | "per_action_cap" | "rolling_cap" | "expiry"; passed: boolean; detail: string };
+type PolicyRule = "active" | "counterparty" | "per_action_cap" | "rolling_cap" | "expiry";
+// `code` is a stable name for why a request was refused, so software can act on it without reading the sentence.
+type PolicyCheck = { rule: PolicyRule; code?: string; passed: boolean; detail: string };
+
+const REFUSAL_CODE: Record<PolicyRule, string> = {
+  active: "AGENT_PAUSED",
+  expiry: "MANDATE_EXPIRED",
+  counterparty: "RECIPIENT_NOT_ALLOWED",
+  per_action_cap: "OVER_PAYMENT_LIMIT",
+  rolling_cap: "OVER_WINDOW_LIMIT",
+};
 
 export type PolicyDecision = {
   allowed: boolean;
@@ -80,6 +90,7 @@ export function evaluatePolicy(policy: MandatePolicy, input: PolicyInput): Polic
     },
   ];
 
+  for (const c of checks) c.code = REFUSAL_CODE[c.rule];
   return {
     allowed: checks.every((c) => c.passed),
     checks,
@@ -92,4 +103,18 @@ export function describeWindow(seconds: number): string {
   if (seconds % 86_400 === 0) return seconds === 86_400 ? "24-hour" : `${seconds / 86_400}-day`;
   if (seconds % 3_600 === 0) return `${seconds / 3_600}-hour`;
   return `${Math.round(seconds / 60)}-minute`;
+}
+
+// The one word an agent needs: go ahead, wait for a person, or stopped.
+export type Verdict = "allowed" | "needs_person" | "refused";
+
+export function verdictOf(decision: Pick<PolicyDecision, "allowed" | "hold">): Verdict {
+  if (!decision.allowed) return "refused";
+  return decision.hold ? "needs_person" : "allowed";
+}
+
+// Why a request was stopped, as stable codes with a plain sentence each.
+export function refusalReasons(decision: Pick<PolicyDecision, "checks" | "hold">): { code: string; detail: string }[] {
+  const failed = decision.checks.filter((c) => !c.passed).map((c) => ({ code: c.code ?? REFUSAL_CODE[c.rule], detail: c.detail }));
+  return decision.hold ? [...failed, { code: "REPEAT_REQUEST", detail: decision.hold.detail }] : failed;
 }

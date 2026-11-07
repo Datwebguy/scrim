@@ -139,3 +139,12 @@ export async function sessionFromToken(token: string | undefined | null): Promis
 export async function revokeSession(token: string) {
   await sql`UPDATE sessions SET revoked_at = now() WHERE token_hash = ${hashToken(token)} AND revoked_at IS NULL`;
 }
+
+// True when Scrim itself issued this exact message to this person: an open sign in, approval or unlock request.
+export async function challengeIssuedTo(session: Session, payload: { message: string; nonce: Uint8Array; recipient: string }): Promise<boolean> {
+  const [row] = await sql`
+    SELECT 1 FROM auth_challenges
+    WHERE nonce = ${Buffer.from(payload.nonce)} AND message = ${payload.message} AND recipient = ${payload.recipient}
+      AND consumed_at IS NULL AND expires_at > now() AND (session_id = ${session.id} OR subject = ${session.accountId})`;
+  return Boolean(row);
+}

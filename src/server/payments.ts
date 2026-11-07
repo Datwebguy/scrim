@@ -4,7 +4,7 @@ import { commitment } from "@/protocol/canonical";
 import { corridorFor, type Corridor } from "@/protocol/corridor";
 import { normalizeEvmAddress, normalizeNearAccount, normalizeOrigin } from "@/protocol/identifiers";
 import type { Network } from "@/protocol/networks";
-import { evaluatePolicy, type PolicyDecision } from "@/protocol/policy";
+import { evaluatePolicy, refusalReasons, verdictOf, type PolicyDecision } from "@/protocol/policy";
 import { agentSpendInWindow, type Agent } from "./agents";
 import { audit, type Actor } from "./audit";
 import { consumeSignedChallenge, issueChallenge, type Session, type SignedEnvelope } from "./auth";
@@ -107,6 +107,39 @@ async function recentRepeat(tx: Tx, agentId: string, recipient: string, amount: 
   return `Same recipient and amount as a request from ${minutes} minute${minutes === 1 ? "" : "s"} ago. A person confirms it is not a repeat.`;
 }
 
+// The agent's limits, applied to one request: inside them, inside them but a person confirms it, or stopped.
+async function decideForAgent(tx: Tx, agent: Agent, corridor: Corridor, recipient: string, amount: bigint, x402: boolean, lock: boolean): Promise<PolicyDecision> {
+  // Serialize requests per agent so concurrent calls cannot both fit under the rolling cap.
+  const [row] = lock
+    ? await tx<{ enabled: boolean }[]>`SELECT enabled FROM agents WHERE id = ${agent.id} FOR UPDATE`
+    : await tx<{ enabled: boolean }[]>`SELECT enabled FROM agents WHERE id = ${agent.id}`;
+  const spent = await agentSpendInWindow(tx, agent.id, agent.policy.rollingCap.windowSeconds);
+  let decision = evaluatePolicy(agent.policy, { recipient, amount, unit: corridor, spentInWindow: spent, enabled: row.enabled });
+  // Buying from an x402 seller can repeat on purpose, so only plain payments are held.
+  if (decision.allowed && !x402) {
+    const detail = await recentRepeat(tx, agent.id, recipient, amount);
+    if (detail) decision = { ...decision, hold: { reason: "repeat", detail } };
+  }
+  return decision;
+}
+
+// "Would this be allowed?" Nothing is requested, saved or sent. The answer is the one a real request would get.
+export async function checkAgentPayment(agent: Agent, input: { recipient: string; amount: string }) {
+  const [row] = await sql<{ network: string }[]>`SELECT network FROM treasuries WHERE id = ${agent.treasuryId}`;
+  if (!row) throw notFound("Account not found.");
+  const corridor = corridorFor(row.network as Network);
+  const { recipient, amount } = validate({ ...input, idempotencyKey: "dry-run-check" }, corridor);
+  const decision = await decideForAgent(sql, agent, corridor, recipient, amount, false, false);
+  return {
+    verdict: verdictOf(decision),
+    reasons: refusalReasons(decision),
+    checks: decision.checks.map(({ rule, code, passed, detail }) => ({ rule, code, passed, detail })),
+    next: decision.allowed
+      ? agent.mode === "autonomous" && !decision.hold ? "Allowed. Scrim would pay from this agent's wallet." : "Allowed. A person would confirm it first."
+      : "Stopped. Nothing was requested.",
+  };
+}
+
 async function insertPayment(tx: Tx, treasury: Treasury, actor: Actor, agent: Agent | null, input: CreatePaymentInput): Promise<Payment> {
   const corridor = corridorFor(treasury.network);
   const { recipient, amount, memo, idempotencyKey } = validate(input, corridor);
@@ -118,18 +151,7 @@ async function insertPayment(tx: Tx, treasury: Treasury, actor: Actor, agent: Ag
     return (await hydrate(tx, [existing]))[0];
   }
 
-  let decision: PolicyDecision | null = null;
-  if (agent) {
-    // Serialize requests per agent so concurrent calls cannot both fit under the rolling cap.
-    const [lock] = await tx<{ enabled: boolean }[]>`SELECT enabled FROM agents WHERE id = ${agent.id} FOR UPDATE`;
-    const spent = await agentSpendInWindow(tx, agent.id, agent.policy.rollingCap.windowSeconds);
-    decision = evaluatePolicy(agent.policy, { recipient, amount, unit: corridor, spentInWindow: spent, enabled: lock.enabled });
-    // Buying from an x402 seller can repeat on purpose, so only plain payments are held.
-    if (decision.allowed && !input.x402) {
-      const detail = await recentRepeat(tx, agent.id, recipient, amount);
-      if (detail) decision = { ...decision, hold: { reason: "repeat", detail } };
-    }
-  }
+  const decision = agent ? await decideForAgent(tx, agent, corridor, recipient, amount, Boolean(input.x402), true) : null;
 
   const id = randomUUID();
   const status: PaymentStatus = decision && !decision.allowed ? "policy_rejected" : "awaiting_approval";

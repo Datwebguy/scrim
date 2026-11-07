@@ -145,7 +145,7 @@ describe("MCP server", () => {
     expect((await call({ jsonrpc: "2.0", method: "notifications/initialized" })).status).toBe(202);
     expect((await call({ jsonrpc: "2.0", id: 2, method: "tools/list" }, "scrim_sk_notakey")).status).toBe(401);
     const tools = (await call({ jsonrpc: "2.0", id: 3, method: "tools/list" })).body as { result: { tools: { name: string }[] } };
-    expect(tools.result.tools.map((t) => t.name)).toEqual(["get_limits", "request_payment", "find_paid_apis", "pay_x402", "list_payments", "get_payment"]);
+    expect(tools.result.tools.map((t) => t.name)).toEqual(["get_limits", "check_payment", "request_payment", "find_paid_apis", "pay_x402", "list_payments", "get_payment"]);
   });
 
   it("asks to pay through a tool, and the request follows the same limits", async () => {
@@ -166,6 +166,20 @@ describe("MCP server", () => {
     expect(bad.result.isError).toBe(true);
     const unknown = (await call({ jsonrpc: "2.0", id: 7, method: "tools/call", params: { name: "approve_payment", arguments: {} } })).body as { error: { code: number } };
     expect(unknown.error.code).toBe(-32602);
+  });
+
+  it("answers \"would this be allowed?\" without requesting anything", async () => {
+    const before = (await sql`SELECT count(*)::int AS n FROM payment_requests`)[0].n;
+    const ask = async (id: number, recipient: string, amount: string) =>
+      ((await call({ jsonrpc: "2.0", id, method: "tools/call", params: { name: "check_payment", arguments: { recipient, amount } } })).body as {
+        result: { isError: boolean; structuredContent: { verdict: string; reasons: { code: string }[] } };
+      }).result;
+    const stranger = await ask(8, owner.accountId, "0.1");
+    expect(stranger.structuredContent.verdict).toBe("refused");
+    expect(stranger.structuredContent.reasons.map((r) => r.code)).toContain("RECIPIENT_NOT_ALLOWED");
+    expect((await ask(9, payee.accountId, "50")).structuredContent.reasons.map((r) => r.code)).toContain("OVER_PAYMENT_LIMIT");
+    expect((await ask(10, "Not A Name!", "1")).isError).toBe(true);
+    expect((await sql`SELECT count(*)::int AS n FROM payment_requests`)[0].n).toBe(before);
   });
 });
 

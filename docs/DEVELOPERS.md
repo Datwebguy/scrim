@@ -101,6 +101,7 @@ All paths are relative to your site, for example `https://scrim.exchange`. Reque
 | Call | What it does |
 | --- | --- |
 | `GET /api/v1/agent` | Your limits and what is left to spend |
+| `POST /api/v1/agent/check` | Would this be allowed? Nothing is requested |
 | `POST /api/v1/agent/payments` | Ask to pay |
 | `GET /api/v1/agent/payments` | Your recent requests |
 | `GET /api/v1/agent/payments/:id` | One request, and for a purchase what the seller returned |
@@ -236,6 +237,7 @@ The assistant then has these tools:
 | Tool | What it does |
 | --- | --- |
 | `get_limits` | Shows the agent's limits, allowed recipients and remaining budget. Call it first. |
+| `check_payment` | Asks whether a payment would be allowed (`allowed`, `needs_person` or `refused`, with reason codes) without requesting it. |
 | `request_payment` | Asks to pay a recipient. Takes `recipient`, `amount`, optional `memo` and `idempotency_key`. |
 | `find_paid_apis` | Searches the public x402 catalog. Takes `query` and an optional `limit` from 1 to 20. |
 | `pay_x402` | Buys from an x402 address. Takes `url` and an optional `idempotency_key`. |

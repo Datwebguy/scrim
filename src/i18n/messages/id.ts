@@ -405,5 +405,6 @@ const messages: Record<string, string> = {
   "you@example.com": "anda@contoh.com",
   "Use a different wallet": "Gunakan dompet lain",
   "Continue with Google": "Lanjutkan dengan Google",
+  "Use a NEAR wallet, Google or your email. Signing in can't move any money.": "Pakai dompet NEAR, Google, atau email Anda. Masuk tidak bisa memindahkan uang.",
 };
 export default messages;

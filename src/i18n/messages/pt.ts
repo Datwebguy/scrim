@@ -405,5 +405,6 @@ const messages: Record<string, string> = {
   "you@example.com": "voce@exemplo.com",
   "Use a different wallet": "Usar outra carteira",
   "Continue with Google": "Continuar com o Google",
+  "Use a NEAR wallet, Google or your email. Signing in can't move any money.": "Use uma carteira NEAR, o Google ou o seu e-mail. Entrar não move dinheiro.",
 };
 export default messages;

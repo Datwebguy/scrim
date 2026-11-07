@@ -405,5 +405,6 @@ const messages: Record<string, string> = {
   "you@example.com": "ban@vidu.com",
   "Use a different wallet": "Dùng ví khác",
   "Continue with Google": "Tiếp tục với Google",
+  "Use a NEAR wallet, Google or your email. Signing in can't move any money.": "Dùng ví NEAR, Google hoặc email. Đăng nhập không thể chuyển tiền.",
 };
 export default messages;

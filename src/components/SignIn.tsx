@@ -134,8 +134,8 @@ export function SignIn({ networks }: { networks: Network[] }) {
       <div className="gate-form">
         <div className="gate-theme"><LanguageMenu /><ThemeToggle /></div>
         <div>
-          <h1>{t("Sign in with your wallet")}</h1>
-          <p>{t("Choose your NEAR wallet and approve one message. It proves the account is yours. It can't move any money.")}</p>
+          <h1>{emailSignInAvailable ? t("Sign in") : t("Sign in with your wallet")}</h1>
+          <p>{emailSignInAvailable ? t("Use a NEAR wallet, Google or your email. Signing in can't move any money.") : t("Choose your NEAR wallet and approve one message. It proves the account is yours. It can't move any money.")}</p>
 
           {networks.length > 1 && (
             <fieldset className="field">
@@ -160,7 +160,7 @@ export function SignIn({ networks }: { networks: Network[] }) {
           {emailSignInAvailable && (
             <form className="trade-email" onSubmit={emailStep}>
               {googleSignInAvailable && <button type="button" className="btn btn-ghost btn-lg" onClick={google} disabled={busy}>{busy && <Spinner />}{t("Continue with Google")}</button>}
-              <span className="trade-label">{t("Or use your email")}</span>
+              <span className="trade-or"><i />{t("Or use your email")}<i /></span>
               <input className="input" type="email" autoComplete="email" inputMode="email" placeholder={t("you@example.com")} value={email} onChange={(e) => { setEmail(e.target.value); setCodeSent(false); setCode(""); }} required disabled={busy} aria-label={t("Your email")} />
               {codeSent && <input className="input" inputMode="numeric" autoComplete="one-time-code" placeholder={t("Code from your email")} value={code} onChange={(e) => setCode(e.target.value)} required disabled={busy} aria-label={t("Code from your email")} />}
               <button className="btn btn-ghost btn-lg" disabled={busy || !email.trim() || (codeSent && !code.trim())}>{busy && <Spinner />}{codeSent ? t("Sign in") : t("Email me a code")}</button>

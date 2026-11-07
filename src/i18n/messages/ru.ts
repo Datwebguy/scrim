@@ -396,5 +396,12 @@ const messages: Record<string, string> = {
   "Get my deposit address": "Получить адрес для пополнения",
   "Create link": "Создать ссылку",
   "Start selling": "Начать продавать",
+  "Code from your email": "Код из письма",
+  "Email me a code": "Отправить код на почту",
+  "Or use your email": "Или войдите по почте",
+  "Sign in": "Войти",
+  "Use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly, or your email.": "Подойдёт любой кошелёк NEAR, включая HOT, Meteor, Intear, MyNearWallet и Nightly, или ваша почта.",
+  "Your email": "Ваша почта",
+  "you@example.com": "you@example.com",
 };
 export default messages;

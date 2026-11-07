@@ -396,5 +396,12 @@ const messages: Record<string, string> = {
   "Get my deposit address": "Lấy địa chỉ nạp tiền",
   "Create link": "Tạo liên kết",
   "Start selling": "Bắt đầu bán",
+  "Code from your email": "Mã trong email của bạn",
+  "Email me a code": "Gửi mã qua email",
+  "Or use your email": "Hoặc dùng email của bạn",
+  "Sign in": "Đăng nhập",
+  "Use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly, or your email.": "Dùng bất kỳ ví NEAR nào, gồm HOT, Meteor, Intear, MyNearWallet và Nightly, hoặc email của bạn.",
+  "Your email": "Email của bạn",
+  "you@example.com": "ban@vidu.com",
 };
 export default messages;

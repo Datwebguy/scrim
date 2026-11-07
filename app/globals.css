@@ -1292,3 +1292,4 @@ html:lang(ja) .section-head h2, html:lang(ja) .l-row h2 { text-wrap: balance; }
 .trade-title { margin: 6px 6px 2px; font-size: 18px; letter-spacing: -0.02em; }
 .tp-text.area { min-height: 96px; padding: 4px 0; resize: vertical; font: 500 15px/1.5 var(--sans); }
 .tp-main .tp-text + .tp-text { border-left: 1px solid var(--line-2); padding-left: 12px; }
+.trade-email { display: grid; gap: 10px; margin: 18px 0 6px; }

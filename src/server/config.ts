@@ -11,6 +11,10 @@ export const config = {
     const valid = list.filter(isNetwork);
     return valid.length ? valid : ["mainnet"];
   },
+  // Accounts that may open the private stats page, comma separated (for example "scrimapp.near"). Unset means nobody.
+  get adminAccounts(): string[] {
+    return (trim(process.env.SCRIM_ADMIN_ACCOUNTS) ?? "").split(",").map((a) => a.trim().toLowerCase()).filter(Boolean);
+  },
   get authRecipient(): string {
     const recipient = trim(process.env.SCRIM_AUTH_RECIPIENT);
     // In production, wallets must show the site's own name when asked to sign in.

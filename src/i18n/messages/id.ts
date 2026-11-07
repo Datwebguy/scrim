@@ -396,5 +396,12 @@ const messages: Record<string, string> = {
   "Get my deposit address": "Dapatkan alamat deposit saya",
   "Create link": "Buat tautan",
   "Start selling": "Mulai berjualan",
+  "Code from your email": "Kode dari email Anda",
+  "Email me a code": "Kirim kode ke email saya",
+  "Or use your email": "Atau pakai email Anda",
+  "Sign in": "Masuk",
+  "Use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly, or your email.": "Gunakan dompet NEAR apa pun, termasuk HOT, Meteor, Intear, MyNearWallet dan Nightly, atau email Anda.",
+  "Your email": "Email Anda",
+  "you@example.com": "anda@contoh.com",
 };
 export default messages;

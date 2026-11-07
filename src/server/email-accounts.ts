@@ -50,7 +50,13 @@ async function accountFor(privyUserId: string): Promise<EmailAccount> {
     await tx`SELECT pg_advisory_xact_lock(hashtext(${privyUserId}))`;
     const again = (await tx<{ wallet_id: string; account_id: string; public_key: string }[]>`SELECT wallet_id, account_id, public_key FROM email_accounts WHERE privy_user_id = ${privyUserId}`)[0];
     if (again) return { privyUserId, walletId: again.wallet_id, accountId: again.account_id, publicKey: again.public_key };
-    const wallet = await privy().wallets().create({ chain_type: "near", external_id: `scrim-${createHash("sha256").update(privyUserId).digest("hex").slice(0, 40)}` });
+    const externalId = `scrim-${createHash("sha256").update(privyUserId).digest("hex").slice(0, 40)}`;
+    const wallet = await privy().wallets().create({ chain_type: "near", external_id: externalId }).catch(async (error: unknown) => {
+      // The wallet may already exist at Privy (an earlier sign up that stopped before it was saved here): reuse it.
+      if (!/external_id already exists/i.test(String((error as Error)?.message ?? error))) throw error;
+      for await (const found of privy().wallets().list({ external_id: externalId })) return found;
+      throw error;
+    });
     const account = describe(wallet as { id: string; address: string }, privyUserId);
     await tx`INSERT INTO email_accounts (privy_user_id, wallet_id, account_id, public_key) VALUES (${privyUserId}, ${account.walletId}, ${account.accountId}, ${account.publicKey})`;
     return account;

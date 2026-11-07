@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { emailSignInAvailable, sendEmailCode, signInWithEmail } from "@/client/email";
 import { connectedAccount, signInWithWallet } from "@/client/wallet";
 import { isNetwork, NETWORK_INFO, type Network } from "@/protocol/networks";
 import { Spinner } from "./ui";
@@ -20,6 +21,9 @@ export function SignIn({ networks }: { networks: Network[] }) {
   const [error, setError] = useState("");
   const [stuck, setStuck] = useState(false);
   const [known, setKnown] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
 
   // Remember the last network, or honour ?network= from a "switch network" link.
   useEffect(() => {
@@ -56,6 +60,27 @@ export function SignIn({ networks }: { networks: Network[] }) {
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : t("Sign-in didn't finish. Try again."));
+      setBusy(false);
+    }
+  }
+
+  async function emailStep(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      try { localStorage.setItem(KEY, network); } catch { /* optional */ }
+      if (!codeSent) {
+        await sendEmailCode(email);
+        setCodeSent(true);
+        setBusy(false);
+        return;
+      }
+      await signInWithEmail(email, code, network);
+      router.replace("/app");
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t("Sign-in didn't finish. Try again."));
       setBusy(false);
     }
   }
@@ -97,7 +122,15 @@ export function SignIn({ networks }: { networks: Network[] }) {
           <button className="btn btn-primary btn-lg" onClick={connect} disabled={busy}>{busy && <Spinner />}{busy ? t("Check your wallet…") : known ? t("Continue as {name}", { name: known }) : t("Connect wallet on {network}", { network: t(NETWORK_INFO[network].label).toLowerCase() })}</button>
           {stuck && <p className="fine">Wallet didn&apos;t open, or you came back without finishing? <button type="button" className="link-btn" onClick={() => { setBusy(false); setError(""); }}>Tap here to try again</button>.</p>}
           {error && <p className="form-error" role="alert">{error}</p>}
-          <p className="fine">{t("No email. No password. You can use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly.")}</p>
+          {emailSignInAvailable && (
+            <form className="trade-email" onSubmit={emailStep}>
+              <span className="trade-label">{t("Or use your email")}</span>
+              <input className="input" type="email" autoComplete="email" inputMode="email" placeholder={t("you@example.com")} value={email} onChange={(e) => { setEmail(e.target.value); setCodeSent(false); setCode(""); }} required disabled={busy} aria-label={t("Your email")} />
+              {codeSent && <input className="input" inputMode="numeric" autoComplete="one-time-code" placeholder={t("Code from your email")} value={code} onChange={(e) => setCode(e.target.value)} required disabled={busy} aria-label={t("Code from your email")} />}
+              <button className="btn btn-ghost btn-lg" disabled={busy || !email.trim() || (codeSent && !code.trim())}>{busy && <Spinner />}{codeSent ? t("Sign in") : t("Email me a code")}</button>
+            </form>
+          )}
+          <p className="fine">{emailSignInAvailable ? t("Use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly, or your email.") : t("No email. No password. You can use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly.")}</p>
         </div>
       </div>
     </div>

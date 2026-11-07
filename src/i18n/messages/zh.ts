@@ -396,5 +396,12 @@ const messages: Record<string, string> = {
   "Get my deposit address": "获取我的充值地址",
   "Create link": "创建链接",
   "Start selling": "开始销售",
+  "Code from your email": "邮件中的验证码",
+  "Email me a code": "发送验证码到邮箱",
+  "Or use your email": "或使用邮箱",
+  "Sign in": "登录",
+  "Use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly, or your email.": "可使用任何 NEAR 钱包，包括 HOT、Meteor、Intear、MyNearWallet 和 Nightly，或使用邮箱。",
+  "Your email": "你的邮箱",
+  "you@example.com": "you@example.com",
 };
 export default messages;

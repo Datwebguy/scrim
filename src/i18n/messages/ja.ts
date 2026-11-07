@@ -396,5 +396,12 @@ const messages: Record<string, string> = {
   "Get my deposit address": "入金アドレスを取得",
   "Create link": "リンクを作成",
   "Start selling": "販売を開始",
+  "Code from your email": "メールに届いたコード",
+  "Email me a code": "コードをメールで受け取る",
+  "Or use your email": "またはメールを使う",
+  "Sign in": "ログイン",
+  "Use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly, or your email.": "HOT、Meteor、Intear、MyNearWallet、Nightlyなど、どのNEARウォレットでも、メールでも利用できます。",
+  "Your email": "メールアドレス",
+  "you@example.com": "you@example.com",
 };
 export default messages;

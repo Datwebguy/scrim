@@ -4,6 +4,7 @@
 import type { NearConnector, NearWalletBase } from "@hot-labs/near-connect";
 import type { Network } from "@/protocol/networks";
 import { api } from "./api";
+import { emailSession, endEmailSession, signWithEmail } from "./email";
 
 type Challenge = { challengeId: string; message: string; nonce: string; recipient: string };
 type Payload = { message: string; nonce: string; recipient: string };
@@ -69,7 +70,21 @@ export async function connectedAccount(network: Network): Promise<string | null>
   }
 }
 
+// Someone signed in with an email has no wallet app. This stands in for one: it signs messages through Privy
+// and says plainly that sending from a public wallet balance isn't available for them yet.
+function emailWallet(accountId: string): NearWalletBase {
+  const unavailable = () => { throw new Error("Sending from a public wallet balance isn't available with an email sign in yet. Use your private balance."); };
+  return {
+    getAccounts: async () => [{ accountId }],
+    signMessage: (params: { message: string; recipient: string; nonce: Uint8Array }) => signWithEmail(accountId, params),
+    signAndSendTransaction: unavailable,
+    signAndSendTransactions: unavailable,
+  } as unknown as NearWalletBase;
+}
+
 async function connectedWallet(network: Network): Promise<{ wallet: NearWalletBase; accountId: string }> {
+  const email = emailSession();
+  if (email) return { wallet: emailWallet(email.accountId), accountId: email.accountId };
   const near = await connector(network);
   let wallet: NearWalletBase;
   try {
@@ -177,6 +192,10 @@ export async function signOutWallet(network: Network) {
     await api("/auth/logout", { method: "POST" });
   } catch {
     // The session may already have ended.
+  }
+  if (emailSession()) {
+    await endEmailSession();
+    return;
   }
   try {
     await (await connector(network)).disconnect();

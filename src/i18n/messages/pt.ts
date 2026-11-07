@@ -396,5 +396,12 @@ const messages: Record<string, string> = {
   "Get my deposit address": "Obter meu endereço de depósito",
   "Create link": "Criar link",
   "Start selling": "Começar a vender",
+  "Code from your email": "Código do seu e-mail",
+  "Email me a code": "Enviar um código por e-mail",
+  "Or use your email": "Ou use seu e-mail",
+  "Sign in": "Entrar",
+  "Use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly, or your email.": "Use qualquer carteira NEAR, como HOT, Meteor, Intear, MyNearWallet e Nightly, ou seu e-mail.",
+  "Your email": "Seu e-mail",
+  "you@example.com": "voce@exemplo.com",
 };
 export default messages;

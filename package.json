@@ -23,6 +23,8 @@
     "@hot-labs/near-connect": "^0.11.4",
     "@noble/curves": "^2.4.0",
     "@noble/hashes": "^2.4.0",
+    "@privy-io/js-sdk-core": "^0.79.4",
+    "@privy-io/node": "^0.38.0",
     "@solana-program/token": "^0.9.0",
     "@solana/kit": "^5.5.1",
     "@solana/wallet-standard-features": "^1.5.0",

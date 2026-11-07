@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { emailSignInAvailable, sendEmailCode, signInWithEmail } from "@/client/email";
-import { connectedAccount, signInWithWallet } from "@/client/wallet";
+import { connectedAccount, disconnectWallet, signInWithWallet } from "@/client/wallet";
 import { isNetwork, NETWORK_INFO, type Network } from "@/protocol/networks";
 import { Spinner } from "./ui";
 import { Wordmark } from "@/components/Wordmark";
@@ -64,6 +64,14 @@ export function SignIn({ networks }: { networks: Network[] }) {
     }
   }
 
+  // The wallet connected in this browser may not be the one the person wants today: let go of it and ask again.
+  async function useAnotherWallet() {
+    setError("");
+    await disconnectWallet(network);
+    setKnown(null);
+    await connect();
+  }
+
   async function emailStep(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -120,6 +128,7 @@ export function SignIn({ networks }: { networks: Network[] }) {
 
           {network === "testnet" && <div className="notice info">{t("Testnet uses free test coins, so nothing here is worth money.")}</div>}
           <button className="btn btn-primary btn-lg" onClick={connect} disabled={busy}>{busy && <Spinner />}{busy ? t("Check your wallet…") : known ? t("Continue as {name}", { name: known }) : t("Connect wallet on {network}", { network: t(NETWORK_INFO[network].label).toLowerCase() })}</button>
+          {known && !busy && <p className="fine"><button type="button" className="link-btn" onClick={useAnotherWallet}>{t("Use a different wallet")}</button></p>}
           {stuck && <p className="fine">Wallet didn&apos;t open, or you came back without finishing? <button type="button" className="link-btn" onClick={() => { setBusy(false); setError(""); }}>Tap here to try again</button>.</p>}
           {error && <p className="form-error" role="alert">{error}</p>}
           {emailSignInAvailable && (

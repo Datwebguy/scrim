@@ -403,5 +403,6 @@ const messages: Record<string, string> = {
   "Use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly, or your email.": "HOT, Meteor, Intear, MyNearWallet ve Nightly dahil herhangi bir NEAR cüzdanını veya e-postanızı kullanabilirsiniz.",
   "Your email": "E-postanız",
   "you@example.com": "siz@ornek.com",
+  "Use a different wallet": "Başka bir cüzdan kullan",
 };
 export default messages;

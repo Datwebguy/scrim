@@ -403,5 +403,6 @@ const messages: Record<string, string> = {
   "Use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly, or your email.": "Dùng bất kỳ ví NEAR nào, gồm HOT, Meteor, Intear, MyNearWallet và Nightly, hoặc email của bạn.",
   "Your email": "Email của bạn",
   "you@example.com": "ban@vidu.com",
+  "Use a different wallet": "Dùng ví khác",
 };
 export default messages;

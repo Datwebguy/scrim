@@ -403,5 +403,6 @@ const messages: Record<string, string> = {
   "Use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly, or your email.": "Gunakan dompet NEAR apa pun, termasuk HOT, Meteor, Intear, MyNearWallet dan Nightly, atau email Anda.",
   "Your email": "Email Anda",
   "you@example.com": "anda@contoh.com",
+  "Use a different wallet": "Gunakan dompet lain",
 };
 export default messages;

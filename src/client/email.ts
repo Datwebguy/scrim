@@ -23,11 +23,44 @@ export async function sendEmailCode(email: string) {
   await (await privy()).auth.email.sendCode(email.trim());
 }
 
+// Google sign in: Privy sends the person to Google and Google sends them back to /app with a code and a state in the address.
+export const googleSignInAvailable = emailSignInAvailable && process.env.NEXT_PUBLIC_GOOGLE_SIGNIN === "on";
+const GOOGLE_NETWORK = "scrim-google-network";
+
+export async function startGoogleSignIn(network: Network) {
+  const client = await privy();
+  const { url } = await client.auth.oauth.generateURL("google", `${window.location.origin}/app`);
+  try { sessionStorage.setItem(GOOGLE_NETWORK, network); } catch { /* the current network is used instead */ }
+  window.location.assign(url);
+}
+
+// The code and state Google handed back, taken off the address so a reload cannot reuse them.
+export function takeGoogleReturn(): { code: string; state: string; network: Network | null } | null {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("privy_oauth_code");
+  const state = params.get("privy_oauth_state");
+  if (!code || !state) return null;
+  window.history.replaceState({}, "", window.location.pathname);
+  let saved: string | null = null;
+  try { saved = sessionStorage.getItem(GOOGLE_NETWORK); sessionStorage.removeItem(GOOGLE_NETWORK); } catch { /* none saved */ }
+  return { code, state, network: saved === "mainnet" || saved === "testnet" ? saved : null };
+}
+
+export async function finishGoogleSignIn(code: string, state: string, network: Network) {
+  const client = await privy();
+  await client.auth.oauth.loginWithCode(code, state, "google");
+  return openSession(client, network);
+}
+
 export async function signInWithEmail(email: string, code: string, network: Network): Promise<{ accountId: string; privateStatus: string }> {
   const client = await privy();
   await client.auth.email.loginWithCode(email.trim(), code.trim());
+  return openSession(client, network);
+}
+
+async function openSession(client: Privy, network: Network): Promise<{ accountId: string; privateStatus: string }> {
   const accessToken = await client.getAccessToken();
-  if (!accessToken) throw new Error("That code didn't work. Check it and try again.");
+  if (!accessToken) throw new Error("That didn't work. Try again.");
   const result = await api<{ accountId: string; privateStatus: string }>("/auth/email", { body: { accessToken, network } });
   try { localStorage.setItem(KEY, JSON.stringify({ accountId: result.accountId })); } catch { /* the sign in still worked */ }
   return result;

@@ -403,5 +403,8 @@ const messages: Record<string, string> = {
   "Use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly, or your email.": "Use qualquer carteira NEAR, como HOT, Meteor, Intear, MyNearWallet e Nightly, ou seu e-mail.",
   "Your email": "Seu e-mail",
   "you@example.com": "voce@exemplo.com",
+  "Use a different wallet": "Usar outra carteira",
+  "Continue with Google": "Continuar com o Google",
+  "Use a NEAR wallet, Google or your email. Signing in can't move any money.": "Use uma carteira NEAR, o Google ou o seu e-mail. Entrar não move dinheiro.",
 };
 export default messages;

@@ -82,6 +82,15 @@ function emailWallet(accountId: string): NearWalletBase {
   } as unknown as NearWalletBase;
 }
 
+// Forget the wallet connected in this browser, so the next sign in asks which wallet to use.
+export async function disconnectWallet(network: Network) {
+  try {
+    await (await connector(network)).disconnect();
+  } catch {
+    // Nothing was connected.
+  }
+}
+
 async function connectedWallet(network: Network): Promise<{ wallet: NearWalletBase; accountId: string }> {
   const email = emailSession();
   if (email) return { wallet: emailWallet(email.accountId), accountId: email.accountId };

@@ -2,8 +2,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { emailSignInAvailable, sendEmailCode, signInWithEmail } from "@/client/email";
-import { connectedAccount, signInWithWallet } from "@/client/wallet";
+import { emailSignInAvailable, finishGoogleSignIn, googleSignInAvailable, sendEmailCode, signInWithEmail, startGoogleSignIn, takeGoogleReturn } from "@/client/email";
+import { connectedAccount, disconnectWallet, signInWithWallet } from "@/client/wallet";
 import { isNetwork, NETWORK_INFO, type Network } from "@/protocol/networks";
 import { Spinner } from "./ui";
 import { Wordmark } from "@/components/Wordmark";
@@ -64,6 +64,40 @@ export function SignIn({ networks }: { networks: Network[] }) {
     }
   }
 
+  // Back from Google: finish the sign in with the code in the address.
+  useEffect(() => {
+    if (!googleSignInAvailable) return;
+    const back = takeGoogleReturn();
+    if (!back) return;
+    setBusy(true);
+    finishGoogleSignIn(back.code, back.state, back.network ?? network).then(
+      () => { router.replace("/app"); router.refresh(); },
+      (e) => { setError(e instanceof Error ? e.message : t("Sign-in didn't finish. Try again.")); setBusy(false); },
+    );
+    // Runs once, when the page opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function google() {
+    setBusy(true);
+    setError("");
+    try {
+      try { localStorage.setItem(KEY, network); } catch { /* optional */ }
+      await startGoogleSignIn(network);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("Sign-in didn't finish. Try again."));
+      setBusy(false);
+    }
+  }
+
+  // The wallet connected in this browser may not be the one the person wants today: let go of it and ask again.
+  async function useAnotherWallet() {
+    setError("");
+    await disconnectWallet(network);
+    setKnown(null);
+    await connect();
+  }
+
   async function emailStep(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -100,8 +134,8 @@ export function SignIn({ networks }: { networks: Network[] }) {
       <div className="gate-form">
         <div className="gate-theme"><LanguageMenu /><ThemeToggle /></div>
         <div>
-          <h1>{t("Sign in with your wallet")}</h1>
-          <p>{t("Choose your NEAR wallet and approve one message. It proves the account is yours. It can't move any money.")}</p>
+          <h1>{emailSignInAvailable ? t("Sign in") : t("Sign in with your wallet")}</h1>
+          <p>{emailSignInAvailable ? t("Use a NEAR wallet, Google or your email. Signing in can't move any money.") : t("Choose your NEAR wallet and approve one message. It proves the account is yours. It can't move any money.")}</p>
 
           {networks.length > 1 && (
             <fieldset className="field">
@@ -120,11 +154,13 @@ export function SignIn({ networks }: { networks: Network[] }) {
 
           {network === "testnet" && <div className="notice info">{t("Testnet uses free test coins, so nothing here is worth money.")}</div>}
           <button className="btn btn-primary btn-lg" onClick={connect} disabled={busy}>{busy && <Spinner />}{busy ? t("Check your wallet…") : known ? t("Continue as {name}", { name: known }) : t("Connect wallet on {network}", { network: t(NETWORK_INFO[network].label).toLowerCase() })}</button>
+          {known && !busy && <p className="fine"><button type="button" className="link-btn" onClick={useAnotherWallet}>{t("Use a different wallet")}</button></p>}
           {stuck && <p className="fine">Wallet didn&apos;t open, or you came back without finishing? <button type="button" className="link-btn" onClick={() => { setBusy(false); setError(""); }}>Tap here to try again</button>.</p>}
           {error && <p className="form-error" role="alert">{error}</p>}
           {emailSignInAvailable && (
             <form className="trade-email" onSubmit={emailStep}>
-              <span className="trade-label">{t("Or use your email")}</span>
+              {googleSignInAvailable && <button type="button" className="btn btn-ghost btn-lg" onClick={google} disabled={busy}>{busy && <Spinner />}{t("Continue with Google")}</button>}
+              <span className="trade-or"><i />{t("Or use your email")}<i /></span>
               <input className="input" type="email" autoComplete="email" inputMode="email" placeholder={t("you@example.com")} value={email} onChange={(e) => { setEmail(e.target.value); setCodeSent(false); setCode(""); }} required disabled={busy} aria-label={t("Your email")} />
               {codeSent && <input className="input" inputMode="numeric" autoComplete="one-time-code" placeholder={t("Code from your email")} value={code} onChange={(e) => setCode(e.target.value)} required disabled={busy} aria-label={t("Code from your email")} />}
               <button className="btn btn-ghost btn-lg" disabled={busy || !email.trim() || (codeSent && !code.trim())}>{busy && <Spinner />}{codeSent ? t("Sign in") : t("Email me a code")}</button>

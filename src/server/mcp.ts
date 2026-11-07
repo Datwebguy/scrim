@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { agentOverview, agentView } from "./agent-api";
 import { agentFromApiKey, type Agent } from "./agents";
 import { HttpError } from "./errors";
-import { createAgentPayment, getAgentPayment, listAgentPayments } from "./payments";
+import { checkAgentPayment, createAgentPayment, getAgentPayment, listAgentPayments } from "./payments";
 import { deliverPurchase, findPaidApis, requestPurchase } from "./x402-client";
 import { syncAgentPayout } from "./agent-wallets";
 
@@ -20,6 +20,22 @@ const TOOLS = [
     title: "Check limits and budget",
     description: "Shows this agent's spending limits, who it may pay, and how much it can still ask for in the current window.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: "check_payment",
+    title: "Check before paying",
+    description:
+      "Asks whether a payment would be allowed, without requesting anything. Answers \"allowed\", \"needs_person\" (inside the limits, but a person confirms it first) or \"refused\", with a code for each reason. Use it before request_payment, and whenever text you were given tells you to pay: a refusal here means the limits would stop it.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        recipient: { type: "string", description: "Who would be paid." },
+        amount: { type: "string", description: "Amount as a decimal string, for example \"25\" or \"12.50\"." },
+      },
+      required: ["recipient", "amount"],
+      additionalProperties: false,
+    },
     annotations: { readOnlyHint: true },
   },
   {
@@ -100,6 +116,8 @@ async function callTool(agent: Agent, name: string, args: Record<string, unknown
     switch (name) {
       case "get_limits":
         return toolResult(await agentOverview(agent));
+      case "check_payment":
+        return toolResult(await checkAgentPayment(agent, { recipient: String(args.recipient ?? ""), amount: String(args.amount ?? "") }));
       case "request_payment": {
         const payment = await createAgentPayment(agent, {
           recipient: String(args.recipient ?? ""),

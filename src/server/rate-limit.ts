@@ -4,6 +4,7 @@ import { HttpError } from "./errors";
 // Each route group gets a request budget per client per minute. Stricter groups sit first.
 const LIMITS: [prefix: string, perMinute: number][] = [
   ["/api/v1/auth", 20],
+  ["/api/v1/email", 30],
   ["/api/v1/ask", 10],
   ["/api/v1/private/unlock", 20],
   ["/api/v1/accounts", 30],

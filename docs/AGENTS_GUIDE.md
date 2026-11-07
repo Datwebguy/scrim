@@ -16,7 +16,7 @@ An **agent** is a helper that spends for you, only inside the rules you set: an 
 { "mcpServers": { "scrim": { "type": "http", "url": "https://<your-site>/api/mcp", "headers": { "Authorization": "Bearer scrim_sk_…" } } } }
 ```
 
-Tools: `get_limits`, `request_payment`, `find_paid_apis`, `pay_x402`, `list_payments`, `get_payment`.
+Tools: `get_limits`, `check_payment`, `request_payment`, `find_paid_apis`, `pay_x402`, `list_payments`, `get_payment`.
 
 **Connect code (HTTPS).**
 

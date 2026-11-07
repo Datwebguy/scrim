@@ -615,3 +615,16 @@ export async function linkPaymentStatus(linkId: string, transferId: string): Pro
   const t = await refreshRow(row);
   return { id: t.id, status: t.status, deposit: t.deposit, amountIn: t.amountIn, fromAsset: t.fromAsset, expiresAt: t.expiresAt };
 }
+
+// True when Scrim itself prepared this exact message for this person's open transfer.
+export async function transferIssuedTo(session: Session, payload: { message: string; nonce: Uint8Array; recipient: string }): Promise<boolean> {
+  const rows = await sql<{ id: string; account_id: string; details_sealed: string }[]>`
+    SELECT id, account_id, details_sealed FROM transfers
+    WHERE account_id = ${session.accountId} AND status = 'awaiting_signature' AND expires_at > now()
+    ORDER BY created_at DESC LIMIT 20`;
+  const nonce = Buffer.from(payload.nonce).toString("base64");
+  return rows.some((row) => {
+    const intent = open<Details>(row.details_sealed, aad(row.id, row.account_id)).intent;
+    return Boolean(intent) && intent!.message === payload.message && intent!.recipient === payload.recipient && intent!.nonce === nonce;
+  });
+}

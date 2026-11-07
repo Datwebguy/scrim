@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { PrivyClient } from "@privy-io/node";
 import { encodePublicKey, nep413Digest, type Nep413Payload } from "@/protocol/nep413";
 import type { Network } from "@/protocol/networks";
@@ -6,7 +7,11 @@ import { sql } from "./db";
 import { badRequest, unauthorized } from "./errors";
 
 // Sign in with an email. Privy checks the person's login and keeps their key in split pieces. Scrim never holds the
-// key: it asks Privy to sign, and Privy signs only while the person's own login token goes along with the request.
+// key. Scrim asks Privy to sign, and does so only after checking the person's live login token on every request.
+//
+// What this means for trust: Privy's own email login has no way to make Privy refuse Scrim's server (the "sign with
+// the user's token" feature is only for apps with their own login system). So the wallet belongs to the app and
+// Scrim's server is what stands between a request and a signature. Anyone who holds Scrim's Privy secret could sign.
 
 const emailLoginEnabled = () => process.env.SCRIM_EMAIL_SIGNIN === "on" && Boolean(process.env.PRIVY_APP_ID && process.env.PRIVY_APP_SECRET);
 
@@ -45,7 +50,7 @@ async function accountFor(privyUserId: string): Promise<EmailAccount> {
     await tx`SELECT pg_advisory_xact_lock(hashtext(${privyUserId}))`;
     const again = (await tx<{ wallet_id: string; account_id: string; public_key: string }[]>`SELECT wallet_id, account_id, public_key FROM email_accounts WHERE privy_user_id = ${privyUserId}`)[0];
     if (again) return { privyUserId, walletId: again.wallet_id, accountId: again.account_id, publicKey: again.public_key };
-    const wallet = await privy().wallets().create({ chain_type: "near", owner: { user_id: privyUserId } });
+    const wallet = await privy().wallets().create({ chain_type: "near", external_id: `scrim-${createHash("sha256").update(privyUserId).digest("hex").slice(0, 40)}` });
     const account = describe(wallet as { id: string; address: string }, privyUserId);
     await tx`INSERT INTO email_accounts (privy_user_id, wallet_id, account_id, public_key) VALUES (${privyUserId}, ${account.walletId}, ${account.accountId}, ${account.publicKey})`;
     return account;
@@ -58,9 +63,9 @@ async function accountByLogin(accessToken: string): Promise<EmailAccount> {
 
 // Signs the NEP-413 digest of a message with the person's key. The digest carries NEP-413's own prefix, so the
 // signature can never be passed off as a NEAR transaction.
-async function signMessage(account: EmailAccount, payload: Nep413Payload, accessToken: string): Promise<{ publicKey: string; signature: string }> {
+async function signMessage(account: EmailAccount, payload: Nep413Payload): Promise<{ publicKey: string; signature: string }> {
   const hash = "0x" + Buffer.from(nep413Digest(payload)).toString("hex");
-  const out = await privy().wallets().rawSign(account.walletId, { params: { hash }, authorization_context: { user_jwts: [accessToken] } });
+  const out = await privy().wallets().rawSign(account.walletId, { params: { hash } });
   const signature = Buffer.from(out.signature.replace(/^0x/, ""), "hex");
   if (signature.length !== 64) throw new Error("Privy returned a signature in an unexpected form.");
   return { publicKey: account.publicKey, signature: signature.toString("base64") };
@@ -70,7 +75,7 @@ async function signMessage(account: EmailAccount, payload: Nep413Payload, access
 export async function signInWithEmailToken(accessToken: string, network: Network) {
   const account = await accountByLogin(accessToken);
   const challenge = await createSignInChallenge(account.accountId, network);
-  const { signature, publicKey } = await signMessage(account, { message: challenge.message, nonce: Uint8Array.from(Buffer.from(challenge.nonce, "base64")), recipient: challenge.recipient }, accessToken);
+  const { signature, publicKey } = await signMessage(account, { message: challenge.message, nonce: Uint8Array.from(Buffer.from(challenge.nonce, "base64")), recipient: challenge.recipient });
   return signIn({ challengeId: challenge.challengeId, accountId: account.accountId, publicKey, signature });
 }
 
@@ -78,5 +83,5 @@ export async function signInWithEmailToken(accessToken: string, network: Network
 export async function signForSession(session: Session, accessToken: string, payload: Nep413Payload) {
   const account = await accountByLogin(accessToken);
   if (account.accountId !== session.accountId) throw unauthorized("Sign in with the account you are using.");
-  return { accountId: account.accountId, ...(await signMessage(account, payload, accessToken)) };
+  return { accountId: account.accountId, ...(await signMessage(account, payload)) };
 }

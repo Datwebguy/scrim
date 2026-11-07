@@ -404,5 +404,6 @@ const messages: Record<string, string> = {
   "Your email": "你的邮箱",
   "you@example.com": "you@example.com",
   "Use a different wallet": "使用其他钱包",
+  "Continue with Google": "使用 Google 继续",
 };
 export default messages;

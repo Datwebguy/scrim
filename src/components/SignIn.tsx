@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { emailSignInAvailable, sendEmailCode, signInWithEmail } from "@/client/email";
+import { emailSignInAvailable, finishGoogleSignIn, googleSignInAvailable, sendEmailCode, signInWithEmail, startGoogleSignIn, takeGoogleReturn } from "@/client/email";
 import { connectedAccount, disconnectWallet, signInWithWallet } from "@/client/wallet";
 import { isNetwork, NETWORK_INFO, type Network } from "@/protocol/networks";
 import { Spinner } from "./ui";
@@ -58,6 +58,32 @@ export function SignIn({ networks }: { networks: Network[] }) {
       await signInWithWallet(network);
       router.replace("/app");
       router.refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t("Sign-in didn't finish. Try again."));
+      setBusy(false);
+    }
+  }
+
+  // Back from Google: finish the sign in with the code in the address.
+  useEffect(() => {
+    if (!googleSignInAvailable) return;
+    const back = takeGoogleReturn();
+    if (!back) return;
+    setBusy(true);
+    finishGoogleSignIn(back.code, back.state, back.network ?? network).then(
+      () => { router.replace("/app"); router.refresh(); },
+      (e) => { setError(e instanceof Error ? e.message : t("Sign-in didn't finish. Try again.")); setBusy(false); },
+    );
+    // Runs once, when the page opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function google() {
+    setBusy(true);
+    setError("");
+    try {
+      try { localStorage.setItem(KEY, network); } catch { /* optional */ }
+      await startGoogleSignIn(network);
     } catch (e) {
       setError(e instanceof Error ? e.message : t("Sign-in didn't finish. Try again."));
       setBusy(false);
@@ -133,6 +159,7 @@ export function SignIn({ networks }: { networks: Network[] }) {
           {error && <p className="form-error" role="alert">{error}</p>}
           {emailSignInAvailable && (
             <form className="trade-email" onSubmit={emailStep}>
+              {googleSignInAvailable && <button type="button" className="btn btn-ghost btn-lg" onClick={google} disabled={busy}>{busy && <Spinner />}{t("Continue with Google")}</button>}
               <span className="trade-label">{t("Or use your email")}</span>
               <input className="input" type="email" autoComplete="email" inputMode="email" placeholder={t("you@example.com")} value={email} onChange={(e) => { setEmail(e.target.value); setCodeSent(false); setCode(""); }} required disabled={busy} aria-label={t("Your email")} />
               {codeSent && <input className="input" inputMode="numeric" autoComplete="one-time-code" placeholder={t("Code from your email")} value={code} onChange={(e) => setCode(e.target.value)} required disabled={busy} aria-label={t("Code from your email")} />}

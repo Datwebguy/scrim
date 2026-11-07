@@ -404,5 +404,6 @@ const messages: Record<string, string> = {
   "Your email": "Tu correo",
   "you@example.com": "tu@ejemplo.com",
   "Use a different wallet": "Usar otra billetera",
+  "Continue with Google": "Continuar con Google",
 };
 export default messages;

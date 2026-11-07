@@ -404,5 +404,6 @@ const messages: Record<string, string> = {
   "Your email": "Email của bạn",
   "you@example.com": "ban@vidu.com",
   "Use a different wallet": "Dùng ví khác",
+  "Continue with Google": "Tiếp tục với Google",
 };
 export default messages;

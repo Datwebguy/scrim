@@ -406,5 +406,8 @@ const messages: Record<string, string> = {
   "Use a different wallet": "Dùng ví khác",
   "Continue with Google": "Tiếp tục với Google",
   "Use a NEAR wallet, Google or your email. Signing in can't move any money.": "Dùng ví NEAR, Google hoặc email. Đăng nhập không thể chuyển tiền.",
+  "Or sign in without a wallet": "Hoặc đăng nhập không cần ví",
+  "HOT, Meteor, Intear, MyNearWallet, Nightly and more": "HOT, Meteor, Intear, MyNearWallet, Nightly và nhiều hơn",
+  "Email and Google create a wallet for you. No wallet app needed.": "Email và Google tạo ví cho bạn. Không cần ứng dụng ví.",
 };
 export default messages;

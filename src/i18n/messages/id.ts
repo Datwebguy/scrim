@@ -406,5 +406,8 @@ const messages: Record<string, string> = {
   "Use a different wallet": "Gunakan dompet lain",
   "Continue with Google": "Lanjutkan dengan Google",
   "Use a NEAR wallet, Google or your email. Signing in can't move any money.": "Pakai dompet NEAR, Google, atau email Anda. Masuk tidak bisa memindahkan uang.",
+  "Or sign in without a wallet": "Atau masuk tanpa dompet",
+  "HOT, Meteor, Intear, MyNearWallet, Nightly and more": "HOT, Meteor, Intear, MyNearWallet, Nightly, dan lainnya",
+  "Email and Google create a wallet for you. No wallet app needed.": "Email dan Google membuatkan dompet untuk Anda. Tidak perlu aplikasi dompet.",
 };
 export default messages;

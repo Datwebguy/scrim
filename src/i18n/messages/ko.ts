@@ -406,5 +406,8 @@ const messages: Record<string, string> = {
   "Use a different wallet": "다른 지갑 사용",
   "Continue with Google": "Google로 계속",
   "Use a NEAR wallet, Google or your email. Signing in can't move any money.": "NEAR 지갑, Google 또는 이메일을 사용하세요. 로그인으로 돈이 움직이지 않습니다.",
+  "Or sign in without a wallet": "지갑 없이 로그인",
+  "HOT, Meteor, Intear, MyNearWallet, Nightly and more": "HOT, Meteor, Intear, MyNearWallet, Nightly 등",
+  "Email and Google create a wallet for you. No wallet app needed.": "이메일과 Google은 지갑을 대신 만들어 줍니다. 지갑 앱이 필요 없습니다.",
 };
 export default messages;

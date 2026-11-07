@@ -406,5 +406,8 @@ const messages: Record<string, string> = {
   "Use a different wallet": "Başka bir cüzdan kullan",
   "Continue with Google": "Google ile devam et",
   "Use a NEAR wallet, Google or your email. Signing in can't move any money.": "NEAR cüzdanı, Google veya e-postanızı kullanın. Giriş para taşıyamaz.",
+  "Or sign in without a wallet": "Ya da cüzdansız giriş yapın",
+  "HOT, Meteor, Intear, MyNearWallet, Nightly and more": "HOT, Meteor, Intear, MyNearWallet, Nightly ve daha fazlası",
+  "Email and Google create a wallet for you. No wallet app needed.": "E-posta ve Google sizin için bir cüzdan oluşturur. Cüzdan uygulaması gerekmez.",
 };
 export default messages;

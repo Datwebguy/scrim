@@ -406,5 +406,8 @@ const messages: Record<string, string> = {
   "Use a different wallet": "使用其他钱包",
   "Continue with Google": "使用 Google 继续",
   "Use a NEAR wallet, Google or your email. Signing in can't move any money.": "使用 NEAR 钱包、Google 或邮箱。登录无法转移任何资金。",
+  "Or sign in without a wallet": "或不用钱包登录",
+  "HOT, Meteor, Intear, MyNearWallet, Nightly and more": "HOT、Meteor、Intear、MyNearWallet、Nightly 等",
+  "Email and Google create a wallet for you. No wallet app needed.": "邮箱和 Google 会为你创建钱包，无需钱包应用。",
 };
 export default messages;

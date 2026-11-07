@@ -13,6 +13,18 @@ import { useT } from "@/i18n/I18n";
 
 const KEY = "scrim:network";
 
+const line = { width: 18, height: 18, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.6, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
+const WalletIcon = () => <svg {...line}><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H18v3" /><path d="M4 7.5V17a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2H6.5A2.5 2.5 0 0 1 4 7.5Z" /><path d="M16 13.5h.01" /></svg>;
+const MailIcon = () => <svg {...line}><rect x="3.5" y="5.5" width="17" height="13" rx="2.5" /><path d="m4.5 8 7.5 5.5L19.5 8" /></svg>;
+const GoogleIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="#4285F4" d="M22.5 12.27c0-.8-.07-1.56-.2-2.3H12v4.35h5.9a5.05 5.05 0 0 1-2.19 3.31v2.75h3.55c2.08-1.91 3.28-4.73 3.28-8.11Z" />
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.67l-3.55-2.75c-.98.66-2.24 1.05-3.73 1.05-2.87 0-5.3-1.94-6.17-4.55H2.17v2.84A11 11 0 0 0 12 23Z" />
+    <path fill="#FBBC05" d="M5.83 14.08a6.6 6.6 0 0 1 0-4.16V7.08H2.17a11 11 0 0 0 0 9.84l3.66-2.84Z" />
+    <path fill="#EA4335" d="M12 5.37c1.62 0 3.07.56 4.21 1.65l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.17 7.08l3.66 2.84C6.7 7.31 9.13 5.37 12 5.37Z" />
+  </svg>
+);
+
 export function SignIn({ networks }: { networks: Network[] }) {
   const t = useT();
   const router = useRouter();
@@ -138,35 +150,40 @@ export function SignIn({ networks }: { networks: Network[] }) {
           <p>{emailSignInAvailable ? t("Use a NEAR wallet, Google or your email. Signing in can't move any money.") : t("Choose your NEAR wallet and approve one message. It proves the account is yours. It can't move any money.")}</p>
 
           {networks.length > 1 && (
-            <fieldset className="field">
-              <legend>{t("Network")}</legend>
-              <div className="segmented" role="radiogroup" aria-label="Network">
+            <div className="net">
+              <div className="net-toggle" role="radiogroup" aria-label={t("Network")}>
                 {networks.map((n) => (
-                  <label key={n}>
-                    <input type="radio" name="network" checked={network === n} onChange={() => setNetwork(n)} />
-                    <b>{t(NETWORK_INFO[n].label)}</b>
-                    <span>{t(n === "mainnet" ? "Real money. Everything works." : "Practice with free test coins.")}</span>
-                  </label>
+                  <button key={n} type="button" role="radio" aria-checked={network === n} onClick={() => setNetwork(n)}>{t(NETWORK_INFO[n].label)}</button>
                 ))}
               </div>
-            </fieldset>
+              <span>{t(network === "mainnet" ? "Real money. Everything works." : "Practice with free test coins.")}</span>
+            </div>
           )}
 
           {network === "testnet" && <div className="notice info">{t("Testnet uses free test coins, so nothing here is worth money.")}</div>}
-          <button className="btn btn-primary btn-lg" onClick={connect} disabled={busy}>{busy && <Spinner />}{busy ? t("Check your wallet…") : known ? t("Continue as {name}", { name: known }) : t("Connect wallet on {network}", { network: t(NETWORK_INFO[network].label).toLowerCase() })}</button>
-          {known && !busy && <p className="fine"><button type="button" className="link-btn" onClick={useAnotherWallet}>{t("Use a different wallet")}</button></p>}
+          <div className="method">
+            <button className="btn btn-primary btn-lg method-main" onClick={connect} disabled={busy}>
+              {busy ? <Spinner /> : <WalletIcon />}
+              {busy ? t("Check your wallet…") : known ? t("Continue as {name}", { name: known }) : t("Connect wallet on {network}", { network: t(NETWORK_INFO[network].label).toLowerCase() })}
+            </button>
+            <small>{t("HOT, Meteor, Intear, MyNearWallet, Nightly and more")}</small>
+          </div>
+          {known && !busy && <p className="fine plain"><button type="button" className="link-btn" onClick={useAnotherWallet}>{t("Use a different wallet")}</button></p>}
           {stuck && <p className="fine">Wallet didn&apos;t open, or you came back without finishing? <button type="button" className="link-btn" onClick={() => { setBusy(false); setError(""); }}>Tap here to try again</button>.</p>}
           {error && <p className="form-error" role="alert">{error}</p>}
           {emailSignInAvailable && (
             <form className="trade-email" onSubmit={emailStep}>
-              {googleSignInAvailable && <button type="button" className="btn btn-ghost btn-lg" onClick={google} disabled={busy}>{busy && <Spinner />}{t("Continue with Google")}</button>}
-              <span className="trade-or"><i />{t("Or use your email")}<i /></span>
-              <input className="input" type="email" autoComplete="email" inputMode="email" placeholder={t("you@example.com")} value={email} onChange={(e) => { setEmail(e.target.value); setCodeSent(false); setCode(""); }} required disabled={busy} aria-label={t("Your email")} />
-              {codeSent && <input className="input" inputMode="numeric" autoComplete="one-time-code" placeholder={t("Code from your email")} value={code} onChange={(e) => setCode(e.target.value)} required disabled={busy} aria-label={t("Code from your email")} />}
+              <span className="trade-or"><i />{t("Or sign in without a wallet")}<i /></span>
+              {googleSignInAvailable && <button type="button" className="btn btn-ghost btn-lg method-google" onClick={google} disabled={busy}>{busy ? <Spinner /> : <GoogleIcon />}{t("Continue with Google")}</button>}
+              <label className="email-field">
+                <MailIcon />
+                <input className="input" type="email" autoComplete="email" inputMode="email" placeholder={t("you@example.com")} value={email} onChange={(e) => { setEmail(e.target.value); setCodeSent(false); setCode(""); }} required disabled={busy} aria-label={t("Your email")} />
+              </label>
+              {codeSent && <input className="input code-field" inputMode="numeric" autoComplete="one-time-code" placeholder={t("Code from your email")} value={code} onChange={(e) => setCode(e.target.value)} required disabled={busy} aria-label={t("Code from your email")} />}
               <button className="btn btn-ghost btn-lg" disabled={busy || !email.trim() || (codeSent && !code.trim())}>{busy && <Spinner />}{codeSent ? t("Sign in") : t("Email me a code")}</button>
             </form>
           )}
-          <p className="fine">{emailSignInAvailable ? t("Use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly, or your email.") : t("No email. No password. You can use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly.")}</p>
+          <p className="fine">{emailSignInAvailable ? t("Email and Google create a wallet for you. No wallet app needed.") : t("No email. No password. You can use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly.")}</p>
         </div>
       </div>
     </div>

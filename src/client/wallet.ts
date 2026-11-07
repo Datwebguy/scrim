@@ -4,7 +4,7 @@
 import type { NearConnector, NearWalletBase } from "@hot-labs/near-connect";
 import type { Network } from "@/protocol/networks";
 import { api } from "./api";
-import { emailSession, endEmailSession, signWithEmail } from "./email";
+import { emailSession, endEmailSession, sendWithEmail, signWithEmail } from "./email";
 
 type Challenge = { challengeId: string; message: string; nonce: string; recipient: string };
 type Payload = { message: string; nonce: string; recipient: string };
@@ -70,14 +70,14 @@ export async function connectedAccount(network: Network): Promise<string | null>
   }
 }
 
-// Someone signed in with an email has no wallet app. This stands in for one: it signs messages through Privy
-// and says plainly that sending from a public wallet balance isn't available for them yet.
+// Someone signed in with an email has no wallet app. This stands in for one: it signs messages and sends plain
+// payments through Privy. Scrim's server signs only plain money moves for them (see email-send.ts).
 function emailWallet(accountId: string): NearWalletBase {
-  const unavailable = () => { throw new Error("Sending from a public wallet balance isn't available with an email sign in yet. Use your private balance."); };
+  const unavailable = () => { throw new Error("Scrim can send one payment at a time from an email account."); };
   return {
     getAccounts: async () => [{ accountId }],
     signMessage: (params: { message: string; recipient: string; nonce: Uint8Array }) => signWithEmail(accountId, params),
-    signAndSendTransaction: unavailable,
+    signAndSendTransaction: (params: { receiverId: string; actions: unknown[] }) => sendWithEmail(params),
     signAndSendTransactions: unavailable,
   } as unknown as NearWalletBase;
 }

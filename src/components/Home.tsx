@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { short } from "@/client/format";
 import { api } from "@/client/api";
+import { emailSession } from "@/client/email";
 import { useApi } from "@/client/use-api";
 import { turnOnPrivateMode, unlockPrivateBalance } from "@/client/wallet";
 import { fmt, Heading, KIND_LABEL, StateChip, TokenLogo, usd, type TransferView } from "./money";
@@ -28,6 +29,8 @@ export function Home() {
   const { data: tx } = useApi<{ transfers: TransferView[] }>("/transfers", { every: 15_000 });
   const [view, setView] = useState<"you" | "public">("you");
   const [busy, setBusy] = useState(false);
+  const [byEmail, setByEmail] = useState(false); // signed in with an email: there is no wallet app to approve in
+  useEffect(() => setByEmail(Boolean(emailSession())), []);
   const needsSetup = data?.status === "needs_setup";
   const { data: wallet, reload: recheck } = useApi<{ holdings: { id: string; symbol: string; amount: string; display: string; icon: string | null }[] }>("/wallet", { every: needsSetup ? 15_000 : 60_000 });
   const near = wallet?.holdings.find((h) => h.id === "near");
@@ -109,7 +112,7 @@ export function Home() {
           ) : (
             <>
               <h2>{t("Unlock your private balance")}</h2>
-              <p className="muted">{t("Optional. Approve one message in your wallet. It can't move money.")}</p>
+              <p className="muted">{byEmail ? t("Optional. Scrim signs one message for you. It can't move money.") : t("Optional. Approve one message in your wallet. It can't move money.")}</p>
               <button className="btn btn-signal btn-lg" onClick={() => unlock()} disabled={busy}>{busy && <Spinner />} Unlock</button>
             </>
           )}

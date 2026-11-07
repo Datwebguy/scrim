@@ -409,5 +409,6 @@ const messages: Record<string, string> = {
   "Or sign in without a wallet": "지갑 없이 로그인",
   "HOT, Meteor, Intear, MyNearWallet, Nightly and more": "HOT, Meteor, Intear, MyNearWallet, Nightly 등",
   "Email and Google create a wallet for you. No wallet app needed.": "이메일과 Google은 지갑을 대신 만들어 줍니다. 지갑 앱이 필요 없습니다.",
+  "Optional. Scrim signs one message for you. It can't move money.": "선택 사항입니다. Scrim이 메시지 하나에 대신 서명합니다. 돈은 움직이지 않습니다.",
 };
 export default messages;

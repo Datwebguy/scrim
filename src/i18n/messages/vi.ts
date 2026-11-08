@@ -410,5 +410,7 @@ const messages: Record<string, string> = {
   "HOT, Meteor, Intear, MyNearWallet, Nightly and more": "HOT, Meteor, Intear, MyNearWallet, Nightly và nhiều hơn",
   "Email and Google create a wallet for you. No wallet app needed.": "Email và Google tạo ví cho bạn. Không cần ứng dụng ví.",
   "Optional. Scrim signs one message for you. It can't move money.": "Tùy chọn. Scrim ký một tin nhắn giúp bạn. Nó không thể chuyển tiền.",
+  "Public. They receive it in their wallet, and anyone can see the payment on the blockchain.": "Công khai. Họ nhận ở ví của họ và bất kỳ ai cũng thấy khoản thanh toán trên blockchain.",
+  "Private. Nobody can see the amount or who you pay.": "Riêng tư. Không ai thấy số tiền hay bạn trả cho ai.",
 };
 export default messages;

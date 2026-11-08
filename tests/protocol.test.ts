@@ -181,3 +181,15 @@ describe("proofs", async () => {
     expect(Buffer.from(token.split(".")[1], "base64url").toString()).not.toMatch(/accountId|account_id|balance"/i);
   });
 });
+
+describe("amounts typed on a phone", () => {
+  it("reads look alike characters as the plain amount they stand for", () => {
+    const one = 10n ** 23n; // 0.1 with 24 decimals
+    for (const typed of ["0.1", " 0.1 ", "0.1", "0.1", "０.１", "0．1", "٠٫١", "۰.۱", "0.1​", "0。1"]) expect(parseAmount(typed, 24), JSON.stringify(typed)).toBe(one);
+    expect(parseAmount("1,500.25", 6)).toBe(1_500_250_000n);
+  });
+
+  it("still refuses what is not an amount, and a decimal comma", () => {
+    for (const typed of ["", "abc", "1,5", "0.1.2", "-1", "1e5", "٫", "0x10"]) expect(() => parseAmount(typed, 6), JSON.stringify(typed)).toThrow();
+  });
+});

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
 import { sendNear, sendToken, signTransfer } from "@/client/wallet";
-import { parseAmount } from "@/protocol/amount";
+import { formatBalance, parseAmount } from "@/protocol/amount";
 import { AssetPicker, fmt, Heading, StateChip, usd, useAssets, type AssetInfo, type TransferView } from "./money";
 import { useSession } from "./session";
 import { Spinner, useToast } from "./ui";
@@ -47,10 +47,11 @@ export function SendSwap({ initial }: { initial: Mode }) {
 
   const holdings: Holding[] = useMemo(() => fromWallet
     // Wrapped NEAR is listed as NEAR: the wallet's own NEAR is what pays.
-    ? (pub?.holdings ?? []).filter((h) => h.id !== "wrap.near").map((h) => ({ assetId: walletAssetId(h.id), symbol: h.symbol, chainName: "NEAR", amount: spendable(h).toString(), display: h.display }))
+    ? (pub?.holdings ?? []).filter((h) => h.id !== "wrap.near").map((h) => ({ assetId: walletAssetId(h.id), symbol: h.symbol, chainName: "NEAR", amount: spendable(h).toString(), display: h.id === "near" ? formatBalance(spendable(h), h.decimals) : h.display }))
     : priv?.holdings ?? [], [fromWallet, pub, priv]);
   const ready = fromWallet ? Boolean(pub) : priv?.status === "active";
-  const fromAssets = useMemo(() => assets.filter((a) => holdings.some((h) => h.assetId === a.assetId)), [assets, holdings]);
+  // The wallet's own NEAR is what pays, so it reads NEAR here, not wNEAR.
+  const fromAssets = useMemo(() => assets.filter((a) => holdings.some((h) => h.assetId === a.assetId)).map((a) => (fromWallet && a.assetId === "nep141:wrap.near" ? { ...a, symbol: "NEAR" } : a)), [assets, holdings, fromWallet]);
   const from = assets.find((a) => a.assetId === fromId);
   const to = assets.find((a) => a.assetId === (mode === "swap" || mode === "address" ? toId : fromId));
   const held = holdings.find((h) => h.assetId === fromId);
@@ -182,6 +183,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
               <button type="button" role="radio" aria-checked={fromWallet} onClick={() => setSource("wallet")}>{t("My wallet")}</button>
             </div>
           )}
+          {network === "mainnet" && <p className="trade-note">{fromWallet ? t("Public. They receive it in their wallet, and anyone can see the payment on the blockchain.") : t("Private. Nobody can see the amount or who you pay.")}</p>}
           <div className="tp">
             <div className="tp-top">
               <span>{mode === "swap" ? t("You pay") : mode === "address" ? t("They receive") : t("Amount")}</span>

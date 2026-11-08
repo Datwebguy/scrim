@@ -412,5 +412,7 @@ const messages: Record<string, string> = {
   "Optional. Scrim signs one message for you. It can't move money.": "可选。Scrim 会替你签署一条消息，它无法转移资金。",
   "Public. They receive it in their wallet, and anyone can see the payment on the blockchain.": "公开。对方会收到到自己的钱包，任何人都能在区块链上看到这笔付款。",
   "Private. Nobody can see the amount or who you pay.": "私密。没有人能看到金额或你付给了谁。",
+  "Private": "私密",
+  "Public (my wallet)": "公开（我的钱包）",
 };
 export default messages;

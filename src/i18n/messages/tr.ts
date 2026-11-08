@@ -412,5 +412,7 @@ const messages: Record<string, string> = {
   "Optional. Scrim signs one message for you. It can't move money.": "İsteğe bağlı. Scrim sizin için bir mesajı imzalar. Para taşıyamaz.",
   "Public. They receive it in their wallet, and anyone can see the payment on the blockchain.": "Herkese açık. Karşı taraf kendi cüzdanında alır ve ödemeyi blokzincirde herkes görebilir.",
   "Private. Nobody can see the amount or who you pay.": "Gizli. Kimse tutarı ya da kime ödediğinizi göremez.",
+  "Private": "Gizli",
+  "Public (my wallet)": "Herkese açık (cüzdanım)",
 };
 export default messages;

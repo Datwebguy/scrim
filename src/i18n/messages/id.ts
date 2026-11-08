@@ -412,5 +412,7 @@ const messages: Record<string, string> = {
   "Optional. Scrim signs one message for you. It can't move money.": "Opsional. Scrim menandatangani satu pesan untuk Anda. Tidak bisa memindahkan uang.",
   "Public. They receive it in their wallet, and anyone can see the payment on the blockchain.": "Publik. Mereka menerimanya di dompet mereka, dan siapa pun dapat melihat pembayaran ini di blockchain.",
   "Private. Nobody can see the amount or who you pay.": "Privat. Tidak ada yang bisa melihat jumlah atau siapa yang Anda bayar.",
+  "Private": "Privat",
+  "Public (my wallet)": "Publik (dompet saya)",
 };
 export default messages;

@@ -412,5 +412,7 @@ const messages: Record<string, string> = {
   "Optional. Scrim signs one message for you. It can't move money.": "Opcional. Scrim firma un mensaje por ti. No puede mover dinero.",
   "Public. They receive it in their wallet, and anyone can see the payment on the blockchain.": "Público. Lo reciben en su billetera y cualquiera puede ver el pago en la blockchain.",
   "Private. Nobody can see the amount or who you pay.": "Privado. Nadie puede ver el monto ni a quién pagas.",
+  "Private": "Privado",
+  "Public (my wallet)": "Público (mi billetera)",
 };
 export default messages;

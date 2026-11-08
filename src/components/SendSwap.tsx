@@ -179,8 +179,8 @@ export function SendSwap({ initial }: { initial: Mode }) {
         <form className="trade" onSubmit={(e) => { e.preventDefault(); getPrice(); }}>
           {network === "mainnet" && (
             <div className="trade-src" role="radiogroup" aria-label={t("Pay from")}>
-              <button type="button" role="radio" aria-checked={!fromWallet} onClick={() => setSource("private")}>{t("Private balance")}</button>
-              <button type="button" role="radio" aria-checked={fromWallet} onClick={() => setSource("wallet")}>{t("My wallet")}</button>
+              <button type="button" role="radio" aria-checked={!fromWallet} onClick={() => setSource("private")}>{t("Private")}</button>
+              <button type="button" role="radio" aria-checked={fromWallet} onClick={() => setSource("wallet")}>{t("Public (my wallet)")}</button>
             </div>
           )}
           {network === "mainnet" && <p className="trade-note">{fromWallet ? t("Public. They receive it in their wallet, and anyone can see the payment on the blockchain.") : t("Private. Nobody can see the amount or who you pay.")}</p>}

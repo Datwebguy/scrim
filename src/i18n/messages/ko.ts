@@ -415,5 +415,11 @@ const messages: Record<string, string> = {
   "Private": "비공개",
   "Public (my wallet)": "공개 (내 지갑)",
   "Your wallet opens in a new tab. After you approve, come back to this tab.": "지갑이 새 탭에서 열립니다. 승인한 뒤 이 탭으로 돌아오세요.",
+  "Works with Claude Code, Codex, Cursor, Gemini CLI and any assistant that supports MCP.": "Claude Code, Codex, Cursor, Gemini CLI 등 MCP를 지원하는 모든 어시스턴트와 함께 쓸 수 있습니다.",
+  "Do I need a wallet?": "지갑이 필요한가요?",
+  "No. Sign in with Google or your email and Scrim sets up a wallet for you. Or use any NEAR wallet you already have.": "아니요. Google이나 이메일로 로그인하면 Scrim이 지갑을 만들어 줍니다. 이미 가진 NEAR 지갑을 써도 됩니다.",
+  "No. With a wallet app, only your wallet can move your money. If you sign in with email or Google, a key kept by our partner Privy signs for you, and only when you ask.": "아니요. 지갑 앱을 쓰면 돈을 움직일 수 있는 것은 내 지갑뿐입니다. 이메일이나 Google로 로그인하면 파트너 Privy가 보관하는 키가 대신 서명하며, 내가 요청할 때만 서명합니다.",
+  "Choose private and it stays off the public chain.": "비공개를 고르면 공개 체인에 남지 않습니다.",
+  "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Claude Code, Codex, Cursor, Gemini CLI 등 MCP를 지원하는 어시스턴트에 Scrim을 도구로 추가하세요. 이 내용을 설정에 붙여 넣으면 한도 확인, 결제 요청, 유료 API 검색과 구매를 할 수 있습니다.",
 };
 export default messages;

@@ -415,5 +415,11 @@ const messages: Record<string, string> = {
   "Private": "Privat",
   "Public (my wallet)": "Publik (dompet saya)",
   "Your wallet opens in a new tab. After you approve, come back to this tab.": "Dompet Anda terbuka di tab baru. Setelah menyetujui, kembali ke tab ini.",
+  "Works with Claude Code, Codex, Cursor, Gemini CLI and any assistant that supports MCP.": "Bekerja dengan Claude Code, Codex, Cursor, Gemini CLI, dan asisten apa pun yang mendukung MCP.",
+  "Do I need a wallet?": "Apakah saya perlu dompet?",
+  "No. Sign in with Google or your email and Scrim sets up a wallet for you. Or use any NEAR wallet you already have.": "Tidak. Masuk dengan Google atau email Anda dan Scrim menyiapkan dompet untuk Anda. Atau pakai dompet NEAR yang sudah Anda punya.",
+  "No. With a wallet app, only your wallet can move your money. If you sign in with email or Google, a key kept by our partner Privy signs for you, and only when you ask.": "Tidak. Dengan aplikasi dompet, hanya dompet Anda yang bisa memindahkan uang Anda. Jika Anda masuk dengan email atau Google, kunci yang disimpan mitra kami Privy menandatangani untuk Anda, dan hanya saat Anda meminta.",
+  "Choose private and it stays off the public chain.": "Pilih privat dan tidak muncul di rantai publik.",
+  "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Tambahkan Scrim sebagai alat di Claude Code, Codex, Cursor, Gemini CLI, atau asisten apa pun yang mendukung MCP. Tempel ini di pengaturannya. Setelah itu ia bisa memeriksa batasnya, meminta bayar, mencari API berbayar, dan membelinya.",
 };
 export default messages;

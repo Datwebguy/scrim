@@ -415,5 +415,11 @@ const messages: Record<string, string> = {
   "Private": "Gizli",
   "Public (my wallet)": "Herkese açık (cüzdanım)",
   "Your wallet opens in a new tab. After you approve, come back to this tab.": "Cüzdanınız yeni bir sekmede açılır. Onayladıktan sonra bu sekmeye dönün.",
+  "Works with Claude Code, Codex, Cursor, Gemini CLI and any assistant that supports MCP.": "Claude Code, Codex, Cursor, Gemini CLI ve MCP destekleyen her asistanla çalışır.",
+  "Do I need a wallet?": "Cüzdana ihtiyacım var mı?",
+  "No. Sign in with Google or your email and Scrim sets up a wallet for you. Or use any NEAR wallet you already have.": "Hayır. Google veya e-postanızla girin, Scrim sizin için bir cüzdan hazırlar. Ya da elinizdeki herhangi bir NEAR cüzdanını kullanın.",
+  "No. With a wallet app, only your wallet can move your money. If you sign in with email or Google, a key kept by our partner Privy signs for you, and only when you ask.": "Hayır. Cüzdan uygulamasıyla paranızı yalnızca cüzdanınız hareket ettirebilir. E-posta veya Google ile girerseniz, ortağımız Privy'nin sakladığı bir anahtar sizin yerinize imzalar, yalnızca siz istediğinizde.",
+  "Choose private and it stays off the public chain.": "Gizli seçin, herkese açık zincirde görünmez.",
+  "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Scrim'i Claude Code, Codex, Cursor, Gemini CLI veya MCP destekleyen herhangi bir asistana araç olarak ekleyin. Bunu ayarlarına yapıştırın. Sonra limitlerini kontrol edebilir, ödeme isteyebilir, ücretli API'leri bulup satın alabilir.",
 };
 export default messages;

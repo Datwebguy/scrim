@@ -415,5 +415,11 @@ const messages: Record<string, string> = {
   "Private": "Приватно",
   "Public (my wallet)": "Публично (мой кошелёк)",
   "Your wallet opens in a new tab. After you approve, come back to this tab.": "Кошелёк откроется в новой вкладке. После подтверждения вернитесь на эту вкладку.",
+  "Works with Claude Code, Codex, Cursor, Gemini CLI and any assistant that supports MCP.": "Работает с Claude Code, Codex, Cursor, Gemini CLI и любым ассистентом с поддержкой MCP.",
+  "Do I need a wallet?": "Нужен ли мне кошелёк?",
+  "No. Sign in with Google or your email and Scrim sets up a wallet for you. Or use any NEAR wallet you already have.": "Нет. Войдите через Google или почту, и Scrim создаст кошелёк за вас. Или используйте любой свой кошелёк NEAR.",
+  "No. With a wallet app, only your wallet can move your money. If you sign in with email or Google, a key kept by our partner Privy signs for you, and only when you ask.": "Нет. С приложением кошелька двигать ваши деньги может только ваш кошелёк. Если вы вошли через почту или Google, за вас подписывает ключ, который хранит наш партнёр Privy, и только когда вы просите.",
+  "Choose private and it stays off the public chain.": "Выберите приватно, и платёж не попадёт в публичный блокчейн.",
+  "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Добавьте Scrim как инструмент в Claude Code, Codex, Cursor, Gemini CLI или любой ассистент с поддержкой MCP. Вставьте это в его настройки. После этого он сможет проверять лимиты, просить об оплате, искать платные API и покупать их.",
 };
 export default messages;

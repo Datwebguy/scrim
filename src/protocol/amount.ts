@@ -8,8 +8,21 @@ const DECIMAL = /^(\d{1,15})(?:\.(\d+))?$/;
 // someone typing a decimal comma must never send ten times what they meant.
 const GROUPED = /^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/;
 
+// Phone keyboards and pasted text carry look alike characters: full width digits, Arabic digits, an Arabic or
+// Armenian decimal mark, a no break space, a zero width mark. Read them as the plain character they stand for, so a
+// valid amount is never refused. Anything else still fails the checks below.
+function plainAmount(input: string): string {
+  return input
+    .normalize("NFKC")
+    .replace(/[\s\u200B-\u200F\u202A-\u202E\u2060\uFEFF]/g, "")
+    .replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/[\u066B\u2024\u3002\uFF61]/g, ".")
+    .replace(/\u066C/g, ",");
+}
+
 export function parseAmount(input: string, decimals = USDC_DECIMALS): bigint {
-  const raw = input.trim();
+  const raw = plainAmount(input);
   if (raw.includes(",") && !GROUPED.test(raw)) throw new RangeError("Use a dot for decimals, like 1.50.");
   const match = DECIMAL.exec(raw.replace(/,/g, ""));
   if (!match) throw new RangeError("Enter an amount like 250 or 250.50.");

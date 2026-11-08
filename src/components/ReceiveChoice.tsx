@@ -10,8 +10,8 @@ export function ReceiveChoice({ value, onChange, onNear }: { value: Receive; onC
     <>
       <span className="trade-label">{t("Where it lands")}</span>
       <div className="trade-src" role="radiogroup" aria-label={t("Where it lands")}>
-        <button type="button" role="radio" aria-checked={value === "private"} onClick={() => onChange("private")}>{t("Private balance")}</button>
-        <button type="button" role="radio" aria-checked={value === "wallet"} disabled={!onNear} onClick={() => onChange("wallet")}>{t("My wallet")}</button>
+        <button type="button" role="radio" aria-checked={value === "private"} onClick={() => onChange("private")}>{t("Private")}</button>
+        <button type="button" role="radio" aria-checked={value === "wallet"} disabled={!onNear} onClick={() => onChange("wallet")}>{t("Public (my wallet)")}</button>
       </div>
       <p className="trade-note">
         {value === "private"

@@ -51,8 +51,8 @@ export function AddMoney() {
       {!transfer ? (
         <form className="trade" onSubmit={(e) => { e.preventDefault(); if (!direct && assetId) void start(); }}>
           <div className="trade-src" role="radiogroup" aria-label={t("Where it lands")}>
-            <button type="button" role="radio" aria-checked={!toWallet} onClick={() => { setInto("private"); setAssetId(""); }}>{t("Private balance")}</button>
-            <button type="button" role="radio" aria-checked={toWallet} onClick={() => { setInto("wallet"); setAssetId(""); }}>{t("My wallet")}</button>
+            <button type="button" role="radio" aria-checked={!toWallet} onClick={() => { setInto("private"); setAssetId(""); }}>{t("Private")}</button>
+            <button type="button" role="radio" aria-checked={toWallet} onClick={() => { setInto("wallet"); setAssetId(""); }}>{t("Public (my wallet)")}</button>
           </div>
           <p className="trade-note">{toWallet ? "Lands in your NEAR wallet and shows on the blockchain. If it can't be delivered, it comes back to you in Scrim." : "Lands in your private balance. Nobody can link what you add to what you send later."}</p>
           <div className="tp">

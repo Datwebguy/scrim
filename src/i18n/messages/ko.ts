@@ -410,5 +410,9 @@ const messages: Record<string, string> = {
   "HOT, Meteor, Intear, MyNearWallet, Nightly and more": "HOT, Meteor, Intear, MyNearWallet, Nightly 등",
   "Email and Google create a wallet for you. No wallet app needed.": "이메일과 Google은 지갑을 대신 만들어 줍니다. 지갑 앱이 필요 없습니다.",
   "Optional. Scrim signs one message for you. It can't move money.": "선택 사항입니다. Scrim이 메시지 하나에 대신 서명합니다. 돈은 움직이지 않습니다.",
+  "Public. They receive it in their wallet, and anyone can see the payment on the blockchain.": "공개입니다. 상대방의 지갑으로 전달되며 누구나 블록체인에서 이 결제를 볼 수 있습니다.",
+  "Private. Nobody can see the amount or who you pay.": "비공개입니다. 금액도 받는 사람도 아무도 볼 수 없습니다.",
+  "Private": "비공개",
+  "Public (my wallet)": "공개 (내 지갑)",
 };
 export default messages;

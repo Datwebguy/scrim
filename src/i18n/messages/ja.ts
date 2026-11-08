@@ -410,5 +410,9 @@ const messages: Record<string, string> = {
   "HOT, Meteor, Intear, MyNearWallet, Nightly and more": "HOT、Meteor、Intear、MyNearWallet、Nightly など",
   "Email and Google create a wallet for you. No wallet app needed.": "メールと Google ならウォレットが自動で作られます。ウォレットアプリは不要です。",
   "Optional. Scrim signs one message for you. It can't move money.": "任意です。Scrim があなたの代わりに 1 件のメッセージに署名します。お金は動きません。",
+  "Public. They receive it in their wallet, and anyone can see the payment on the blockchain.": "公開です。相手のウォレットに届き、誰でもブロックチェーン上でこの支払いを見られます。",
+  "Private. Nobody can see the amount or who you pay.": "非公開です。金額も支払い先も誰にも見えません。",
+  "Private": "非公開",
+  "Public (my wallet)": "公開（マイウォレット）",
 };
 export default messages;

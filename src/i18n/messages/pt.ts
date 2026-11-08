@@ -410,5 +410,9 @@ const messages: Record<string, string> = {
   "HOT, Meteor, Intear, MyNearWallet, Nightly and more": "HOT, Meteor, Intear, MyNearWallet, Nightly e mais",
   "Email and Google create a wallet for you. No wallet app needed.": "E-mail e Google criam uma carteira para você. Não precisa de app de carteira.",
   "Optional. Scrim signs one message for you. It can't move money.": "Opcional. O Scrim assina uma mensagem por você. Ela não move dinheiro.",
+  "Public. They receive it in their wallet, and anyone can see the payment on the blockchain.": "Público. A pessoa recebe na carteira dela e qualquer um pode ver o pagamento na blockchain.",
+  "Private. Nobody can see the amount or who you pay.": "Privado. Ninguém vê o valor nem quem você paga.",
+  "Private": "Privado",
+  "Public (my wallet)": "Público (minha carteira)",
 };
 export default messages;

@@ -410,5 +410,9 @@ const messages: Record<string, string> = {
   "HOT, Meteor, Intear, MyNearWallet, Nightly and more": "HOT, Meteor, Intear, MyNearWallet, Nightly ve daha fazlası",
   "Email and Google create a wallet for you. No wallet app needed.": "E-posta ve Google sizin için bir cüzdan oluşturur. Cüzdan uygulaması gerekmez.",
   "Optional. Scrim signs one message for you. It can't move money.": "İsteğe bağlı. Scrim sizin için bir mesajı imzalar. Para taşıyamaz.",
+  "Public. They receive it in their wallet, and anyone can see the payment on the blockchain.": "Herkese açık. Karşı taraf kendi cüzdanında alır ve ödemeyi blokzincirde herkes görebilir.",
+  "Private. Nobody can see the amount or who you pay.": "Gizli. Kimse tutarı ya da kime ödediğinizi göremez.",
+  "Private": "Gizli",
+  "Public (my wallet)": "Herkese açık (cüzdanım)",
 };
 export default messages;

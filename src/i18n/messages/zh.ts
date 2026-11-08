@@ -414,5 +414,6 @@ const messages: Record<string, string> = {
   "Private. Nobody can see the amount or who you pay.": "私密。没有人能看到金额或你付给了谁。",
   "Private": "私密",
   "Public (my wallet)": "公开（我的钱包）",
+  "Your wallet opens in a new tab. After you approve, come back to this tab.": "钱包会在新标签页中打开。批准后，请回到此标签页。",
 };
 export default messages;

@@ -231,6 +231,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
           {error && <p className="form-error" role="alert">{error}</p>}
           {sentHash && <div className="notice good">{t("Sent from your wallet.")} <span className="muted mono">Receipt {sentHash.slice(0, 10)}…</span> <Link href="/app/activity">{t("Activity")}</Link></div>}
           <button className="btn btn-primary btn-lg trade-go" disabled={busy !== "" || !ready}>{busy === "price" && <Spinner />} {fromWallet && mode === "person" ? t("Send with my wallet") : t("See the price")}</button>
+          {fromWallet && <p className="trade-note">{t("Your wallet opens in a new tab. After you approve, come back to this tab.")}</p>}
         </form>
       ) : (
         <div className="card card-pad form-grid">

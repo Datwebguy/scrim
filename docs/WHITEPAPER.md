@@ -6,7 +6,7 @@
 
 Scrim is a money app built on NEAR. People and teams hold, send, swap and get paid across more than thirty chains, from their own wallet in public or from an optional private balance that the public chain never shows. The choice is made per payment, by the person paying.
 
-Scrim never holds keys or money. Private balances live on NEAR Intents' confidential ledger, every transfer is signed in the user's own wallet, and Scrim keeps only sealed records. On top of that foundation sit the tools real money needs: payment links, proofs for a single reader, shared accounts with approvals, software agents that pay within limits, and private AI that answers questions about your own money.
+Scrim never holds keys or money. Private balances live on NEAR Intents' confidential ledger, every transfer is signed by the person (in their own wallet, or through Privy when they sign in with email or Google), and Scrim keeps only sealed records. On top of that foundation sit the tools real money needs: payment links, proofs for a single reader, shared accounts with approvals, software agents that pay within limits, and private AI that answers questions about your own money.
 
 ## The problem
 
@@ -18,7 +18,7 @@ Scrim is built for that gap: private when you want it, public when you choose, a
 
 ## Principles
 
-- **Your keys, always.** Scrim receives signatures, never keys. Every move of money is approved in the user's own wallet.
+- **Your keys, always.** Scrim receives signatures, never keys. Every move of money is approved by the person: in their own wallet, or, when they sign in with email or Google, through Privy, which keeps that key and signs only when they ask.
 - **Privacy by choice.** Public and private are both first class. Each payment says which it is before anyone signs.
 - **Show only what is needed.** Proofs state one fact, name one reader and expire.
 - **Built on NEAR's own rails.** The ledger, the swaps and the bridge are NEAR Intents. Scrim adds the product, not another pool or bridge.

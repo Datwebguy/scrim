@@ -33,15 +33,16 @@ Public blockchains show everything: your balance, who paid you and every payment
 
 Scrim gives you that choice for each payment. Turn on an optional private balance, built on [NEAR Intents](https://near-intents.org), and add money from almost any chain. Pay anyone on any chain, and show one fact to one person when they ask. Share an account with rules, so a payment goes out only when enough people approve. Let software agents pay for you inside limits you set. Ask about your money in plain words and get an answer from AI running in secure hardware.
 
-Scrim never holds your keys or your money. You sign in with your own NEAR wallet and approve every move yourself.
+Scrim never holds your keys or your money. Sign in with a NEAR wallet and approve every move yourself. Or sign in with Google or your email: Scrim sets up a wallet for you, and a key kept by our partner Privy signs for you, only when you ask.
 
 ## What you can do
 
 | | |
 | --- | --- |
+| **Sign in** | Any NEAR wallet, Google or your email. With Google or email you need no wallet app, and you can still send what you receive. |
 | **Private balance** | Turn it on and your holdings and history live on a private ledger, so the public sees nothing. |
 | **Add money** | Pick a coin and a network. You get a one-time address; send from any wallet or exchange and it lands in your private balance (or your wallet). 30+ networks. On EVM chains, **Pay from my wallet** sends it from MetaMask, Rabby or a wallet app's browser in one tap; on Solana, from Phantom, Solflare or Backpack. |
-| **Send** | Pay another NEAR account, or any address on any supported chain. Send from your private balance and it cannot be traced back to you, or send from your wallet (public). Zcash payments can go to a shielded (`u1…` or `zs1…`) address. |
+| **Send** | Pay another NEAR account, or any address on any supported chain. Send from your private balance and it stays off the public chain, or send from your wallet (public). Zcash payments can go to a shielded (`u1…` or `zs1…`) address. |
 | **Swap** | Trade one coin for another, in public or inside your private balance. |
 | **Get paid** | Share a payment link. The payer needs no account and can pay from any coin on any chain. |
 | **Sell** | Sell a file, a code, a report or your API to agents (over x402) and people (on a pay page), from any coin on any chain. Each sale lands where you choose, your private balance or your wallet; buyers get what you sell once the payment is confirmed. A sales list shows every sale. |
@@ -54,9 +55,9 @@ Scrim never holds your keys or your money. You sign in with your own NEAR wallet
 
 ## How to use Scrim
 
-Open the live site, choose **Testnet** to practise with free coins or **Mainnet** for real money, then connect your NEAR wallet and approve the sign in message. It cannot move funds. Each feature below says where to tap and what you will see.
+Open the live site, choose **Testnet** to practise with free coins or **Mainnet** for real money, then connect your NEAR wallet and approve the sign in message, or sign in with Google or your email and Scrim sets up a wallet for you. Signing in cannot move funds. Each feature below says where to tap and what you will see.
 
-**Turn on your private balance.** On **Home**, tap to unlock your private balance and approve one more message in your wallet. It is optional, and you only need it for private money. Home then shows what is private, with a switch to see what the public sees.
+**Turn on your private balance.** On **Home**, tap to unlock your private balance and approve one more message in your wallet (with Google or email, Scrim signs it for you). It is optional, and you only need it for private money. Home then shows what is private, with a switch to see what the public sees.
 
 **Add money.** Open **Add money**, pick a coin and a network, and you get a single use address. Send from any wallet or exchange and the money lands in your private balance or your wallet, as you chose. On EVM chains you can tap **Pay from my wallet**, and on Solana you can pay from Phantom, Solflare or Backpack.
 
@@ -136,6 +137,8 @@ You sign in with one plain message that names Scrim and cannot move money. When 
 ## Agents
 
 An agent is a helper that spends for you, only inside the rules you set. It can be an AI assistant, a payroll script or a billing job. By default it asks and people approve. With a wallet of its own, it can pay by itself within the same limits, including for pay per use online services through [x402](https://x402.org). The [agents guide](docs/AGENTS_GUIDE.md) covers keys, limits, the MCP server, the HTTPS calls and webhooks.
+
+Before it asks to pay, an agent can check whether a payment would be allowed, and every refusal comes with a plain reason. We attacked our own agent with an AI model that has no refusals. With no check tool at all, it was talked into asking to pay six times, and the limits stopped all six. The test is in `tests/redteam.test.ts`.
 
 ## Documentation
 

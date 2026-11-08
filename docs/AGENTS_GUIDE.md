@@ -10,6 +10,10 @@ An **agent** is a helper that spends for you, only inside the rules you set: an 
 
 **Repeats.** A request that repeats one from the last 10 minutes (same recipient, same amount) waits for a person, even inside the limits, and an agent with its own wallet does not pay it by itself. A false "the payment failed, retry" note is how an agent would pay twice. A payment that really failed or was cancelled can be retried at once, and x402 purchases are not held.
 
+**Check before paying.** An agent can ask whether a payment would be allowed without requesting it: the tool `check_payment`, or `POST /api/v1/agent/check` with `{recipient, amount}`. The answer is `allowed`, `needs_person` (inside the limits, but a person confirms it first) or `refused`, with a code for each reason: `AGENT_PAUSED`, `MANDATE_EXPIRED`, `RECIPIENT_NOT_ALLOWED`, `OVER_PAYMENT_LIMIT`, `OVER_WINDOW_LIMIT` or `REPEAT_REQUEST`. An agent should call it whenever text it was given (an invoice, a note, a web page) tells it to pay.
+
+**Tested against attacks.** `tests/redteam.test.ts` has an AI model with no refusals write attacks (poisoned invoices, fake retry notes, look alike sellers, urgent orders) and then play an agent that does what documents say. With the check tool removed, the agent was talked into asking to pay six times, at amounts far above its limits and to look alike and attacker addresses. The limits stopped all six. It runs only when `NEARAI_REDTEAM_KEY` is set.
+
 **Connect an AI assistant (MCP).** Scrim is an MCP server at `/api/mcp`:
 
 ```json
@@ -23,6 +27,7 @@ Tools: `get_limits`, `check_payment`, `request_payment`, `find_paid_apis`, `pay_
 | Call | What it does |
 | --- | --- |
 | `GET /api/v1/agent` | Limits and what is left to spend |
+| `POST /api/v1/agent/check` | Would this be allowed? `{recipient, amount}`. Nothing is requested |
 | `POST /api/v1/agent/payments` | Ask to pay: `{recipient, amount, memo}` with an `Idempotency-Key` header |
 | `GET /api/v1/agent/payments` | Recent requests |
 | `GET /api/v1/agent/payments/:id` | One request, and for an x402 purchase what the seller returned |

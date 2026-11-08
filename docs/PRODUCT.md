@@ -31,7 +31,7 @@ The privacy tools that exist are hard to use, work on one chain, or can't answer
 ## Principles
 
 1. **Private by default.** Nothing is public unless you choose to show it.
-2. **Your keys, always.** Scrim never holds your keys or your money. Every payment needs your wallet to approve the exact amount and recipient.
+2. **Your keys, always.** Scrim never holds your keys or your money. Every payment needs your approval of the exact amount and recipient: in your wallet, or, if you signed in with email or Google, through Privy, which keeps that key and signs only when you ask.
 3. **Show only what's needed.** Proofs name one reader, state one fact, and expire.
 4. **Plain words.** If a normal person can't read a screen, we rewrite the screen.
 5. **Honest status.** We say what works, what is being switched on, and what is still research. We never claim privacy we can't back up.

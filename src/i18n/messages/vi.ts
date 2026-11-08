@@ -414,5 +414,6 @@ const messages: Record<string, string> = {
   "Private. Nobody can see the amount or who you pay.": "Riêng tư. Không ai thấy số tiền hay bạn trả cho ai.",
   "Private": "Riêng tư",
   "Public (my wallet)": "Công khai (ví của tôi)",
+  "Your wallet opens in a new tab. After you approve, come back to this tab.": "Ví của bạn mở trong một tab mới. Sau khi duyệt, hãy quay lại tab này.",
 };
 export default messages;

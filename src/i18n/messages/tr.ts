@@ -414,5 +414,6 @@ const messages: Record<string, string> = {
   "Private. Nobody can see the amount or who you pay.": "Gizli. Kimse tutarı ya da kime ödediğinizi göremez.",
   "Private": "Gizli",
   "Public (my wallet)": "Herkese açık (cüzdanım)",
+  "Your wallet opens in a new tab. After you approve, come back to this tab.": "Cüzdanınız yeni bir sekmede açılır. Onayladıktan sonra bu sekmeye dönün.",
 };
 export default messages;

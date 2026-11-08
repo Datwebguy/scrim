@@ -414,5 +414,6 @@ const messages: Record<string, string> = {
   "Private. Nobody can see the amount or who you pay.": "非公開です。金額も支払い先も誰にも見えません。",
   "Private": "非公開",
   "Public (my wallet)": "公開（マイウォレット）",
+  "Your wallet opens in a new tab. After you approve, come back to this tab.": "ウォレットは新しいタブで開きます。承認したら、このタブに戻ってください。",
 };
 export default messages;

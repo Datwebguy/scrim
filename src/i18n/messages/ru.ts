@@ -414,5 +414,6 @@ const messages: Record<string, string> = {
   "Private. Nobody can see the amount or who you pay.": "Приватно. Никто не видит сумму и кому вы платите.",
   "Private": "Приватно",
   "Public (my wallet)": "Публично (мой кошелёк)",
+  "Your wallet opens in a new tab. After you approve, come back to this tab.": "Кошелёк откроется в новой вкладке. После подтверждения вернитесь на эту вкладку.",
 };
 export default messages;

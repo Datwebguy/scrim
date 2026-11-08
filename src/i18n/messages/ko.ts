@@ -414,5 +414,6 @@ const messages: Record<string, string> = {
   "Private. Nobody can see the amount or who you pay.": "비공개입니다. 금액도 받는 사람도 아무도 볼 수 없습니다.",
   "Private": "비공개",
   "Public (my wallet)": "공개 (내 지갑)",
+  "Your wallet opens in a new tab. After you approve, come back to this tab.": "지갑이 새 탭에서 열립니다. 승인한 뒤 이 탭으로 돌아오세요.",
 };
 export default messages;

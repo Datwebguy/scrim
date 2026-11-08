@@ -415,5 +415,11 @@ const messages: Record<string, string> = {
   "Private": "Privado",
   "Public (my wallet)": "Público (mi billetera)",
   "Your wallet opens in a new tab. After you approve, come back to this tab.": "Tu billetera se abre en una pestaña nueva. Después de aprobar, vuelve a esta pestaña.",
+  "Works with Claude Code, Codex, Cursor, Gemini CLI and any assistant that supports MCP.": "Funciona con Claude Code, Codex, Cursor, Gemini CLI y cualquier asistente compatible con MCP.",
+  "Do I need a wallet?": "¿Necesito una billetera?",
+  "No. Sign in with Google or your email and Scrim sets up a wallet for you. Or use any NEAR wallet you already have.": "No. Entra con Google o tu correo y Scrim prepara una billetera para ti. O usa cualquier billetera NEAR que ya tengas.",
+  "No. With a wallet app, only your wallet can move your money. If you sign in with email or Google, a key kept by our partner Privy signs for you, and only when you ask.": "No. Con una app de billetera, solo tu billetera puede mover tu dinero. Si entras con correo o Google, una clave que guarda nuestro socio Privy firma por ti, y solo cuando lo pides.",
+  "Choose private and it stays off the public chain.": "Elige privado y no aparece en la cadena pública.",
+  "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Añade Scrim como herramienta en Claude Code, Codex, Cursor, Gemini CLI o cualquier asistente compatible con MCP. Pega esto en su configuración. Después podrá ver sus límites, pedir pagar, buscar APIs de pago y comprarlas.",
 };
 export default messages;

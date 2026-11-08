@@ -933,7 +933,7 @@ function ConnectGuide({ apiKey }: { apiKey: string }) {
       </div>
       {how === "ai" ? (
         <>
-          <p className="muted">{t("Add Scrim as a tool (MCP server) in Claude or any assistant that supports MCP. It can check its limits, ask to pay, find paid APIs with find_paid_apis and buy them with pay_x402.")}</p>
+          <p className="muted">{t("Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.")}</p>
           <div className="code"><pre>{mcp}</pre></div>
         </>
       ) : how === "code" ? (

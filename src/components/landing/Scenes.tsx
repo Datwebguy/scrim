@@ -169,6 +169,7 @@ export function AgentScene() {
         <div className="sc-agent-text" key={`t${step}`}><b>{line}</b><span>{sub}</span></div>
         <span className={`sc-agent-pill ${pill.cls}`}>{pill.text}</span>
       </div>
+      <p className="sc-agent-note">{t("Works with Claude Code, Codex, Cursor, Gemini CLI and any assistant that supports MCP.")}</p>
     </div>
   );
 }

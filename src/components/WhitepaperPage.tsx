@@ -70,7 +70,7 @@ export function WhitepaperPage() {
           <section id="principles">
             <h2>Principles</h2>
             <ul>
-              <li><b>Your keys, always.</b> Scrim receives signatures, never keys. Every move of money is approved in the user&apos;s own wallet.</li>
+              <li><b>Your keys, always.</b> Scrim receives signatures, never keys. Every move of money is approved by the person: in their own wallet, or, when they sign in with email or Google, through Privy, which keeps that key.</li>
               <li><b>Privacy by choice.</b> Public and private are both first class. Each payment says which it is before anyone signs.</li>
               <li><b>Show only what is needed.</b> Proofs state one fact, name one reader and expire.</li>
               <li><b>Built on NEAR&apos;s own rails.</b> The ledger, the swaps and the bridge are NEAR Intents. Scrim adds the product, not another pool or bridge.</li>

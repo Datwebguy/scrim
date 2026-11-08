@@ -74,7 +74,7 @@ export default async function Home() {
 
         <section className="section l-story" id="features">
           <div className="wrap">
-            <Row eyebrow="Send" title="Pay anyone, on any chain." text="Choose private and it can't be traced back to you."><SendScene nets={icons} /></Row>
+            <Row eyebrow="Send" title="Pay anyone, on any chain." text="Choose private and it stays off the public chain."><SendScene nets={icons} /></Row>
             <Row eyebrow="Swap" title="Swap your way." text="Trade in public or inside your private balance." flip><SwapScene coins={coins} /></Row>
             <Row eyebrow="Get paid" title="Share a link. Get paid." text="They pay from any coin. No account needed."><PaidScene nets={icons} /></Row>
           </div>
@@ -117,7 +117,8 @@ export default async function Home() {
             <div><span className="eyebrow">{t("FAQ")}</span><h2>{t("Quick answers.")}</h2></div>
             <div className="faq">
               <details open><summary>{t("Can I keep things private?")}</summary><p>{t("Yes. Choose private for any payment and it stays off the public chain. Choose public when you want it on the chain.")}</p></details>
-              <details><summary>{t("Does Scrim hold my money?")}</summary><p>{t("No. Only your wallet can move it.")}</p></details>
+              <details><summary>{t("Do I need a wallet?")}</summary><p>{t("No. Sign in with Google or your email and Scrim sets up a wallet for you. Or use any NEAR wallet you already have.")}</p></details>
+              <details><summary>{t("Does Scrim hold my money?")}</summary><p>{t("No. With a wallet app, only your wallet can move your money. If you sign in with email or Google, a key kept by our partner Privy signs for you, and only when you ask.")}</p></details>
               <details><summary>{t("Can I try it free?")}</summary><p>{t("Yes, on testnet. Private options need mainnet; testnet is public.")}</p></details>
               <details><summary>{t("Can AI agents use it?")}</summary><p>{t("Yes. Each agent gets its own key and limits. You approve what it asks to pay, or let it pay by itself from its own wallet. Agents can also pay for APIs and pay your links over x402.")}</p></details>
               <details><summary>{t("Is the AI private?")}</summary><p>Yes. Ask runs on NEAR AI Cloud&apos;s confidential hardware. Scrim checks each answer&apos;s signature against that hardware&apos;s attestation, and stores neither your question nor the answer.</p></details>

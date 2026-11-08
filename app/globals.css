@@ -1317,3 +1317,5 @@ html:lang(ja) .section-head h2, html:lang(ja) .l-row h2 { text-wrap: balance; }
 .email-field svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
 .email-field .input { padding-left: 42px; }
 .gate-form .fine.plain { padding-top: 0; border-top: 0; margin-top: -8px; text-align: center; }
+
+.sc-agent-note { margin: 12px 2px 0; font-size: 12px; line-height: 1.5; color: var(--muted); }

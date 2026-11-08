@@ -415,5 +415,11 @@ const messages: Record<string, string> = {
   "Private": "Riêng tư",
   "Public (my wallet)": "Công khai (ví của tôi)",
   "Your wallet opens in a new tab. After you approve, come back to this tab.": "Ví của bạn mở trong một tab mới. Sau khi duyệt, hãy quay lại tab này.",
+  "Works with Claude Code, Codex, Cursor, Gemini CLI and any assistant that supports MCP.": "Dùng được với Claude Code, Codex, Cursor, Gemini CLI và mọi trợ lý hỗ trợ MCP.",
+  "Do I need a wallet?": "Tôi có cần ví không?",
+  "No. Sign in with Google or your email and Scrim sets up a wallet for you. Or use any NEAR wallet you already have.": "Không. Đăng nhập bằng Google hoặc email, Scrim sẽ tạo ví cho bạn. Hoặc dùng ví NEAR bạn đã có.",
+  "No. With a wallet app, only your wallet can move your money. If you sign in with email or Google, a key kept by our partner Privy signs for you, and only when you ask.": "Không. Với ứng dụng ví, chỉ ví của bạn mới chuyển được tiền. Nếu bạn đăng nhập bằng email hoặc Google, một khóa do đối tác Privy giữ sẽ ký thay bạn, và chỉ khi bạn yêu cầu.",
+  "Choose private and it stays off the public chain.": "Chọn riêng tư và khoản này không nằm trên chuỗi công khai.",
+  "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Thêm Scrim làm công cụ trong Claude Code, Codex, Cursor, Gemini CLI hoặc bất kỳ trợ lý nào hỗ trợ MCP. Dán nội dung này vào phần cài đặt của nó. Sau đó nó có thể xem hạn mức, xin thanh toán, tìm API trả phí và mua chúng.",
 };
 export default messages;

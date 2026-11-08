@@ -415,5 +415,11 @@ const messages: Record<string, string> = {
   "Private": "私密",
   "Public (my wallet)": "公开（我的钱包）",
   "Your wallet opens in a new tab. After you approve, come back to this tab.": "钱包会在新标签页中打开。批准后，请回到此标签页。",
+  "Works with Claude Code, Codex, Cursor, Gemini CLI and any assistant that supports MCP.": "支持 Claude Code、Codex、Cursor、Gemini CLI 以及任何支持 MCP 的助手。",
+  "Do I need a wallet?": "我需要钱包吗？",
+  "No. Sign in with Google or your email and Scrim sets up a wallet for you. Or use any NEAR wallet you already have.": "不需要。用 Google 或邮箱登录，Scrim 会为你准备钱包。你也可以用已有的任何 NEAR 钱包。",
+  "No. With a wallet app, only your wallet can move your money. If you sign in with email or Google, a key kept by our partner Privy signs for you, and only when you ask.": "不会。使用钱包应用时，只有你的钱包能动用你的钱。如果用邮箱或 Google 登录，由合作伙伴 Privy 保管的密钥会替你签名，且只在你操作时才签。",
+  "Choose private and it stays off the public chain.": "选择私密，它就不会出现在公开链上。",
+  "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "在 Claude Code、Codex、Cursor、Gemini CLI 或任何支持 MCP 的助手中，把 Scrim 添加为工具。把下面内容粘贴到它的设置里。之后它就能查看额度、请求付款、查找付费 API 并购买。",
 };
 export default messages;

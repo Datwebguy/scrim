@@ -415,5 +415,11 @@ const messages: Record<string, string> = {
   "Private": "非公開",
   "Public (my wallet)": "公開（マイウォレット）",
   "Your wallet opens in a new tab. After you approve, come back to this tab.": "ウォレットは新しいタブで開きます。承認したら、このタブに戻ってください。",
+  "Works with Claude Code, Codex, Cursor, Gemini CLI and any assistant that supports MCP.": "Claude Code、Codex、Cursor、Gemini CLI など、MCP に対応したアシスタントで使えます。",
+  "Do I need a wallet?": "ウォレットは必要ですか？",
+  "No. Sign in with Google or your email and Scrim sets up a wallet for you. Or use any NEAR wallet you already have.": "いいえ。Google またはメールでサインインすると、Scrim がウォレットを用意します。すでにお持ちの NEAR ウォレットも使えます。",
+  "No. With a wallet app, only your wallet can move your money. If you sign in with email or Google, a key kept by our partner Privy signs for you, and only when you ask.": "いいえ。ウォレットアプリなら、お金を動かせるのはあなたのウォレットだけです。メールや Google でサインインした場合は、パートナーの Privy が保管する鍵があなたの代わりに署名し、あなたが操作したときだけ動きます。",
+  "Choose private and it stays off the public chain.": "非公開を選べば、公開チェーンには載りません。",
+  "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Claude Code、Codex、Cursor、Gemini CLI など MCP に対応したアシスタントに、Scrim をツールとして追加します。これを設定に貼り付けてください。すると、上限の確認、支払いの依頼、有料 API の検索と購入ができます。",
 };
 export default messages;

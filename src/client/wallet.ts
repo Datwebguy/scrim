@@ -196,6 +196,14 @@ export async function sendToken(network: Network, contract: string, receiverId: 
   return sentHash(outcome);
 }
 
+// Registers an account with a NEAR token (a one-off storage deposit of about 0.00125 NEAR), so the token can be
+// delivered to it. A token sent to an account that isn't registered with it can't land there.
+export async function registerWithToken(network: Network, contract: string, accountId: string): Promise<string> {
+  const { wallet, accountId: signer } = await connectedWallet(network);
+  const outcome = await wallet.signAndSendTransaction({ network, signerId: signer, receiverId: contract, actions: [register(accountId)] });
+  return sentHash(outcome);
+}
+
 export async function signOutWallet(network: Network) {
   try {
     await api("/auth/logout", { method: "POST" });

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
-import { sendNear, sendToken, signTransfer } from "@/client/wallet";
+import { registerWithToken, sendNear, sendToken, signTransfer } from "@/client/wallet";
 import { formatBalance, parseAmount } from "@/protocol/amount";
 import { AssetPicker, fmt, Heading, StateChip, usd, useAssets, type AssetInfo, type TransferView } from "./money";
 import { useSession } from "./session";
@@ -109,6 +109,13 @@ export function SendSwap({ initial }: { initial: Mode }) {
     try {
       let txHash = paidTx;
       if (!txHash) {
+        // A NEAR token can only land in an account registered with it. Register the receiver first if needed
+        // (for a swap, the person's own wallet), or the result can't be delivered to the wallet.
+        const outContract = transfer.toAsset.assetId.replace(/^nep141:/, "");
+        if (/near/i.test(transfer.toAsset.chainName) && outContract !== "wrap.near" && transfer.recipient && !transfer.recipient.startsWith("0x")) {
+          const check = await api<{ registered?: boolean }>(`/accounts/check?id=${encodeURIComponent(transfer.recipient)}&token=${encodeURIComponent(outContract)}`).catch(() => null);
+          if (check?.registered === false) await registerWithToken(network, outContract, transfer.recipient);
+        }
         const contract = transfer.fromAsset.assetId.replace(/^nep141:/, "");
         txHash = await sendToken(network, contract, transfer.deposit.address, transfer.amountIn, contract === "wrap.near");
         setPaidTx(txHash);

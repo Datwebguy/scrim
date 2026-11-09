@@ -227,6 +227,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
             <div className="tp">
               <div className="tp-top"><span>{t("Their address")}</span></div>
               <input className="tp-text mono" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder={`${t("Address on")} ${to?.chainName ?? "…"}`} autoComplete="off" spellCheck={false} aria-label={t("Their address")} required />
+              <div className="tp-sub">{t("Sending to an exchange? Use a deposit address that needs no memo or tag. Scrim can't add a memo yet, and a payment without a required memo can be lost.")}</div>
               {to?.chain === "zec" && <div className="tp-sub">{t("A shielded address (starting u1 or zs1) works too. It keeps the receiving side private on Zcash.")}</div>}
               <div className="tp-paywith">
                 <span>{fromWallet ? t("From your wallet") : t("From your balance")}{held ? ` · ${t("Balance")} ${held.display}` : ""}</span>

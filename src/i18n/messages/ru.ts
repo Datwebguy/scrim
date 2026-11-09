@@ -421,5 +421,6 @@ const messages: Record<string, string> = {
   "No. With a wallet app, only your wallet can move your money. If you sign in with email or Google, a key kept by our partner Privy signs for you, and only when you ask.": "Нет. С приложением кошелька двигать ваши деньги может только ваш кошелёк. Если вы вошли через почту или Google, за вас подписывает ключ, который хранит наш партнёр Privy, и только когда вы просите.",
   "Choose private and it stays off the public chain.": "Выберите приватно, и платёж не попадёт в публичный блокчейн.",
   "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Добавьте Scrim как инструмент в Claude Code, Codex, Cursor, Gemini CLI или любой ассистент с поддержкой MCP. Вставьте это в его настройки. После этого он сможет проверять лимиты, просить об оплате, искать платные API и покупать их.",
+  "Sending to an exchange? Use a deposit address that needs no memo or tag. Scrim can't add a memo yet, and a payment without a required memo can be lost.": "Отправляете на биржу? Используйте адрес депозита без мемо и тега. Scrim пока не умеет добавлять мемо, а платёж без нужного мемо может потеряться.",
 };
 export default messages;

@@ -42,8 +42,8 @@ export function WhitepaperPage() {
               person paying.
             </p>
             <p>
-              Scrim never holds keys or money. Private balances live on NEAR Intents&apos; confidential ledger, every transfer is signed in the
-              user&apos;s own wallet, and Scrim keeps only sealed records. On top of that foundation sit the tools real money needs: payment
+              Scrim never holds keys or money. Private balances live on NEAR Intents&apos; confidential ledger, every transfer is signed by the
+              person (in their own wallet, or through Privy when they sign in with email or Google), and Scrim keeps only sealed records. On top of that foundation sit the tools real money needs: payment
               links, proofs for a single reader, shared accounts with approvals, software agents that pay within limits, and private AI that
               answers questions about your own money.
             </p>
@@ -70,7 +70,7 @@ export function WhitepaperPage() {
           <section id="principles">
             <h2>Principles</h2>
             <ul>
-              <li><b>Your keys, always.</b> Scrim receives signatures, never keys. Every move of money is approved by the person: in their own wallet, or, when they sign in with email or Google, through Privy, which keeps that key.</li>
+              <li><b>Your keys, always.</b> Scrim receives signatures, never keys. Every move of money is approved by the person: in their own wallet, or, when they sign in with email or Google, through Privy, which keeps that key and signs only when they ask.</li>
               <li><b>Privacy by choice.</b> Public and private are both first class. Each payment says which it is before anyone signs.</li>
               <li><b>Show only what is needed.</b> Proofs state one fact, name one reader and expire.</li>
               <li><b>Built on NEAR&apos;s own rails.</b> The ledger, the swaps and the bridge are NEAR Intents. Scrim adds the product, not another pool or bridge.</li>

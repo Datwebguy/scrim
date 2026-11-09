@@ -422,5 +422,10 @@ const messages: Record<string, string> = {
   "Choose private and it stays off the public chain.": "비공개를 고르면 공개 체인에 남지 않습니다.",
   "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Claude Code, Codex, Cursor, Gemini CLI 등 MCP를 지원하는 어시스턴트에 Scrim을 도구로 추가하세요. 이 내용을 설정에 붙여 넣으면 한도 확인, 결제 요청, 유료 API 검색과 구매를 할 수 있습니다.",
   "It arrives in your wallet as {symbol}.": "지갑에는 {symbol}(으)로 들어옵니다.",
+  "Send {symbol} to the address above": "위 주소로 {symbol} 보내기",
+  "Received. Moving it now": "받았습니다. 지금 옮기는 중",
+  "Arrived in your wallet": "지갑에 도착했습니다",
+  "Arrived in your private balance": "비공개 잔액에 도착했습니다",
+  "This page updates by itself.": "이 페이지는 자동으로 업데이트됩니다.",
 };
 export default messages;

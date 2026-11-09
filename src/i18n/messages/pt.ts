@@ -422,5 +422,10 @@ const messages: Record<string, string> = {
   "Choose private and it stays off the public chain.": "Escolha privado e ele não aparece na rede pública.",
   "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Adicione o Scrim como ferramenta no Claude Code, Codex, Cursor, Gemini CLI ou em qualquer assistente compatível com MCP. Cole isto nas configurações dele. Assim ele poderá ver seus limites, pedir para pagar, achar APIs pagas e comprá-las.",
   "It arrives in your wallet as {symbol}.": "Chega na sua carteira como {symbol}.",
+  "Send {symbol} to the address above": "Envie {symbol} para o endereço acima",
+  "Received. Moving it now": "Recebido. Movendo agora",
+  "Arrived in your wallet": "Chegou na sua carteira",
+  "Arrived in your private balance": "Chegou no seu saldo privado",
+  "This page updates by itself.": "Esta página se atualiza sozinha.",
 };
 export default messages;

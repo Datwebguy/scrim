@@ -7,6 +7,7 @@ import { PayFromWallet } from "./PayFromWallet";
 import { useSession } from "./session";
 import { Spinner } from "./ui";
 import { useT } from "@/i18n/I18n";
+import { StatusMark } from "./StatusMark";
 
 export function AddMoney() {
   const t = useT();
@@ -95,12 +96,27 @@ export function AddMoney() {
               )}
             </>
           )}
-          {transfer.status === "success" && <div className="notice good">Your money arrived in {landsIn}.</div>}
-          {transfer.status === "processing" && <div className="notice info">We see your deposit. It will be in {landsIn} in a moment.</div>}
+          {!["refunded", "failed", "expired"].includes(transfer.status) && (() => {
+            const step = transfer.status === "success" ? 3 : transfer.status === "processing" ? 2 : 1;
+            const rows = [
+              t("Send {symbol} to the address above", { symbol: transfer.fromAsset.symbol }),
+              t("Received. Moving it now"),
+              transfer.fromWallet ? t("Arrived in your wallet") : t("Arrived in your private balance"),
+            ];
+            return (
+              <ol className="deposit-steps">
+                {rows.map((label, i) => {
+                  const n = i + 1;
+                  const state = n < step || step === 3 ? "done" : n === step ? "now" : "next";
+                  return <li key={n} className={state}>{state === "next" ? <i /> : <StatusMark state={state === "done" ? "done" : "moving"} size={22} />}<span>{label}</span></li>;
+                })}
+              </ol>
+            );
+          })()}
           {["refunded", "failed", "expired"].includes(transfer.status) && <div className="notice danger">{t("This deposit address is closed. If you sent money to it, it is returned to the address it came from.")}</div>}
           <div className="between">
             <button className="btn btn-ghost" onClick={() => setTransfer(null)}>{transfer.status === "awaiting_deposit" ? "Back" : "Add more"}</button>
-            {transfer.status === "awaiting_deposit" && <span className="muted"><Spinner /> {t("Waiting for your deposit…")}</span>}
+            {!["success", "refunded", "failed", "expired"].includes(transfer.status) && <span className="muted small">{t("This page updates by itself.")}</span>}
           </div>
         </div>
       )}

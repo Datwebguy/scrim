@@ -7,7 +7,7 @@
 import { randomUUID } from "node:crypto";
 import { formatAmount, parseAmount } from "@/protocol/amount";
 import { corridorFor, USDC_NEAR_TO_BASE } from "@/protocol/corridor";
-import { intentMismatch, parseIntentMessage } from "@/protocol/intents-auth";
+import { intentMismatch, isImplicitAccount, parseIntentMessage } from "@/protocol/intents-auth";
 import { normalizeNearAccount } from "@/protocol/identifiers";
 import { verifyNep413 } from "@/protocol/nep413";
 import { audit } from "./audit";
@@ -18,6 +18,7 @@ import { config } from "./config";
 import { sql } from "./db";
 import { badRequest, conflict, HttpError, notFound } from "./errors";
 import * as oneclick from "./oneclick";
+import { accountExists } from "./holdings";
 import { emitPaymentEvent } from "./notify";
 import { approvedTeamRequest, markTeamRequest } from "./payments";
 import { privateAccessToken, toIntentsSignature } from "./private-access";
@@ -142,6 +143,13 @@ type Plan = {
   public: boolean;
 };
 
+// A NEAR name that doesn't exist can't receive anything (an implicit 64 hex account is created by the payment itself).
+// "0.014" is a valid NEAR name, so typos like an amount pasted into the address box are caught here, not by the network.
+async function requireNearAccount(network: Network, accountId: string) {
+  if (isImplicitAccount(accountId)) return;
+  if (!(await accountExists(network, accountId))) throw badRequest(`${accountId} doesn't exist on NEAR. Check the address.`);
+}
+
 async function plan(session: Session, input: TransferInput): Promise<Plan> {
   const account = session.accountId;
   const note = (input.note ?? "").trim();
@@ -174,6 +182,7 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
     }
     if (input.kind === "send") throw badRequest("Your wallet sends to a NEAR account directly.");
     const recipient = checkAddress(to, String(input.recipient ?? ""));
+    if (to.chain === "near") await requireNearAccount(session.network, recipient);
     return { from, to, amountAsset: to, recipient, needsUserToken: false, deadlineMinutes: 30, public: true,
       request: { ...out, swapType: "EXACT_OUTPUT", amount: toMinor(to).toString(), recipient } };
   }
@@ -221,6 +230,7 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
     const recipient = normalizeNearAccount(String(input.recipient ?? ""));
     if (!recipient) throw badRequest("Enter the recipient's NEAR account, ending in .near.");
     if (recipient === account) throw badRequest("That's your own account.");
+    await requireNearAccount(session.network, recipient);
     return {
       from: asset, to: asset, amountAsset: asset, recipient, needsUserToken: true, deadlineMinutes: 15, public: false,
       request: { ...base, swapType: "EXACT_OUTPUT", originAsset: asset.assetId, depositType: "CONFIDENTIAL_INTENTS", destinationAsset: asset.assetId,
@@ -231,6 +241,7 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
   const from = await assetById(String(input.fromAssetId ?? ""));
   const to = await assetById(String(input.toAssetId ?? input.fromAssetId ?? ""));
   const recipient = checkAddress(to, String(input.recipient ?? ""));
+    if (to.chain === "near") await requireNearAccount(session.network, recipient);
   return {
     from, to, amountAsset: to, recipient, needsUserToken: true, deadlineMinutes: 15, public: false,
     request: { ...base, swapType: "EXACT_OUTPUT", originAsset: from.assetId, depositType: "CONFIDENTIAL_INTENTS", destinationAsset: to.assetId,

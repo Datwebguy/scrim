@@ -421,5 +421,6 @@ const messages: Record<string, string> = {
   "No. With a wallet app, only your wallet can move your money. If you sign in with email or Google, a key kept by our partner Privy signs for you, and only when you ask.": "Não. Com um app de carteira, só a sua carteira pode mover seu dinheiro. Se você entra com e-mail ou Google, uma chave guardada pela nossa parceira Privy assina por você, e só quando você pede.",
   "Choose private and it stays off the public chain.": "Escolha privado e ele não aparece na rede pública.",
   "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Adicione o Scrim como ferramenta no Claude Code, Codex, Cursor, Gemini CLI ou em qualquer assistente compatível com MCP. Cole isto nas configurações dele. Assim ele poderá ver seus limites, pedir para pagar, achar APIs pagas e comprá-las.",
+  "It arrives in your wallet as {symbol}.": "Chega na sua carteira como {symbol}.",
 };
 export default messages;

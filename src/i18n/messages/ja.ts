@@ -421,5 +421,6 @@ const messages: Record<string, string> = {
   "No. With a wallet app, only your wallet can move your money. If you sign in with email or Google, a key kept by our partner Privy signs for you, and only when you ask.": "いいえ。ウォレットアプリなら、お金を動かせるのはあなたのウォレットだけです。メールや Google でサインインした場合は、パートナーの Privy が保管する鍵があなたの代わりに署名し、あなたが操作したときだけ動きます。",
   "Choose private and it stays off the public chain.": "非公開を選べば、公開チェーンには載りません。",
   "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Claude Code、Codex、Cursor、Gemini CLI など MCP に対応したアシスタントに、Scrim をツールとして追加します。これを設定に貼り付けてください。すると、上限の確認、支払いの依頼、有料 API の検索と購入ができます。",
+  "It arrives in your wallet as {symbol}.": "ウォレットには {symbol} として届きます。",
 };
 export default messages;

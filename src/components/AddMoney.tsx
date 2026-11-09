@@ -77,6 +77,7 @@ export function AddMoney() {
           {transfer.deposit && (
             <>
               <CopyField label={`Your deposit address on ${transfer.deposit.chainName}`} value={transfer.deposit.address} />
+              {transfer.fromWallet && transfer.toAsset.symbol !== transfer.fromAsset.symbol && <div className="notice info">{t("It arrives in your wallet as {symbol}.", { symbol: transfer.toAsset.symbol === "wNEAR" ? "NEAR" : transfer.toAsset.symbol })}</div>}
               {transfer.deposit.memo && <CopyField label="Memo (required)" value={transfer.deposit.memo} />}
               <ul className="checklist">
                 <li>{t("Send only")} <b>{transfer.fromAsset.symbol}</b> on the <b>{transfer.fromAsset.chainName}</b> network. Anything else can be lost.</li>

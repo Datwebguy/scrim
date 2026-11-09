@@ -202,8 +202,11 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
   if (input.kind === "add" && input.privacy === "public") {
     const from = await assetById(String(input.fromAssetId ?? ""));
     if (from.chain === "near") throw badRequest("Coins on NEAR go straight to your wallet's address.");
-    const matches = (await catalog()).filter((a) => a.chain === "near" && a.symbol === from.symbol);
-    const to = matches.length === 1 ? matches[0] : undefined;
+    // The same coin on NEAR if there is one (USDC on Base arrives as USDC on NEAR). A coin with no NEAR version,
+    // like SOL or BTC, is swapped on the way and arrives as NEAR, which needs no registration to land.
+    const list = await catalog();
+    const matches = list.filter((a) => a.chain === "near" && a.symbol === from.symbol);
+    const to = matches.length === 1 ? matches[0] : list.find((a) => a.assetId === "nep141:wrap.near");
     if (!to) throw badRequest(`${from.symbol} can't arrive in a NEAR wallet. Add it to your private balance instead.`);
     return {
       from, to, amountAsset: from, recipient: account, needsUserToken: false, deadlineMinutes: 24 * 60, public: true,

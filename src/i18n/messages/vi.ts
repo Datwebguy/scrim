@@ -422,5 +422,10 @@ const messages: Record<string, string> = {
   "Choose private and it stays off the public chain.": "Chọn riêng tư và khoản này không nằm trên chuỗi công khai.",
   "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Thêm Scrim làm công cụ trong Claude Code, Codex, Cursor, Gemini CLI hoặc bất kỳ trợ lý nào hỗ trợ MCP. Dán nội dung này vào phần cài đặt của nó. Sau đó nó có thể xem hạn mức, xin thanh toán, tìm API trả phí và mua chúng.",
   "It arrives in your wallet as {symbol}.": "Về ví của bạn dưới dạng {symbol}.",
+  "Send {symbol} to the address above": "Gửi {symbol} tới địa chỉ ở trên",
+  "Received. Moving it now": "Đã nhận. Đang chuyển",
+  "Arrived in your wallet": "Đã về ví của bạn",
+  "Arrived in your private balance": "Đã về số dư riêng tư",
+  "This page updates by itself.": "Trang này tự cập nhật.",
 };
 export default messages;

@@ -422,5 +422,10 @@ const messages: Record<string, string> = {
   "Choose private and it stays off the public chain.": "选择私密，它就不会出现在公开链上。",
   "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "在 Claude Code、Codex、Cursor、Gemini CLI 或任何支持 MCP 的助手中，把 Scrim 添加为工具。把下面内容粘贴到它的设置里。之后它就能查看额度、请求付款、查找付费 API 并购买。",
   "It arrives in your wallet as {symbol}.": "到账时会是你钱包里的 {symbol}。",
+  "Send {symbol} to the address above": "把 {symbol} 发送到上面的地址",
+  "Received. Moving it now": "已收到，正在转入",
+  "Arrived in your wallet": "已到账钱包",
+  "Arrived in your private balance": "已到账私密余额",
+  "This page updates by itself.": "此页面会自动更新。",
 };
 export default messages;

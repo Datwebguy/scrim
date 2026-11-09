@@ -422,5 +422,10 @@ const messages: Record<string, string> = {
   "Choose private and it stays off the public chain.": "非公開を選べば、公開チェーンには載りません。",
   "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Claude Code、Codex、Cursor、Gemini CLI など MCP に対応したアシスタントに、Scrim をツールとして追加します。これを設定に貼り付けてください。すると、上限の確認、支払いの依頼、有料 API の検索と購入ができます。",
   "It arrives in your wallet as {symbol}.": "ウォレットには {symbol} として届きます。",
+  "Send {symbol} to the address above": "上のアドレスに {symbol} を送る",
+  "Received. Moving it now": "受け取りました。移動中です",
+  "Arrived in your wallet": "ウォレットに届きました",
+  "Arrived in your private balance": "非公開残高に届きました",
+  "This page updates by itself.": "このページは自動で更新されます。",
 };
 export default messages;

@@ -1319,3 +1319,10 @@ html:lang(ja) .section-head h2, html:lang(ja) .l-row h2 { text-wrap: balance; }
 .gate-form .fine.plain { padding-top: 0; border-top: 0; margin-top: -8px; text-align: center; }
 
 .sc-agent-note { margin: 12px 2px 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
+
+/* Add money: where a deposit is, step by step. */
+.deposit-steps { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 12px; }
+.deposit-steps li { display: flex; align-items: center; gap: 12px; font-size: 15px; }
+.deposit-steps li.next { color: var(--muted); }
+.deposit-steps li.now { font-weight: 600; }
+.deposit-steps li > i { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line-2); flex: none; }

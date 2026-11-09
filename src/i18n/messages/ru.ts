@@ -422,5 +422,10 @@ const messages: Record<string, string> = {
   "Choose private and it stays off the public chain.": "Выберите приватно, и платёж не попадёт в публичный блокчейн.",
   "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Добавьте Scrim как инструмент в Claude Code, Codex, Cursor, Gemini CLI или любой ассистент с поддержкой MCP. Вставьте это в его настройки. После этого он сможет проверять лимиты, просить об оплате, искать платные API и покупать их.",
   "It arrives in your wallet as {symbol}.": "Придёт в ваш кошелёк как {symbol}.",
+  "Send {symbol} to the address above": "Отправьте {symbol} на адрес выше",
+  "Received. Moving it now": "Получено. Переводим",
+  "Arrived in your wallet": "Поступило в ваш кошелёк",
+  "Arrived in your private balance": "Поступило на ваш приватный баланс",
+  "This page updates by itself.": "Страница обновляется сама.",
 };
 export default messages;

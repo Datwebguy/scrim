@@ -4,7 +4,7 @@ import { createHmac } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { agentOverview } from "@/server/agent-api";
 import { agentWallet, setAutonomous } from "@/server/agent-wallets";
-import { agentFromApiKey, createAgent, rotateAgentKey, setAgentWebhook } from "@/server/agents";
+import { agentFromApiKey, createAgent, pauseAllAgents, rotateAgentKey, setAgentWebhook } from "@/server/agents";
 import type { Session } from "@/server/auth";
 import { sql } from "@/server/db";
 import { handleMcp } from "@/server/mcp";
@@ -271,5 +271,19 @@ describe("private or public agent wallets", () => {
     const { setWalletPrivate, privateFundingAddress } = await import("@/server/agent-wallets");
     await expect(setWalletPrivate(ownerSession, agentId, true)).rejects.toThrow(/wallet first/);
     await expect(privateFundingAddress(ownerSession, agentId, "base", "5")).rejects.toThrow(/mainnet/);
+  });
+});
+
+describe("pause all agents", () => {
+  it("freezes every agent at once, and a paused agent's request is stopped", async () => {
+    const second = await createAgent(ownerSession, treasuryId, { name: "Second bot", perActionCap: "1", rollingCap: "1", windowHours: 24, counterparties: [{ address: payee.accountId, label: "Payee" }] });
+    const { paused } = await pauseAllAgents(ownerSession, treasuryId);
+    expect(paused).toBeGreaterThanOrEqual(2);
+    expect((await pauseAllAgents(ownerSession, treasuryId)).paused).toBe(0);
+    const agent = await agentFromApiKey(`Bearer ${second.apiKey}`);
+    expect(agent.enabled).toBe(false);
+    const stopped = await createAgentPayment(agent, { recipient: payee.accountId, amount: "0.1", idempotencyKey: "pause-all-0001" });
+    expect(stopped.status).toBe("policy_rejected");
+    expect(stopped.policyDecision?.checks.find((c) => !c.passed)?.code).toBe("AGENT_PAUSED");
   });
 });

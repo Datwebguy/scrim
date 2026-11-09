@@ -82,6 +82,19 @@ export function TreasuryView({ treasuryId, accountId }: { treasuryId: string; ac
           </div>
         </div>
         <div className="actions">
+          {agents.some((a) => a.enabled) && (
+            <button className="btn btn-danger" onClick={async () => {
+              try {
+                const { paused } = await api<{ paused: number }>(`/treasuries/${treasury.id}/agents/pause`, { method: "POST" });
+                toast(paused === 1 ? t("1 agent paused") : t("{count} agents paused", { count: String(paused) }));
+                refresh();
+              } catch (e) {
+                toast((e as Error).message, "error");
+              }
+            }}>
+              {t("Pause all agents")}
+            </button>
+          )}
           {role === "owner" && (
             <button className="btn btn-ghost" onClick={() => setAgentDialog({ mode: "create" })}>
               + Add agent

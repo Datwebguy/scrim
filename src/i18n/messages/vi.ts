@@ -427,5 +427,8 @@ const messages: Record<string, string> = {
   "Arrived in your wallet": "Đã về ví của bạn",
   "Arrived in your private balance": "Đã về số dư riêng tư",
   "This page updates by itself.": "Trang này tự cập nhật.",
+  "Pause all agents": "Tạm dừng mọi tác nhân",
+  "1 agent paused": "Đã tạm dừng 1 tác nhân",
+  "{count} agents paused": "Đã tạm dừng {count} tác nhân",
 };
 export default messages;

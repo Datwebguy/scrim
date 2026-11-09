@@ -19,6 +19,7 @@ import { sql } from "./db";
 import { badRequest, conflict, HttpError, notFound } from "./errors";
 import * as oneclick from "./oneclick";
 import { accountExists } from "./holdings";
+import { viewCall } from "./near-rpc";
 import { emitPaymentEvent } from "./notify";
 import { approvedTeamRequest, markTeamRequest } from "./payments";
 import { privateAccessToken, toIntentsSignature } from "./private-access";
@@ -150,6 +151,15 @@ async function requireNearAccount(network: Network, accountId: string) {
   if (!(await accountExists(network, accountId))) throw badRequest(`${accountId} doesn't exist on NEAR. Check the address.`);
 }
 
+// A NEAR token can only land in an account registered with that token. The wallet registers the receiver itself
+// before a public payment; a private payment can't, so it is refused here instead of failing on the way.
+async function requireTokenRegistration(network: Network, asset: Asset, accountId: string) {
+  const contract = asset.assetId.replace(/^nep141:/, "");
+  if (asset.chain !== "near" || contract === asset.assetId || contract === "wrap.near") return;
+  const registered = await viewCall<unknown>(network, contract, "storage_balance_of", { account_id: accountId }).then((r) => r !== null, () => true);
+  if (!registered) throw badRequest(`${accountId} isn't set up to receive ${asset.symbol} yet. They can add ${asset.symbol} to their wallet once, or you can send NEAR instead.`);
+}
+
 async function plan(session: Session, input: TransferInput): Promise<Plan> {
   const account = session.accountId;
   const note = (input.note ?? "").trim();
@@ -241,7 +251,8 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
   const from = await assetById(String(input.fromAssetId ?? ""));
   const to = await assetById(String(input.toAssetId ?? input.fromAssetId ?? ""));
   const recipient = checkAddress(to, String(input.recipient ?? ""));
-    if (to.chain === "near") await requireNearAccount(session.network, recipient);
+  if (to.chain === "near") await requireNearAccount(session.network, recipient);
+  if (to.chain === "near") await requireTokenRegistration(session.network, to, recipient);
   return {
     from, to, amountAsset: to, recipient, needsUserToken: true, deadlineMinutes: 15, public: false,
     request: { ...base, swapType: "EXACT_OUTPUT", originAsset: from.assetId, depositType: "CONFIDENTIAL_INTENTS", destinationAsset: to.assetId,

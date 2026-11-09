@@ -39,6 +39,7 @@ function friendly(message: string): string {
   if (m.includes("amount is too low") || m.includes("too low")) return "That amount is below the minimum for this route. Try a larger amount.";
   if (m.includes("no quotes") || m.includes("failed to get quote")) return "No route is available for this pair right now. Try another asset or amount.";
   if (m.includes("insufficient")) return "Your private balance is too low for this.";
+  if (m.includes("internal server error") || m.includes("bad gateway") || m.includes("service unavailable")) return "The payment network couldn't price this. Check the address and amount, then try again.";
   return message;
 }
 

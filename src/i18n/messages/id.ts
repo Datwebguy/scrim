@@ -427,5 +427,8 @@ const messages: Record<string, string> = {
   "Arrived in your wallet": "Sudah masuk ke dompet Anda",
   "Arrived in your private balance": "Sudah masuk ke saldo privat Anda",
   "This page updates by itself.": "Halaman ini diperbarui sendiri.",
+  "Pause all agents": "Jeda semua agen",
+  "1 agent paused": "1 agen dijeda",
+  "{count} agents paused": "{count} agen dijeda",
 };
 export default messages;

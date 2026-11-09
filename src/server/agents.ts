@@ -154,6 +154,17 @@ export async function setAgentEnabled(session: Session, agentId: string, enabled
   });
 }
 
+// One tap freezes every agent on the account: no new requests, no paying by itself, no purchases. Like pausing one
+// agent, any member may do it (a safety action); only the owner can resume each one.
+export async function pauseAllAgents(session: Session, treasuryId: string): Promise<{ paused: number }> {
+  return sql.begin(async (tx) => {
+    await treasuryForMember(tx, session.accountId, treasuryId, session.network);
+    const rows = await tx<{ id: string }[]>`UPDATE agents SET enabled = false, paused_at = now() WHERE treasury_id = ${treasuryId} AND enabled RETURNING id`;
+    for (const { id } of rows) await audit(tx, treasuryId, { type: "human", id: session.accountId }, "agent.paused", id, { all: true });
+    return { paused: rows.length };
+  });
+}
+
 export async function listAgents(session: Session, treasuryId: string): Promise<Agent[]> {
   await treasuryForMember(sql, session.accountId, treasuryId, session.network);
   const rows = await sql<AgentRow[]>`${selectAgents(sql)} WHERE a.treasury_id = ${treasuryId} ORDER BY a.created_at`;

@@ -427,5 +427,8 @@ const messages: Record<string, string> = {
   "Arrived in your wallet": "지갑에 도착했습니다",
   "Arrived in your private balance": "비공개 잔액에 도착했습니다",
   "This page updates by itself.": "이 페이지는 자동으로 업데이트됩니다.",
+  "Pause all agents": "모든 에이전트 일시 중지",
+  "1 agent paused": "에이전트 1개 일시 중지됨",
+  "{count} agents paused": "에이전트 {count}개 일시 중지됨",
 };
 export default messages;

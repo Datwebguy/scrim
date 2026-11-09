@@ -427,5 +427,8 @@ const messages: Record<string, string> = {
   "Arrived in your wallet": "Cüzdanınıza ulaştı",
   "Arrived in your private balance": "Gizli bakiyenize ulaştı",
   "This page updates by itself.": "Bu sayfa kendiliğinden güncellenir.",
+  "Pause all agents": "Tüm ajanları duraklat",
+  "1 agent paused": "1 ajan duraklatıldı",
+  "{count} agents paused": "{count} ajan duraklatıldı",
 };
 export default messages;

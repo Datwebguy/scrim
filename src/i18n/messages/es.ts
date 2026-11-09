@@ -427,5 +427,8 @@ const messages: Record<string, string> = {
   "Arrived in your wallet": "Llegó a tu billetera",
   "Arrived in your private balance": "Llegó a tu saldo privado",
   "This page updates by itself.": "Esta página se actualiza sola.",
+  "Pause all agents": "Pausar todos los agentes",
+  "1 agent paused": "1 agente en pausa",
+  "{count} agents paused": "{count} agentes en pausa",
 };
 export default messages;

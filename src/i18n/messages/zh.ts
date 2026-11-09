@@ -427,5 +427,8 @@ const messages: Record<string, string> = {
   "Arrived in your wallet": "已到账钱包",
   "Arrived in your private balance": "已到账私密余额",
   "This page updates by itself.": "此页面会自动更新。",
+  "Pause all agents": "暂停所有代理",
+  "1 agent paused": "已暂停 1 个代理",
+  "{count} agents paused": "已暂停 {count} 个代理",
 };
 export default messages;

@@ -427,5 +427,8 @@ const messages: Record<string, string> = {
   "Arrived in your wallet": "ウォレットに届きました",
   "Arrived in your private balance": "非公開残高に届きました",
   "This page updates by itself.": "このページは自動で更新されます。",
+  "Pause all agents": "すべてのエージェントを停止",
+  "1 agent paused": "1 件のエージェントを停止しました",
+  "{count} agents paused": "{count} 件のエージェントを停止しました",
 };
 export default messages;

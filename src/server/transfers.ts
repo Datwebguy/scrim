@@ -251,7 +251,7 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
   const from = await assetById(String(input.fromAssetId ?? ""));
   const to = await assetById(String(input.toAssetId ?? input.fromAssetId ?? ""));
   const recipient = checkAddress(to, String(input.recipient ?? ""));
-    if (to.chain === "near") await requireNearAccount(session.network, recipient);
+  if (to.chain === "near") await requireNearAccount(session.network, recipient);
   if (to.chain === "near") await requireTokenRegistration(session.network, to, recipient);
   return {
     from, to, amountAsset: to, recipient, needsUserToken: true, deadlineMinutes: 15, public: false,

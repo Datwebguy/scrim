@@ -421,6 +421,5 @@ const messages: Record<string, string> = {
   "No. With a wallet app, only your wallet can move your money. If you sign in with email or Google, a key kept by our partner Privy signs for you, and only when you ask.": "아니요. 지갑 앱을 쓰면 돈을 움직일 수 있는 것은 내 지갑뿐입니다. 이메일이나 Google로 로그인하면 파트너 Privy가 보관하는 키가 대신 서명하며, 내가 요청할 때만 서명합니다.",
   "Choose private and it stays off the public chain.": "비공개를 고르면 공개 체인에 남지 않습니다.",
   "Add Scrim as a tool in Claude Code, Codex, Cursor, Gemini CLI or any assistant that supports MCP. Paste this into its settings. It can then check its limits, ask to pay, find paid APIs and buy from them.": "Claude Code, Codex, Cursor, Gemini CLI 등 MCP를 지원하는 어시스턴트에 Scrim을 도구로 추가하세요. 이 내용을 설정에 붙여 넣으면 한도 확인, 결제 요청, 유료 API 검색과 구매를 할 수 있습니다.",
-  "Sending to an exchange? Use a deposit address that needs no memo or tag. Scrim can't add a memo yet, and a payment without a required memo can be lost.": "거래소로 보내나요? 메모나 태그가 필요 없는 입금 주소를 쓰세요. Scrim은 아직 메모를 넣을 수 없고, 필요한 메모가 없는 송금은 잃을 수 있습니다.",
 };
 export default messages;

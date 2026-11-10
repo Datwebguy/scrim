@@ -30,6 +30,8 @@ export function SignIn({ networks }: { networks: Network[] }) {
   const router = useRouter();
   const [network, setNetwork] = useState<Network>(networks[0]);
   const [busy, setBusy] = useState(false);
+  // Which way the person is signing in, so only that button shows it is working.
+  const [via, setVia] = useState<"wallet" | "google" | "email">("wallet");
   const [error, setError] = useState("");
   const [stuck, setStuck] = useState(false);
   const [known, setKnown] = useState<string | null>(null);
@@ -57,12 +59,13 @@ export function SignIn({ networks }: { networks: Network[] }) {
 
   // If the wallet does not come back, say so and let the person start again.
   useEffect(() => {
-    if (!busy) { setStuck(false); return; }
+    if (!busy || via !== "wallet") { setStuck(false); return; }
     const timer = setTimeout(() => setStuck(true), 15_000);
     return () => clearTimeout(timer);
-  }, [busy]);
+  }, [busy, via]);
 
   async function connect() {
+    setVia("wallet");
     setBusy(true);
     setError("");
     try {
@@ -81,6 +84,7 @@ export function SignIn({ networks }: { networks: Network[] }) {
     if (!googleSignInAvailable) return;
     const back = takeGoogleReturn();
     if (!back) return;
+    setVia("google");
     setBusy(true);
     finishGoogleSignIn(back.code, back.state, back.network ?? network).then(
       () => { router.replace("/app"); router.refresh(); },
@@ -91,6 +95,7 @@ export function SignIn({ networks }: { networks: Network[] }) {
   }, []);
 
   async function google() {
+    setVia("google");
     setBusy(true);
     setError("");
     try {
@@ -112,6 +117,7 @@ export function SignIn({ networks }: { networks: Network[] }) {
 
   async function emailStep(e: React.FormEvent) {
     e.preventDefault();
+    setVia("email");
     setBusy(true);
     setError("");
     try {
@@ -163,8 +169,8 @@ export function SignIn({ networks }: { networks: Network[] }) {
           {network === "testnet" && <div className="notice info">{t("Testnet uses free test coins, so nothing here is worth money.")}</div>}
           <div className="method">
             <button className="btn btn-primary btn-lg method-main" onClick={connect} disabled={busy}>
-              {busy ? <Spinner /> : <WalletIcon />}
-              {busy ? t("Check your wallet…") : known ? t("Continue as {name}", { name: known }) : t("Connect wallet on {network}", { network: t(NETWORK_INFO[network].label).toLowerCase() })}
+              {busy && via === "wallet" ? <Spinner /> : <WalletIcon />}
+              {busy && via === "wallet" ? t("Check your wallet…") : known ? t("Continue as {name}", { name: known }) : t("Connect wallet on {network}", { network: t(NETWORK_INFO[network].label).toLowerCase() })}
             </button>
             <small>{t("HOT, Meteor, Intear, MyNearWallet, Nightly and more")}</small>
           </div>
@@ -174,13 +180,13 @@ export function SignIn({ networks }: { networks: Network[] }) {
           {emailSignInAvailable && (
             <form className="trade-email" onSubmit={emailStep}>
               <span className="trade-or"><i />{t("Or sign in without a wallet")}<i /></span>
-              {googleSignInAvailable && <button type="button" className="btn btn-ghost btn-lg method-google" onClick={google} disabled={busy}>{busy ? <Spinner /> : <GoogleIcon />}{t("Continue with Google")}</button>}
+              {googleSignInAvailable && <button type="button" className="btn btn-ghost btn-lg method-google" onClick={google} disabled={busy}>{busy && via === "google" ? <Spinner /> : <GoogleIcon />}{t("Continue with Google")}</button>}
               <label className="email-field">
                 <MailIcon />
                 <input className="input" type="email" autoComplete="email" inputMode="email" placeholder={t("you@example.com")} value={email} onChange={(e) => { setEmail(e.target.value); setCodeSent(false); setCode(""); }} required disabled={busy} aria-label={t("Your email")} />
               </label>
               {codeSent && <input className="input code-field" inputMode="numeric" autoComplete="one-time-code" placeholder={t("Code from your email")} value={code} onChange={(e) => setCode(e.target.value)} required disabled={busy} aria-label={t("Code from your email")} />}
-              <button className="btn btn-ghost btn-lg" disabled={busy || !email.trim() || (codeSent && !code.trim())}>{busy && <Spinner />}{codeSent ? t("Sign in") : t("Email me a code")}</button>
+              <button className="btn btn-ghost btn-lg" disabled={busy || !email.trim() || (codeSent && !code.trim())}>{busy && via === "email" && <Spinner />}{codeSent ? t("Sign in") : t("Email me a code")}</button>
             </form>
           )}
           <p className="fine">{emailSignInAvailable ? t("Email and Google create a wallet for you. No wallet app needed.") : t("No email. No password. You can use any NEAR wallet, including HOT, Meteor, Intear, MyNearWallet and Nightly.")}</p>

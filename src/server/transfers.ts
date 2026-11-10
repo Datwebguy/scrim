@@ -74,6 +74,8 @@ type Details = {
   // What the private balance held just before the signed transfer was sent. NEAR Intents shows no status for private
   // transfers, so they are confirmed by the balance moving.
   before?: { from: string; to: string };
+  // An added deposit can be any amount above the minimum: once it lands, the amounts are what really arrived.
+  settled?: boolean;
 };
 
 // For deposits on an EVM chain: the chain id and the token contract (null for the chain's own coin),
@@ -473,6 +475,13 @@ async function mine(session: Session, id: string): Promise<Row> {
   return row;
 }
 
+// What really moved, in place of the quote: a deposit of any size above the minimum is shown as sent.
+function settleAmounts(details: Details, s: oneclick.StatusResponse) {
+  if (/^\d+$/.test(s.swapDetails?.amountIn ?? "")) details.amountIn = s.swapDetails!.amountIn!;
+  if (/^\d+$/.test(s.swapDetails?.amountOut ?? "")) details.amountOut = s.swapDetails!.amountOut!;
+  details.settled = true;
+}
+
 const END_STATE: Record<string, TransferStatus> = { SUCCESS: "success", REFUNDED: "refunded", FAILED: "failed" };
 // The deposit has reached NEAR Intents (even if not fully, or not yet processed): money has left the payer.
 const DEPOSIT_SEEN = new Set(["KNOWN_DEPOSIT_TX", "INCOMPLETE_DEPOSIT", "PROCESSING"]);
@@ -490,6 +499,14 @@ async function refreshRow(row: Row, held: Record<string, bigint> | null = null):
   const sealed = open<Details>(row.details_sealed, aad(row.id, row.account_id));
   // A wallet pays on its own, so a wallet transfer closed here may still have been paid: keep following it for two days.
   const lateWalletPayment = sealed.public === true && (row.status === "expired" || row.status === "cancelled") && row.created_at.getTime() > Date.now() - 2 * 86_400_000;
+  // A deposit that finished before amounts were recorded: read what arrived once, so the activity shows it.
+  const unsettledAdd = row.kind === "add" && row.status === "success" && !sealed.settled && !row.intent_hash;
+  if (unsettledAdd) {
+    try {
+      const s = await oneclick.status(sealed.trackAddress, sealed.trackMemo);
+      if (s.status === "SUCCESS") { settleAmounts(sealed, s); await save(row.id, row.account_id, "success", sealed); }
+    } catch { /* keep the quoted amounts until the next look */ }
+  }
   if (row.status === "awaiting_deposit" || row.status === "processing" || lateWalletPayment) {
     try {
       const details = sealed;
@@ -501,6 +518,7 @@ async function refreshRow(row: Row, held: Record<string, bigint> | null = null):
       if (ended === "success" && row.team_request_id && details.public) await walletPayoutSent(row);
       if (ended) {
         details.resultHashes = s?.swapDetails?.destinationChainTxHashes?.map((h) => h.hash) ?? details.resultHashes;
+        if (ended === "success" && row.kind === "add" && s) settleAmounts(details, s);
         await save(row.id, row.account_id, ended, details);
         if (row.team_request_id) {
           const outcome = ended === "success" ? "settled" : ended === "refunded" ? "approved" : "failed";
@@ -555,7 +573,9 @@ export async function depositSent(session: Session, id: string, txHash: string):
 
 export async function listTransfers(session: Session): Promise<Transfer[]> {
   const rows = await sql<Row[]>`SELECT * FROM transfers WHERE account_id = ${session.accountId} AND network = ${session.network} ORDER BY created_at DESC LIMIT 100`;
-  return Promise.all(rows.map(toTransfer));
+  // A finished deposit still showing its quoted amount is read once more, so the list shows what arrived.
+  const unsettled = (r: Row) => r.kind === "add" && r.status === "success" && !r.intent_hash && !open<Details>(r.details_sealed, aad(r.id, r.account_id)).settled;
+  return Promise.all(rows.map((r) => (unsettled(r) ? refreshRow(r).catch(() => toTransfer(r)) : toTransfer(r))));
 }
 
 export async function cancelTransfer(session: Session, id: string): Promise<Transfer> {

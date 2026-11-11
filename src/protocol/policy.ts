@@ -62,6 +62,10 @@ export function evaluatePolicy(policy: MandatePolicy, input: PolicyInput): Polic
   const unit = input.unit ?? { symbol: "USDC", decimals: 6 };
   const show = (minor: bigint) => `${formatAmount(minor, unit.decimals)} ${unit.symbol}`;
 
+  const live = !policy.expiresAt || new Date(policy.expiresAt) > now;
+  const underPerAction = input.amount > 0n && input.amount <= perAction;
+  const underRolling = afterSpend <= rolling;
+  // Each line says what happened: a check that failed never reads as passed.
   const checks: PolicyCheck[] = [
     {
       rule: "active",
@@ -70,8 +74,8 @@ export function evaluatePolicy(policy: MandatePolicy, input: PolicyInput): Polic
     },
     {
       rule: "expiry",
-      passed: !policy.expiresAt || new Date(policy.expiresAt) > now,
-      detail: policy.expiresAt ? `Its limits apply until ${new Date(policy.expiresAt).toUTCString()}.` : "Its limits have no end date.",
+      passed: live,
+      detail: !policy.expiresAt ? "Its limits have no end date." : live ? `Its limits apply until ${new Date(policy.expiresAt).toUTCString()}.` : `Its permission ended on ${new Date(policy.expiresAt).toUTCString()}.`,
     },
     {
       rule: "counterparty",
@@ -80,13 +84,13 @@ export function evaluatePolicy(policy: MandatePolicy, input: PolicyInput): Polic
     },
     {
       rule: "per_action_cap",
-      passed: input.amount > 0n && input.amount <= perAction,
-      detail: `${show(input.amount)}, within the ${show(perAction)} limit per payment.`,
+      passed: underPerAction,
+      detail: underPerAction ? `${show(input.amount)}, within the ${show(perAction)} limit per payment.` : input.amount > 0n ? `${show(input.amount)} is over the ${show(perAction)} limit per payment.` : "The amount must be more than zero.",
     },
     {
       rule: "rolling_cap",
-      passed: afterSpend <= rolling,
-      detail: `${show(afterSpend)} of ${show(rolling)} used in the ${windowLabel} window after this request.`,
+      passed: underRolling,
+      detail: underRolling ? `${show(afterSpend)} of ${show(rolling)} used in the ${windowLabel} window after this request.` : `${show(afterSpend)} would be over the ${show(rolling)} limit for the ${windowLabel} window.`,
     },
   ];
 

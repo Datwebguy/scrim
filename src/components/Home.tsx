@@ -32,7 +32,7 @@ export function Home() {
   const [byEmail, setByEmail] = useState(false); // signed in with an email: there is no wallet app to approve in
   useEffect(() => setByEmail(Boolean(emailSession())), []);
   const needsSetup = data?.status === "needs_setup";
-  const { data: wallet, reload: recheck } = useApi<{ holdings: { id: string; symbol: string; amount: string; display: string; icon: string | null }[] }>("/wallet", { every: needsSetup ? 15_000 : 60_000 });
+  const { data: wallet, reload: recheck } = useApi<{ holdings: { id: string; symbol: string; amount: string; display: string; icon: string | null; usd: number | null }[] }>("/wallet", { every: needsSetup ? 15_000 : 60_000 });
   const near = wallet?.holdings.find((h) => h.id === "near");
   const nativeBalance = near ? BigInt(near.amount) : null;
   const tooLow = nativeBalance !== null && nativeBalance < SETUP_MIN_NEAR;
@@ -190,7 +190,7 @@ export function Home() {
 
       {wallet && (
         <section className="card" style={{ marginTop: 16 }}>
-          <div className="card-title"><h3>{t("Your wallet")}</h3><span className="muted" title={t("Public on the blockchain")}>{short(accountId, 8, 6)} · public</span></div>
+          <div className="card-title"><h3>{t("Your wallet")}</h3><span className="muted" title={t("Public on the blockchain")}>{short(accountId, 8, 6)} · public{wallet.holdings.some((h) => h.usd !== null) && <> · {usd(wallet.holdings.reduce((sum, h) => sum + (h.usd ?? 0), 0))}</>}</span></div>
           {wallet.holdings.length === 0 ? (
             <div className="empty small"><p>{t("Your NEAR wallet is empty.")} <Link href="/app/add">{t("Add money")}</Link> and choose your wallet.</p></div>
           ) : (
@@ -199,7 +199,7 @@ export function Home() {
                 <li key={h.id}>
                   <TokenLogo icon={h.icon} symbol={h.symbol} chainIcon={null} />
                   <span><b>{h.symbol}</b><small>{t("NEAR")}</small></span>
-                  <span className="right"><b>{h.display}</b></span>
+                  <span className="right"><b>{h.display}</b>{h.usd !== null && h.usd !== undefined && <small>{usd(h.usd)}</small>}</span>
                 </li>
               ))}
             </ul>

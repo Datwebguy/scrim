@@ -713,6 +713,10 @@ function Agents({ agents, payments, role, unit, onCreate, onEdit, onToggle, onCo
                 <b>{amountIn(agent.policy.perActionCap, unit)} {unit.symbol}</b>
               </div>
               <div>
+                <span>{t("Ends")}</span>
+                <b>{agent.policy.expiresAt ? new Date(agent.policy.expiresAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : t("No end date")}</b>
+              </div>
+              <div>
                 <span>{t("Requests · blocked")}</span>
                 <b>
                   {requests.length} · {blocked}
@@ -762,6 +766,7 @@ function AgentDialog({ state, treasuryId, unit, onClose, onSaved }: { state: { m
   const [perAction, setPerAction] = useState("");
   const [rolling, setRolling] = useState("");
   const [windowHours, setWindowHours] = useState(24);
+  const [ends, setEnds] = useState("");
   const [counterparties, setCounterparties] = useState<CounterpartyDraft[]>([{ address: "", label: "" }]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -775,25 +780,30 @@ function AgentDialog({ state, treasuryId, unit, onClose, onSaved }: { state: { m
       setRolling(formatAmount(p.rollingCap.amount, unit.decimals, 0).replace(/,/g, ""));
       setWindowHours(p.rollingCap.windowSeconds / 3600);
       setCounterparties(p.counterparties.map((c) => ({ ...c })));
+      setEnds(p.expiresAt ? p.expiresAt.slice(0, 10) : "");
     } else if (state?.mode === "create") {
       setName("");
       setPerAction("");
       setRolling("");
       setWindowHours(24);
       setCounterparties([{ address: "", label: "" }]);
+      setEnds("");
     }
   }, [state]);
 
   const preview = useMemo(() => {
     const filled = counterparties.filter((c) => c.address.trim()).length;
-    return `${name || "This agent"} can request up to ${perAction || "—"} ${unit.symbol} per payment and ${rolling || "—"} ${unit.symbol} per ${describeWindow(windowHours * 3600)} window, to ${filled} approved ${filled === 1 ? "address" : "addresses"}. Each request waits for approval unless you later let it pay by itself.`;
-  }, [name, perAction, rolling, windowHours, counterparties, unit.symbol]);
+    const until = ends ? `, until ${new Date(`${ends}T23:59:59`).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}` : "";
+    return `${name || "This agent"} can request up to ${perAction || "—"} ${unit.symbol} per payment and ${rolling || "—"} ${unit.symbol} per ${describeWindow(windowHours * 3600)} window, to ${filled} approved ${filled === 1 ? "address" : "addresses"}${until}. Each request waits for approval unless you later let it pay by itself.`;
+  }, [name, perAction, rolling, windowHours, counterparties, ends, unit.symbol]);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError("");
-    const body = { name, perActionCap: perAction, rollingCap: rolling, windowHours, counterparties: counterparties.filter((c) => c.address.trim()) };
+    // The permission ends at the close of the chosen day, in the owner's time zone.
+    const expiresAt = ends ? new Date(`${ends}T23:59:59`).toISOString() : null;
+    const body = { name, perActionCap: perAction, rollingCap: rolling, windowHours, counterparties: counterparties.filter((c) => c.address.trim()), expiresAt };
     try {
       if (state?.mode === "edit") {
         const { agent } = await api<{ agent: Agent }>(`/agents/${state.agent.id}`, { method: "PUT", body });
@@ -842,6 +852,11 @@ function AgentDialog({ state, treasuryId, unit, onClose, onSaved }: { state: { m
             <option value={168}>{t("7 days")}</option>
             <option value={720}>{t("30 days")}</option>
           </select>
+        </label>
+        <label className="field">
+          {t("Ends on")}
+          <input className="input" type="date" value={ends} min={new Date(Date.now() + 86_400_000).toISOString().slice(0, 10)} onChange={(e) => setEnds(e.target.value)} />
+          <small>{t("Optional. After this day the agent can't ask to pay.")}</small>
         </label>
         <div className="field">
           {t("Allowed recipients")}

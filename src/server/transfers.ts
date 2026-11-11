@@ -513,7 +513,10 @@ async function refreshRow(row: Row, held: Record<string, bigint> | null = null):
       // A signed private transfer has no status on NEAR Intents' side: it is confirmed by the balance moving.
       const byBalance = Boolean(row.intent_hash && details.before);
       const s = byBalance ? null : await oneclick.status(details.trackAddress, details.trackMemo);
-      const ended: TransferStatus | undefined = byBalance ? (held && movedPrivately(row.kind, details, held) ? "success" : undefined) : END_STATE[s!.status];
+      let ended: TransferStatus | undefined = byBalance ? (held && movedPrivately(row.kind, details, held) ? "success" : undefined) : END_STATE[s!.status];
+      // A signed private transfer can't run after its deadline. Past it, with the balance unmoved, it never will:
+      // close it, so an approved request it was paying can be paid again.
+      if (!ended && byBalance && held && row.status === "processing" && row.expires_at.getTime() < Date.now() - 120_000) ended = "expired";
       // Only money that arrived counts: a closed wallet payout that was never paid leaves its request approved.
       if (ended === "success" && row.team_request_id && details.public) await walletPayoutSent(row);
       if (ended) {
@@ -521,7 +524,7 @@ async function refreshRow(row: Row, held: Record<string, bigint> | null = null):
         if (ended === "success" && row.kind === "add" && s) settleAmounts(details, s);
         await save(row.id, row.account_id, ended, details);
         if (row.team_request_id) {
-          const outcome = ended === "success" ? "settled" : ended === "refunded" ? "approved" : "failed";
+          const outcome = ended === "success" ? "settled" : ended === "refunded" || ended === "expired" ? "approved" : "failed";
           const moved = await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, outcome, { type: "system", id: "intents" }, ["submitting"], row.id));
           if (moved) emitPaymentEvent(row.team_request_id, `payment.${outcome}`);
           // An agent's x402 purchase: now that the seller's deposit is paid, collect what it sells.

@@ -303,6 +303,7 @@ img { display: block; max-width: 100%; }
 .meter-bar i.hot { background: var(--orange); }
 .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--line); overflow: hidden; }
 .kv div { padding: 10px 12px; background: var(--field); }
+.kv > div:last-child:nth-child(odd) { grid-column: 1 / -1; } /* an odd last item fills the row, so no empty cell shows */
 .kv span { display: block; font: 500 10px var(--mono); letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
 .kv b { display: block; margin-top: 4px; font-size: 13px; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }

@@ -7,7 +7,7 @@ import { api } from "@/client/api";
 import { emailSession } from "@/client/email";
 import { useApi } from "@/client/use-api";
 import { turnOnPrivateMode, unlockPrivateBalance } from "@/client/wallet";
-import { fmt, Heading, KIND_LABEL, StateChip, TokenLogo, usd, type TransferView } from "./money";
+import { fmt, Heading, isLate, KIND_LABEL, StateChip, TokenLogo, usd, type TransferView } from "./money";
 import { useSession, useSwitchNetwork } from "./session";
 import { Spinner, useToast } from "./ui";
 import { useT } from "@/i18n/I18n";
@@ -178,7 +178,7 @@ export function Home() {
                     <li key={t.id}>
                       <span className="coin dark">{t.kind === "send" || t.kind === "withdraw" ? "↗" : t.kind === "swap" ? "⇄" : "↓"}</span>
                       <span><b>{tr(KIND_LABEL[t.kind] ?? t.kind)}</b><small>{fmt(t.amountOut, t.toAsset.decimals)} {t.toAsset.symbol}</small></span>
-                      <span className="right"><StateChip status={t.status} /></span>
+                      <span className="right"><StateChip status={t.status} late={isLate(t)} /></span>
                     </li>
                   ))}
                 </ul>

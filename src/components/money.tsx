@@ -127,9 +127,12 @@ const CHIP: Record<string, [string, string]> = {
   processing: ["On its way", "pill-blue"], success: ["Done", "pill-green"], refunded: ["Refunded", ""], failed: ["Didn't go through", "pill-red"],
   expired: ["Expired", ""], cancelled: ["Cancelled", ""],
 };
-export function StateChip({ status }: { status: string }) {
+// Still on its way after its deadline: NEAR Intents either finishes it or returns the coins.
+export const isLate = (tr: { status: string; expiresAt: string }) => tr.status === "processing" && new Date(tr.expiresAt).getTime() < Date.now();
+
+export function StateChip({ status, late = false }: { status: string; late?: boolean }) {
   const t = useT();
-  const [text, tone] = CHIP[status] ?? [status, ""];
+  const [text, tone] = late ? ["Taking longer", "pill-blue"] : CHIP[status] ?? [status, ""];
   const mark = status === "success" ? "done" : status === "processing" ? "moving" : null;
   return <span className={`pill ${tone}${mark ? " has-mark" : ""}`}>{mark && <StatusMark state={mark} size={14} />}{t(text)}</span>;
 }

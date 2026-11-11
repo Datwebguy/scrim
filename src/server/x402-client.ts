@@ -8,7 +8,6 @@
 //    with a private withdrawal that the owner's wallet signs.
 // 3. Once delivered, Scrim presents the payment to the seller and keeps what it returns for the agent.
 import { formatAmount } from "@/protocol/amount";
-import { USDC_NEAR_TO_BASE } from "@/protocol/corridor";
 import { normalizeOrigin } from "@/protocol/identifiers";
 import type { Network } from "@/protocol/networks";
 import type { Agent } from "./agents";
@@ -21,7 +20,7 @@ import * as outlayer from "./outlayer";
 import { createAgentPayment, type Payment } from "./payments";
 import { safeRequest } from "./safe-fetch";
 import { open, seal } from "./secrets";
-import { createTransfer, type Transfer } from "./transfers";
+import { createTransfer, usdcSource, type Transfer } from "./transfers";
 import { onChainBalance, ownAddress, payableByWallet, signPayment, SOLANA_MAINNET, walletAddresses, walletChain } from "./x402-wallet";
 
 const FEE_BUFFER = 1.03; // routes cost a little more than the seller's price; the limit covers it
@@ -277,7 +276,7 @@ export async function payPurchase(session: Session, request: Payment): Promise<T
   try {
     return await createTransfer(session, {
       kind: "withdraw",
-      fromAssetId: USDC_NEAR_TO_BASE.assetId,
+      fromAssetId: await usdcSource(session, BigInt(quoted.amount), asset.assetId),
       toAssetId: asset.assetId,
       amount: formatAmount(BigInt(quoted.amount), asset.decimals, 0),
       recipient: quoted.payTo,

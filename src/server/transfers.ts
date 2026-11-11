@@ -513,7 +513,10 @@ async function refreshRow(row: Row, held: Record<string, bigint> | null = null):
       // A signed private transfer has no status on NEAR Intents' side: it is confirmed by the balance moving.
       const byBalance = Boolean(row.intent_hash && details.before);
       const s = byBalance ? null : await oneclick.status(details.trackAddress, details.trackMemo);
-      const ended: TransferStatus | undefined = byBalance ? (held && movedPrivately(row.kind, details, held) ? "success" : undefined) : END_STATE[s!.status];
+      let ended: TransferStatus | undefined = byBalance ? (held && movedPrivately(row.kind, details, held) ? "success" : undefined) : END_STATE[s!.status];
+      // A signed private transfer can't run after its deadline. Past it, with the balance unmoved, it never will:
+      // close it, so an approved request it was paying can be paid again.
+      if (!ended && byBalance && held && row.status === "processing" && row.expires_at.getTime() < Date.now() - 120_000) ended = "expired";
       // Only money that arrived counts: a closed wallet payout that was never paid leaves its request approved.
       if (ended === "success" && row.team_request_id && details.public) await walletPayoutSent(row);
       if (ended) {
@@ -521,7 +524,7 @@ async function refreshRow(row: Row, held: Record<string, bigint> | null = null):
         if (ended === "success" && row.kind === "add" && s) settleAmounts(details, s);
         await save(row.id, row.account_id, ended, details);
         if (row.team_request_id) {
-          const outcome = ended === "success" ? "settled" : ended === "refunded" ? "approved" : "failed";
+          const outcome = ended === "success" ? "settled" : ended === "refunded" || ended === "expired" ? "approved" : "failed";
           const moved = await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, outcome, { type: "system", id: "intents" }, ["submitting"], row.id));
           if (moved) emitPaymentEvent(row.team_request_id, `payment.${outcome}`);
           // An agent's x402 purchase: now that the seller's deposit is paid, collect what it sells.
@@ -585,6 +588,23 @@ export async function cancelTransfer(session: Session, id: string): Promise<Tran
   return toTransfer(await mine(session, id));
 }
 
+// USDC can sit in the private balance on NEAR or as bridged USDC from another chain (Base, Ethereum, ...).
+// Pay from the one that covers the amount, nearest to where it is going first, so the money really moves.
+const USDC_SOURCES = [
+  "nep141:base-0x833589fcd6edb6e08f4c7c32d4f71b54bda02913.omft.near",
+  USDC_NEAR_TO_BASE.assetId,
+  "nep141:eth-0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.omft.near",
+  "nep141:arb-0xaf88d065e77c8cc2239327c5edb3a432268e5831.omft.near",
+];
+export async function usdcSource(session: Session, amount: bigint, prefer?: string): Promise<string> {
+  const held = await heldPrivately(session);
+  if (!held) return prefer && USDC_SOURCES.includes(prefer) ? prefer : USDC_NEAR_TO_BASE.assetId;
+  // The quote adds a fee, so ask for a little more than the amount itself.
+  const need = (amount * 105n) / 100n;
+  const order = prefer ? [prefer, ...USDC_SOURCES.filter((a) => a !== prefer)] : USDC_SOURCES;
+  return order.find((a) => (held[a] ?? 0n) >= need) ?? order.find((a) => (held[a] ?? 0n) > 0n) ?? USDC_NEAR_TO_BASE.assetId;
+}
+
 // Pay an approved request out to the destination on Base (mainnet): from the owner's private balance, or
 // from their NEAR wallet in public, as they choose.
 export async function payTeamRequest(session: Session, requestId: string, privacy: "private" | "public" = "private"): Promise<Transfer> {
@@ -594,9 +614,11 @@ export async function payTeamRequest(session: Session, requestId: string, privac
   for (const row of earlier) await refreshRow(row).catch(() => null);
   const request = await approvedTeamRequest(session, requestId);
   const corridor = corridorFor("mainnet");
+  // From the wallet, Scrim quotes the wallet's own USDC; from the private balance, whichever USDC is there.
+  const fromAssetId = privacy === "private" ? await usdcSource(session, BigInt(request.amount), USDC_NEAR_TO_BASE.destinationAssetId) : USDC_NEAR_TO_BASE.assetId;
   return createTransfer(session, {
     kind: "withdraw",
-    fromAssetId: USDC_NEAR_TO_BASE.assetId,
+    fromAssetId,
     toAssetId: USDC_NEAR_TO_BASE.destinationAssetId,
     amount: formatAmount(BigInt(request.amount), corridor.decimals, 0),
     recipient: request.recipient,

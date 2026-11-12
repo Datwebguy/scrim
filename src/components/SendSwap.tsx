@@ -18,7 +18,7 @@ type WalletHolding = { id: string; symbol: string; decimals: number; amount: str
 // A wallet coin as NEAR Intents names it: the wallet's own NEAR travels as wrapped NEAR.
 const walletAssetId = (id: string) => `nep141:${id === "near" ? "wrap.near" : id}`;
 // NEAR kept back for network fees and token registration when paying with the wallet's own NEAR.
-const NEAR_RESERVE = 7n * 10n ** 22n; // 0.07 NEAR: token registration (0.0025) plus the gas NEAR holds back for a wrapped payment (50 Tgas ≈ 0.055)
+const NEAR_RESERVE = 2n * 10n ** 22n; // 0.02 NEAR: token registration (0.00125) plus 50 Tgas held while a payment runs (0.005 at 100M yocto per gas), with room to spare
 const spendable = (h: WalletHolding) => (h.id === "near" ? (BigInt(h.amount) > NEAR_RESERVE ? BigInt(h.amount) - NEAR_RESERVE : 0n) : BigInt(h.amount));
 const TERMINAL = new Set(["success", "refunded", "failed", "expired", "cancelled"]);
 
@@ -58,7 +58,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
   const held = holdings.find((h) => h.assetId === fromId);
 
   useEffect(() => {
-    if (!fromId && holdings.length && fromAssets.length) setFromId(holdings.find((h) => fromAssets.some((a) => a.assetId === h.assetId))?.assetId ?? fromAssets[0].assetId);
+    if (!fromId && holdings.length && fromAssets.length) setFromId([...holdings].sort((x, y) => (y.usd ?? 0) - (x.usd ?? 0)).find((h) => fromAssets.some((a) => a.assetId === h.assetId))?.assetId ?? fromAssets[0].assetId); // the coin worth the most
   }, [fromId, fromAssets, holdings]);
   useEffect(() => { setFromId(""); setToId(""); setSentHash(""); }, [source]);
 
@@ -92,7 +92,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
     if (!coin) throw new Error(t("Choose a coin your wallet holds."));
     const minor = parseAmount(amount, coin.decimals);
     if (minor <= 0n) throw new Error(t("Enter an amount."));
-    if (minor > spendable(coin)) throw new Error(coin.id === "near" ? "Keep about 0.07 NEAR in your wallet for network fees. Lower the amount." : `Your wallet holds ${coin.display} ${coin.symbol}.`);
+    if (minor > spendable(coin)) throw new Error(coin.id === "near" ? "Keep about 0.02 NEAR in your wallet for network fees. Lower the amount." : `Your wallet holds ${coin.display} ${coin.symbol}.`);
     // Tokens sent to an account that doesn't exist are lost, so check it first.
     const check = await api<{ accountId: string; exists: boolean }>(`/accounts/check?id=${encodeURIComponent(recipient.trim().toLowerCase())}`);
     if (!check.exists) throw new Error(`${check.accountId} doesn't exist. Check the spelling.`);

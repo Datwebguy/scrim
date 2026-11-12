@@ -77,6 +77,7 @@ const messages: Record<string, string> = {
   "Waiting for your deposit": "等待你的充值",
   "Needs your approval": "需要你的批准",
   "On its way": "处理中",
+  "if the price moves": "若价格变动",
   "Taking longer": "耗时较长",
   "This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your wallet.": "这比平时要久。如果未能完成，NEAR Intents 会把你的币退回你的钱包。",
   "This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your balance.": "这比平时要久。如果未能完成，NEAR Intents 会把你的币退回你的余额。",
@@ -437,5 +438,7 @@ const messages: Record<string, string> = {
   "Pause all agents": "暂停所有代理",
   "1 agent paused": "已暂停 1 个代理",
   "{count} agents paused": "已暂停 {count} 个代理",
+  "Your coins": "你的币",
+  "All coins": "所有币",
 };
 export default messages;

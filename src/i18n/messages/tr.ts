@@ -77,6 +77,7 @@ const messages: Record<string, string> = {
   "Waiting for your deposit": "Yatırmanız bekleniyor",
   "Needs your approval": "Onayınız gerekiyor",
   "On its way": "Yolda",
+  "if the price moves": "fiyat değişirse",
   "Taking longer": "Daha uzun sürüyor",
   "This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your wallet.": "Bu her zamankinden uzun sürüyor. Tamamlanmazsa NEAR Intents coinlerinizi cüzdanınıza geri gönderir.",
   "This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your balance.": "Bu her zamankinden uzun sürüyor. Tamamlanmazsa NEAR Intents coinlerinizi bakiyenize geri gönderir.",
@@ -437,5 +438,7 @@ const messages: Record<string, string> = {
   "Pause all agents": "Tüm ajanları duraklat",
   "1 agent paused": "1 ajan duraklatıldı",
   "{count} agents paused": "{count} ajan duraklatıldı",
+  "Your coins": "Coinleriniz",
+  "All coins": "Tüm coinler",
 };
 export default messages;

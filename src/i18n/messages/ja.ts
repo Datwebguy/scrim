@@ -77,6 +77,7 @@ const messages: Record<string, string> = {
   "Waiting for your deposit": "入金を待っています",
   "Needs your approval": "承認が必要です",
   "On its way": "送金中",
+  "if the price moves": "価格が動いた場合",
   "Taking longer": "時間がかかっています",
   "This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your wallet.": "通常より時間がかかっています。完了しない場合、NEAR Intents がコインをウォレットに返します。",
   "This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your balance.": "通常より時間がかかっています。完了しない場合、NEAR Intents がコインを残高に返します。",
@@ -437,5 +438,7 @@ const messages: Record<string, string> = {
   "Pause all agents": "すべてのエージェントを停止",
   "1 agent paused": "1 件のエージェントを停止しました",
   "{count} agents paused": "{count} 件のエージェントを停止しました",
+  "Your coins": "あなたのコイン",
+  "All coins": "すべてのコイン",
 };
 export default messages;

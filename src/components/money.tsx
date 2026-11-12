@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { StatusMark } from "./StatusMark";
 import { useT } from "@/i18n/I18n";
 import { api } from "@/client/api";
@@ -50,12 +51,20 @@ function sortForPicking(assets: AssetInfo[]) {
 }
 
 // Choose a coin and the chain it lives on from one searchable list, each with its real logo.
-export function AssetPicker({ label, assets, value, onChange, hint, empty, pill, wide }: { label: string; assets: AssetInfo[]; value: string; onChange: (assetId: string) => void; hint?: string; empty?: string; pill?: boolean; wide?: boolean }) {
+export type Balances = Record<string, { display: string; usd: number | null }>;
+
+export function AssetPicker({ label, assets, value, onChange, hint, empty, pill, wide, balances }: { label: string; assets: AssetInfo[]; value: string; onChange: (assetId: string) => void; hint?: string; empty?: string; pill?: boolean; wide?: boolean; balances?: Balances }) {
   const t = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const box = useRef<HTMLDivElement>(null);
-  const sorted = useMemo(() => sortForPicking(assets), [assets]);
+  // Coins the person holds come first, largest value first; every other coin follows.
+  const sorted = useMemo(() => {
+    const all = sortForPicking(assets);
+    if (!balances) return all;
+    const mine = all.filter((a) => balances[a.assetId]).sort((x, y) => (balances[y.assetId].usd ?? 0) - (balances[x.assetId].usd ?? 0));
+    return [...mine, ...all.filter((a) => !balances[a.assetId])];
+  }, [assets, balances]);
   const current = assets.find((a) => a.assetId === value);
 
   useEffect(() => {
@@ -92,15 +101,23 @@ export function AssetPicker({ label, assets, value, onChange, hint, empty, pill,
           <input className="input" autoFocus placeholder={t("Search a coin or chain")} value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search coins" />
           <ul role="listbox" aria-label={label}>
             {shown.length === 0 && <li className="picker-empty">Nothing matches "{query}"</li>}
-            {shown.map((a) => (
-              <li key={a.assetId} role="option" aria-selected={a.assetId === value}>
-                <button type="button" onClick={() => { onChange(a.assetId); setOpen(false); setQuery(""); }}>
-                  <TokenLogo icon={a.icon} symbol={a.symbol} chainIcon={a.chainIcon} size={32} />
-                  <span><b>{a.symbol}</b><small>{a.chainName}</small></span>
-                  {a.priceUsd !== null && <span className="muted picker-price">{usd(a.priceUsd)}</span>}
-                </button>
-              </li>
-            ))}
+            {shown.map((a, i) => {
+              const mine = balances?.[a.assetId];
+              const heading = balances && !q && (i === 0 || (!mine && balances[shown[i - 1].assetId]))
+                ? (mine ? t("Your coins") : t("All coins")) : null;
+              return (
+                <li key={a.assetId} role="option" aria-selected={a.assetId === value}>
+                  {heading && <span className="picker-group">{heading}</span>}
+                  <button type="button" onClick={() => { onChange(a.assetId); setOpen(false); setQuery(""); }}>
+                    <TokenLogo icon={a.icon} symbol={a.symbol} chainIcon={a.chainIcon} size={32} />
+                    <span><b>{a.symbol}</b><small>{a.chainName}</small></span>
+                    {mine
+                      ? <span className="picker-price picker-held"><b>{mine.display}</b>{mine.usd !== null && <small className="muted">{usd(mine.usd)}</small>}</span>
+                      : a.priceUsd !== null && <span className="muted picker-price">{usd(a.priceUsd)}</span>}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
@@ -143,16 +160,28 @@ type Leg = { assetId: string; symbol: string; chainName: string; decimals: numbe
 export type TransferView = {
   id: string; kind: string; status: string; createdAt: string; expiresAt: string;
   fromAsset: Leg; toAsset: Leg;
-  amountIn: string; amountOut: string; recipient: string | null; note: string;
+  amountIn: string; amountOut: string; minAmountOut?: string; recipient: string | null; note: string;
   deposit: { address: string; memo: string | null; chainName: string; minimum: string | null; evm: { chainId: number; token: `0x${string}` | null } | null; solana: { mint: string | null } | null } | null; // evm, solana: let a connected wallet pay it in one tap
   intentToSign: { message: string; nonce: string; recipient: string } | null;
   resultHashes: string[]; etaSeconds: number | null; teamRequestId: string | null; fromWallet?: boolean;
 };
 
-export function Heading({ eyebrow, title, text }: { eyebrow: string; title: string; text?: string }) {
+export function Heading({ eyebrow, title, text, back = eyebrow !== "Home" }: { eyebrow: string; title: string; text?: string; back?: boolean }) {
   const t = useT();
+  const router = useRouter();
+  // Back to where the person came from inside Scrim; opened directly, back goes Home.
+  const goBack = () => {
+    const fromScrim = typeof document !== "undefined" && document.referrer.startsWith(window.location.origin);
+    if (fromScrim && window.history.length > 1) router.back();
+    else router.push("/app");
+  };
   return (
     <div className="page-head">
+      {back && (
+        <button type="button" className="page-back" onClick={goBack} aria-label={t("Back")}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+        </button>
+      )}
       <div>
         <span className="eyebrow">{t(eyebrow)}</span>
         <h1>{t(title)}</h1>

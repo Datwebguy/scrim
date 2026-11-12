@@ -77,6 +77,7 @@ const messages: Record<string, string> = {
   "Waiting for your deposit": "입금 대기 중",
   "Needs your approval": "승인 필요",
   "On its way": "전송 중",
+  "if the price moves": "가격이 변하면",
   "Taking longer": "시간이 더 걸려요",
   "This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your wallet.": "평소보다 오래 걸리고 있어요. 완료되지 않으면 NEAR Intents가 코인을 지갑으로 돌려줍니다.",
   "This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your balance.": "평소보다 오래 걸리고 있어요. 완료되지 않으면 NEAR Intents가 코인을 잔액으로 돌려줍니다.",
@@ -437,5 +438,7 @@ const messages: Record<string, string> = {
   "Pause all agents": "모든 에이전트 일시 중지",
   "1 agent paused": "에이전트 1개 일시 중지됨",
   "{count} agents paused": "에이전트 {count}개 일시 중지됨",
+  "Your coins": "내 코인",
+  "All coins": "모든 코인",
 };
 export default messages;

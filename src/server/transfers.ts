@@ -113,6 +113,7 @@ export type Transfer = {
   expiresAt: Date;
   fromAsset: Pick<Asset, "assetId" | "symbol" | "chainName" | "decimals" | "icon" | "chainIcon">;
   toAsset: Pick<Asset, "assetId" | "symbol" | "chainName" | "decimals" | "icon" | "chainIcon">;
+  minAmountOut: string; // the least the recipient gets if the price moves
   amountIn: string;
   amountOut: string;
   recipient: string | null;
@@ -185,17 +186,20 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
     const from = await assetById(String(input.fromAssetId ?? ""));
     if (from.chain !== "near") throw badRequest("Your wallet can pay with coins it holds on NEAR.");
     const to = await assetById(String(input.toAssetId ?? input.fromAssetId ?? ""));
-    const out = { ...base, originAsset: from.assetId, depositType: "ORIGIN_CHAIN" as const, destinationAsset: to.assetId, refundTo: account, refundType: "ORIGIN_CHAIN" as const, recipientType: "DESTINATION_CHAIN" as const };
+    // Public swaps wait for market makers to fill them, and at 1% they can sit for an hour. 2% lets them fill
+    // at once. It is a limit on price movement, not a fee: the review shows the guaranteed minimum.
+    const out = { ...base, slippageTolerance: 200, originAsset: from.assetId, depositType: "ORIGIN_CHAIN" as const, destinationAsset: to.assetId, refundTo: account, refundType: "ORIGIN_CHAIN" as const, recipientType: "DESTINATION_CHAIN" as const };
     if (input.kind === "swap") {
       if (from.assetId === to.assetId) throw badRequest("Choose two different assets to swap.");
       if (to.chain !== "near") throw badRequest("Swaps from your wallet come back to your wallet, so choose a coin on NEAR.");
-      return { from, to, amountAsset: from, recipient: account, needsUserToken: false, deadlineMinutes: 30, public: true,
+      // The wallet pays the deposit address within seconds, so a short window is enough.
+      return { from, to, amountAsset: from, recipient: account, needsUserToken: false, deadlineMinutes: 10, public: true,
         request: { ...out, ...fee, swapType: "EXACT_INPUT", amount: toMinor(from).toString(), recipient: account } };
     }
     if (input.kind === "send") throw badRequest("Your wallet sends to a NEAR account directly.");
     const recipient = checkAddress(to, String(input.recipient ?? ""));
     if (to.chain === "near") await requireNearAccount(session.network, recipient);
-    return { from, to, amountAsset: to, recipient, needsUserToken: false, deadlineMinutes: 30, public: true,
+    return { from, to, amountAsset: to, recipient, needsUserToken: false, deadlineMinutes: 10, public: true,
       request: { ...out, swapType: "EXACT_OUTPUT", amount: toMinor(to).toString(), recipient } };
   }
 
@@ -334,7 +338,7 @@ async function toTransfer(row: Row): Promise<Transfer> {
   const [from, to] = await Promise.all([assetById(d.fromAssetId), assetById(d.toAssetId)]);
   return {
     id: row.id, kind: row.kind, status: row.status, createdAt: row.created_at, expiresAt: row.expires_at,
-    fromAsset: light(from), toAsset: light(to), amountIn: d.amountIn, amountOut: d.amountOut, recipient: d.recipient, note: d.note,
+    fromAsset: light(from), toAsset: light(to), amountIn: d.amountIn, amountOut: d.amountOut, minAmountOut: d.minAmountOut ?? d.amountOut, recipient: d.recipient, note: d.note,
     deposit: (row.kind === "add" || row.kind === "link_payment" || d.public) && row.deposit_address
       ? { address: row.deposit_address, memo: row.deposit_memo, chainName: from.chainName, minimum: d.depositMinimum, evm: row.deposit_memo ? null : await evmDeposit(from), solana: row.deposit_memo ? null : await solanaDeposit(from) } : null,
     intentToSign: row.status === "awaiting_signature" ? d.intent : null,

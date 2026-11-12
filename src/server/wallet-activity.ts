@@ -32,11 +32,17 @@ async function post<T>(network: Network, path: string, body: unknown): Promise<T
 }
 
 const tokenCache = new Map<string, { symbol: string; decimals: number }>();
+// Common NEAR tokens, so a send still reads right if the token's own metadata can't be read.
+const KNOWN: Record<string, { symbol: string; decimals: number }> = {
+  "17208628f84f5d6ad33f0da3bbbeb27ffcb398eac501a31bd6ad2011e36133a1": { symbol: "USDC", decimals: 6 },
+  "usdt.tether-token.near": { symbol: "USDT", decimals: 6 },
+  "wrap.near": { symbol: "wNEAR", decimals: 24 },
+};
 async function tokenInfo(network: Network, contract: string) {
   const key = `${network}:${contract}`;
   if (!tokenCache.has(key)) {
     const meta = await viewCall<{ symbol: string; decimals: number }>(network, contract, "ft_metadata").catch(() => null);
-    if (!meta) return null;
+    if (!meta) return KNOWN[contract] ?? null;
     tokenCache.set(key, { symbol: meta.symbol, decimals: meta.decimals });
   }
   return tokenCache.get(key)!;
@@ -56,6 +62,7 @@ const args = (raw?: string): Record<string, unknown> => {
 const ACTIONS: Record<string, string> = {
   add_public_key: "Key added for private money",
   storage_deposit: "Token set up",
+  execute_intents: "Private balance used",
   near_deposit: "Wrapped NEAR",
   near_withdraw: "Unwrapped NEAR",
   request_near: "Got test NEAR",
@@ -69,8 +76,11 @@ const ACTIONS: Record<string, string> = {
 };
 const words = (method: string) => ACTIONS[method] ?? method.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
-async function describe(network: Network, me: string, signer: string, receiver: string, actions: Action[]): Promise<Omit<WalletActivity, "hash" | "at" | "ok">> {
-  const first = actions[0];
+export async function describe(network: Network, me: string, signer: string, receiver: string, actions: Action[]): Promise<Omit<WalletActivity, "hash" | "at" | "ok">> {
+  // A transaction often sets up the token first, then sends. Describe what it was for: the payment, else the first real action.
+  const fn = (a: Action) => (typeof a === "string" ? "" : a.FunctionCall?.method_name ?? "");
+  const first = actions.find((a) => typeof a !== "string" && (a.Transfer || ["ft_transfer", "ft_transfer_call"].includes(fn(a))))
+    ?? actions.find((a) => !["storage_deposit", "near_deposit"].includes(fn(a))) ?? actions[0];
   if (typeof first === "string") return { kind: "account", counterparty: null, amount: null, token: null, label: first === "CreateAccount" ? "Account created" : "Account change" };
   const [type, body] = Object.entries(first ?? {})[0] ?? ["", {}];
 

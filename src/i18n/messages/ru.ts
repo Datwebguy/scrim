@@ -441,5 +441,10 @@ const messages: Record<string, string> = {
   "Your coins": "Ваши монеты",
   "All coins": "Все монеты",
   "It holds {amount} {coin} you can spend.": "Доступно {amount} {coin}.",
+  "They get": "Получат",
+  "From": "От",
+  "Copy transaction ID": "Скопировать ID транзакции",
+  "Track on NEAR Intents ↗": "Отследить в NEAR Intents ↗",
+  "Inside your private balance, so there is no public receipt.": "Внутри вашего приватного баланса, поэтому публичной квитанции нет.",
 };
 export default messages;

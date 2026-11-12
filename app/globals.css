@@ -1335,3 +1335,8 @@ html:lang(ja) .section-head h2, html:lang(ja) .l-row h2 { text-wrap: balance; }
 .picker-group { display: block; padding: 10px 12px 4px; font: 500 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .picker-held { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
 .picker-held b { color: var(--ink); font-weight: 600; }
+
+/* Wallet activity: each row shows it opens, and who it was with on phones too. */
+.row-end { display: inline-flex; align-items: center; gap: 10px; }
+.row-chev { color: var(--muted); font-size: 18px; line-height: 1; transition: transform .15s; }
+.row-chev.up { transform: rotate(90deg); }

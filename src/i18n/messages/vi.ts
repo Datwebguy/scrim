@@ -441,5 +441,10 @@ const messages: Record<string, string> = {
   "Your coins": "Coin của bạn",
   "All coins": "Tất cả coin",
   "It holds {amount} {coin} you can spend.": "Ví có {amount} {coin} có thể dùng.",
+  "They get": "Họ nhận",
+  "From": "Từ",
+  "Copy transaction ID": "Sao chép mã giao dịch",
+  "Track on NEAR Intents ↗": "Theo dõi trên NEAR Intents ↗",
+  "Inside your private balance, so there is no public receipt.": "Diễn ra trong số dư riêng tư, nên không có biên nhận công khai.",
 };
 export default messages;

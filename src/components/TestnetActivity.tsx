@@ -34,21 +34,21 @@ export function WalletActivityList() {
             return (
               <Fragment key={r.hash}>
                 <tr onClick={() => setOpen(open === r.hash ? null : r.hash)} aria-expanded={open === r.hash}>
-                  <td><b>{r.label}</b><span className="sub">{when(r.at)}</span></td>
+                  <td><b>{r.label}</b><span className="sub">{when(r.at)}{r.counterparty && <span className="show-sm"> · {r.kind === "received" ? t("From") : t("To")} <span className="mono">{short(r.counterparty)}</span></span>}</span></td>
                   <td className="hide-sm">{r.counterparty ? <span className="mono" style={{ fontSize: 12 }}>{short(r.counterparty)}</span> : <span className="muted">—</span>}</td>
                   <td className="amt">{r.amount && r.token ? <>{sign}{fmt(r.amount, r.token.decimals)}<small>{r.token.symbol}</small></> : <span className="muted">—</span>}</td>
-                  <td><StateChip status={r.ok ? "success" : "failed"} /></td>
+                  <td><span className="row-end"><StateChip status={r.ok ? "success" : "failed"} /><span className={`row-chev${open === r.hash ? " up" : ""}`} aria-hidden="true">›</span></span></td>
                 </tr>
                 {open === r.hash && (
                   <tr className="row-details">
                     <td colSpan={4}>
                       <dl className="details">
-                        {r.counterparty && <><dt>{r.kind === "received" ? "From" : "To"}</dt><dd className="mono">{r.counterparty}</dd></>}
+                        {r.counterparty && <><dt>{r.kind === "received" ? "From" : "To"}</dt><dd className="mono" style={{ wordBreak: "break-all" }}>{r.counterparty}</dd></>}
                         <dt>{t("Time")}</dt><dd>{new Date(r.at).toLocaleString()}</dd>
                         <dt>{t("Transaction")}</dt><dd className="mono" style={{ wordBreak: "break-all" }}>{r.hash}</dd>
                       </dl>
-                      <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); void navigator.clipboard?.writeText(r.hash); }}>Copy transaction ID</button>{" "}
-                      <a className="btn btn-ghost btn-sm" href={`${NETWORK_INFO[network].explorerUrl}/txns/${r.hash}`} target="_blank" rel="noreferrer">{t("Receipt on explorer ↗")}</a>
+                      <button className="btn btn-ghost btn-sm" onClick={(e) => { e.stopPropagation(); void navigator.clipboard?.writeText(r.hash); }}>{t("Copy transaction ID")}</button>{" "}
+                      <a className="btn btn-primary btn-sm" href={`${NETWORK_INFO[network].explorerUrl}/txns/${r.hash}`} target="_blank" rel="noreferrer">{t("Receipt on explorer ↗")}</a>
                     </td>
                   </tr>
                 )}

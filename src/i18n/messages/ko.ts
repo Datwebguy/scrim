@@ -448,5 +448,7 @@ const messages: Record<string, string> = {
   "Inside your private balance, so there is no public receipt.": "비공개 잔액 안에서 이뤄져 공개 영수증이 없습니다.",
   "Wrap with my wallet": "내 지갑으로 wNEAR로 바꾸기",
   "Unwrap with my wallet": "내 지갑으로 NEAR로 바꾸기",
+  "Now in your wallet as NEAR.": "이제 지갑에 NEAR로 있습니다.",
+  "Unwrap to NEAR": "NEAR로 바꾸기",
 };
 export default messages;

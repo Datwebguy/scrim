@@ -448,5 +448,7 @@ const messages: Record<string, string> = {
   "Inside your private balance, so there is no public receipt.": "Di dalam saldo pribadi Anda, jadi tidak ada bukti publik.",
   "Wrap with my wallet": "Ubah ke wNEAR dengan dompet saya",
   "Unwrap with my wallet": "Ubah ke NEAR dengan dompet saya",
+  "Now in your wallet as NEAR.": "Sekarang ada di dompet Anda sebagai NEAR.",
+  "Unwrap to NEAR": "Ubah ke NEAR",
 };
 export default messages;

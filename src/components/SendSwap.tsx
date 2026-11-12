@@ -114,6 +114,15 @@ export function SendSwap({ initial }: { initial: Mode }) {
     reloadWallet();
   }
 
+  const [unwrapHash, setUnwrapHash] = useState("");
+  async function unwrapResult() {
+    if (!transfer) return;
+    setBusy("send"); setError("");
+    try { setUnwrapHash(await unwrapNear(network, transfer.amountOut)); reloadWallet(); }
+    catch (e) { setError(e instanceof Error ? e.message : "That didn't go through."); }
+    finally { setBusy(""); }
+  }
+
   async function wrapOrUnwrap() {
     const coin = (pub?.holdings ?? []).find((h) => walletAssetId(h.id) === fromId);
     if (!coin) throw new Error(t("Choose a coin your wallet holds."));
@@ -300,7 +309,13 @@ export function SendSwap({ initial }: { initial: Mode }) {
           )}
           {transfer.status === "processing" && <div className="notice info status-line"><StatusMark state="moving" size={28} /><span className="text">{isLate(transfer) ? (transfer.fromWallet ? t("This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your wallet.") : t("This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your balance.")) : t("On its way. You can leave this page; it will show up in your activity.")}</span></div>}
           {transfer.status === "success" && <div className="notice good status-line"><StatusMark state="done" size={40} /><div className="text"><b>{t("Done")}</b> {transfer.kind === "swap" ? transfer.fromWallet ? `Your new coins are in your wallet${transfer.toAsset.symbol === "wNEAR" ? " as wrapped NEAR" : ""}.` : "Your new coins are in your private balance." : "The money has arrived."}
-            {transfer.resultHashes[0] && <> <span className="muted mono">Receipt {transfer.resultHashes[0].slice(0, 10)}…</span></>}</div></div>}
+            {transfer.resultHashes[0] && <> <span className="muted mono">Receipt {transfer.resultHashes[0].slice(0, 10)}…</span></>}
+            {/* Asked for NEAR: NEAR Intents delivers wNEAR, so one tap turns it into NEAR. */}
+            {transfer.fromWallet && transfer.kind === "swap" && transfer.toAsset.assetId === WNEAR && toId === NATIVE && (
+              unwrapHash
+                ? <div className="muted" style={{ marginTop: 6 }}>{t("Now in your wallet as NEAR.")} <span className="mono">Receipt {unwrapHash.slice(0, 10)}…</span></div>
+                : <div style={{ marginTop: 8 }}><button type="button" className="btn btn-primary btn-sm" disabled={busy !== ""} onClick={unwrapResult}>{busy === "send" && <Spinner />} {t("Unwrap to NEAR")}</button></div>
+            )}</div></div>}
           {["failed", "refunded", "expired"].includes(transfer.status) && <div className="notice danger">{transfer.status === "refunded" ? `This couldn't be completed, and your money was returned to your ${transfer.fromWallet ? "wallet" : "balance"}.` : `This didn't go through. Nothing was taken from your ${transfer.fromWallet ? "wallet" : "balance"}.`}</div>}
           {TERMINAL.has(transfer.status) && <div className="between"><Link href="/app" className="btn btn-ghost">{t("Home")}</Link><button className="btn btn-primary" onClick={() => { setTransfer(null); setPaidTx(""); setAmount(""); toast(t("Ready for another")); }}>Do another</button></div>}
         </div>

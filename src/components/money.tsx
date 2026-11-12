@@ -177,12 +177,12 @@ export function Heading({ eyebrow, title, text, back = eyebrow !== "Home" }: { e
   };
   return (
     <div className="page-head">
-      {back && (
-        <button type="button" className="page-back" onClick={goBack} aria-label={t("Back")}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
-        </button>
-      )}
       <div>
+        {back && (
+          <button type="button" className="page-back" onClick={goBack} aria-label={t("Back")}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+        )}
         <span className="eyebrow">{t(eyebrow)}</span>
         <h1>{t(title)}</h1>
         {text && <p className="muted" style={{ marginTop: 8, maxWidth: 560 }}>{t(text)}</p>}

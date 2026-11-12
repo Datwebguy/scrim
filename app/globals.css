@@ -1329,8 +1329,7 @@ html:lang(ja) .section-head h2, html:lang(ja) .l-row h2 { text-wrap: balance; }
 .deposit-steps li > i { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line-2); flex: none; }
 
 /* Back to the previous screen, top left of every app page but Home. */
-.page-head:has(.page-back) { display: flex; align-items: flex-start; gap: 14px; }
-.page-back { flex: none; width: 38px; height: 38px; margin-top: 2px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid var(--line); background: var(--card, transparent); color: var(--ink); cursor: pointer; }
+.page-back { width: 36px; height: 36px; margin-bottom: 14px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid var(--line); background: var(--card, transparent); color: var(--ink); cursor: pointer; }
 .page-back:hover { border-color: var(--ink); }
 /* Coin picker: the person's own coins first, with what they hold. */
 .picker-group { display: block; padding: 10px 12px 4px; font: 500 11px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }

@@ -446,5 +446,9 @@ const messages: Record<string, string> = {
   "Copy transaction ID": "取引IDをコピー",
   "Track on NEAR Intents ↗": "NEAR Intentsで確認 ↗",
   "Inside your private balance, so there is no public receipt.": "プライベート残高の中の取引なので、公開の記録はありません。",
+  "Wrap with my wallet": "ウォレットで wNEAR に換える",
+  "Unwrap with my wallet": "ウォレットで NEAR に戻す",
+  "Now in your wallet as NEAR.": "ウォレットに NEAR として入りました。",
+  "Unwrap to NEAR": "NEAR に戻す",
 };
 export default messages;

@@ -446,5 +446,9 @@ const messages: Record<string, string> = {
   "Copy transaction ID": "İşlem kimliğini kopyala",
   "Track on NEAR Intents ↗": "NEAR Intents'te izle ↗",
   "Inside your private balance, so there is no public receipt.": "Özel bakiyenizin içinde, bu yüzden herkese açık makbuz yok.",
+  "Wrap with my wallet": "Cüzdanımla wNEAR'a çevir",
+  "Unwrap with my wallet": "Cüzdanımla NEAR'a çevir",
+  "Now in your wallet as NEAR.": "Artık cüzdanınızda NEAR olarak.",
+  "Unwrap to NEAR": "NEAR'a çevir",
 };
 export default messages;

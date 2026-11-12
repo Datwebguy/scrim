@@ -446,5 +446,9 @@ const messages: Record<string, string> = {
   "Copy transaction ID": "Sao chép mã giao dịch",
   "Track on NEAR Intents ↗": "Theo dõi trên NEAR Intents ↗",
   "Inside your private balance, so there is no public receipt.": "Diễn ra trong số dư riêng tư, nên không có biên nhận công khai.",
+  "Wrap with my wallet": "Đổi sang wNEAR bằng ví",
+  "Unwrap with my wallet": "Đổi về NEAR bằng ví",
+  "Now in your wallet as NEAR.": "Giờ đã ở trong ví dưới dạng NEAR.",
+  "Unwrap to NEAR": "Đổi về NEAR",
 };
 export default messages;

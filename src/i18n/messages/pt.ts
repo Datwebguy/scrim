@@ -446,5 +446,9 @@ const messages: Record<string, string> = {
   "Copy transaction ID": "Copiar ID da transação",
   "Track on NEAR Intents ↗": "Acompanhar no NEAR Intents ↗",
   "Inside your private balance, so there is no public receipt.": "Dentro do seu saldo privado, então não há recibo público.",
+  "Wrap with my wallet": "Converter em wNEAR com minha carteira",
+  "Unwrap with my wallet": "Converter em NEAR com minha carteira",
+  "Now in your wallet as NEAR.": "Agora está na sua carteira como NEAR.",
+  "Unwrap to NEAR": "Converter em NEAR",
 };
 export default messages;

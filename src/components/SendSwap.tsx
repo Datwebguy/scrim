@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
-import { registerWithToken, sendNear, sendToken, signTransfer } from "@/client/wallet";
+import { registerWithToken, sendNear, sendToken, signTransfer, unwrapNear, wrapNear } from "@/client/wallet";
 import { formatBalance, parseAmount } from "@/protocol/amount";
 import { AssetPicker, fmt, trimDecimals, Heading, isLate, StateChip, usd, useAssets, type AssetInfo, type Balances, type TransferView } from "./money";
 import { useSession } from "./session";
@@ -15,8 +15,11 @@ type Mode = "swap" | "person" | "address";
 type Holding = { assetId: string; symbol: string; chainName: string; amount: string; display: string; usd?: number | null };
 type Source = "private" | "wallet";
 type WalletHolding = { id: string; symbol: string; decimals: number; amount: string; display: string; usd?: number | null };
-// A wallet coin as NEAR Intents names it: the wallet's own NEAR travels as wrapped NEAR.
-const walletAssetId = (id: string) => `nep141:${id === "near" ? "wrap.near" : id}`;
+// The wallet's own NEAR, listed apart from wNEAR. NEAR Intents takes it as wNEAR, wrapped when it pays.
+const NATIVE = "native:near";
+const WNEAR = "nep141:wrap.near";
+const walletAssetId = (id: string) => (id === "near" ? NATIVE : `nep141:${id}`);
+const intentsId = (id: string) => (id === NATIVE ? WNEAR : id);
 // NEAR kept back for network fees and token registration when paying with the wallet's own NEAR.
 const NEAR_RESERVE = 2n * 10n ** 22n; // 0.02 NEAR: token registration (0.00125) plus 50 Tgas held while a payment runs (0.005 at 100M yocto per gas), with room to spare
 const spendable = (h: WalletHolding) => (h.id === "near" ? (BigInt(h.amount) > NEAR_RESERVE ? BigInt(h.amount) - NEAR_RESERVE : 0n) : BigInt(h.amount));
@@ -46,15 +49,18 @@ export function SendSwap({ initial }: { initial: Mode }) {
   const [transfer, setTransfer] = useState<TransferView | null>(null);
 
   const holdings: Holding[] = useMemo(() => fromWallet
-    // Wrapped NEAR is listed as NEAR: the wallet's own NEAR is what pays.
-    ? (pub?.holdings ?? []).filter((h) => h.id !== "wrap.near").map((h) => ({ assetId: walletAssetId(h.id), symbol: h.symbol, chainName: "NEAR", amount: spendable(h).toString(), display: h.id === "near" ? formatBalance(spendable(h), h.decimals) : h.display, usd: h.usd ?? null }))
+    ? (pub?.holdings ?? []).filter((h) => BigInt(h.amount) > 0n || h.id === "near").map((h) => ({ assetId: walletAssetId(h.id), symbol: h.symbol, chainName: "NEAR", amount: spendable(h).toString(), display: h.id === "near" ? formatBalance(spendable(h), h.decimals) : h.display, usd: h.usd ?? null }))
     : priv?.holdings ?? [], [fromWallet, pub, priv]);
   const ready = fromWallet ? Boolean(pub) : priv?.status === "active";
-  // The wallet's own NEAR is what pays, so it reads NEAR here, not wNEAR.
+  // In the wallet, NEAR and wNEAR are two coins: NEAR is a copy of wNEAR's listing under its own ID.
+  const allAssets = useMemo(() => {
+    const w = assets.find((a) => a.assetId === WNEAR);
+    return fromWallet && w ? [{ ...w, assetId: NATIVE, symbol: "NEAR" }, ...assets] : assets;
+  }, [assets, fromWallet]);
   const balances: Balances = useMemo(() => Object.fromEntries(holdings.map((h) => [h.assetId, { display: h.display, usd: h.usd ?? null }])), [holdings]);
-  const fromAssets = useMemo(() => assets.filter((a) => holdings.some((h) => h.assetId === a.assetId)).map((a) => (fromWallet && a.assetId === "nep141:wrap.near" ? { ...a, symbol: "NEAR" } : a)), [assets, holdings, fromWallet]);
-  const from = assets.find((a) => a.assetId === fromId);
-  const to = assets.find((a) => a.assetId === (mode === "swap" || mode === "address" ? toId : fromId));
+  const fromAssets = useMemo(() => allAssets.filter((a) => holdings.some((h) => h.assetId === a.assetId)), [allAssets, holdings]);
+  const from = allAssets.find((a) => a.assetId === fromId);
+  const to = allAssets.find((a) => a.assetId === (mode === "swap" || mode === "address" ? toId : fromId));
   const held = holdings.find((h) => h.assetId === fromId);
 
   useEffect(() => {
@@ -73,6 +79,8 @@ export function SendSwap({ initial }: { initial: Mode }) {
   // A public payment of the same coin to a NEAR account is a plain transfer from the wallet: no swap, no deposit address.
   const nearAccount = /^([a-z0-9]+[-_.])*[a-z0-9]+$/.test(recipient.trim().toLowerCase()) && (/\.(near|tg)$/.test(recipient.trim().toLowerCase()) || /^[0-9a-f]{64}$/.test(recipient.trim().toLowerCase()));
   const direct = fromWallet && (mode === "person" || (mode === "address" && toId === fromId && to?.chain === "near" && nearAccount));
+  // NEAR to wNEAR or back in the wallet: the wNEAR contract changes it one to one.
+  const wrapping = fromWallet && mode === "swap" && ((fromId === NATIVE && toId === WNEAR) || (fromId === WNEAR && toId === NATIVE));
   const kind = mode === "swap" ? "swap" : mode === "person" ? "send" : "withdraw";
 
   async function getPrice() {
@@ -80,7 +88,8 @@ export function SendSwap({ initial }: { initial: Mode }) {
     setError("");
     try {
       if (direct) return await sendDirect();
-      const body = { kind, fromAssetId: fromId, toAssetId: mode === "person" ? fromId : toId, amount, recipient, note, privacy: fromWallet ? "public" : "private" };
+      if (wrapping) return await wrapOrUnwrap();
+      const body = { kind, fromAssetId: intentsId(fromId), toAssetId: intentsId(mode === "person" ? fromId : toId), amount, recipient, note, privacy: fromWallet ? "public" : "private" };
       setTransfer((await api<{ transfer: TransferView }>("/transfers", { body })).transfer);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not get a price.");
@@ -91,7 +100,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
 
   // From the wallet to a NEAR account: an ordinary transfer the wallet signs. Nothing goes through Scrim.
   async function sendDirect() {
-    const coin = (pub?.holdings ?? []).find((h) => h.id !== "wrap.near" && walletAssetId(h.id) === fromId);
+    const coin = (pub?.holdings ?? []).find((h) => walletAssetId(h.id) === fromId);
     if (!coin) throw new Error(t("Choose a coin your wallet holds."));
     const minor = parseAmount(amount, coin.decimals);
     if (minor <= 0n) throw new Error(t("Enter an amount."));
@@ -101,6 +110,26 @@ export function SendSwap({ initial }: { initial: Mode }) {
     if (!check.exists && !/^[0-9a-f]{64}$/.test(check.accountId)) throw new Error(`${check.accountId} doesn't exist. Check the spelling.`);
     if (check.accountId === accountId) throw new Error(t("That's your own account."));
     setSentHash(coin.id === "near" ? await sendNear(network, check.accountId, minor.toString()) : await sendToken(network, coin.id, check.accountId, minor.toString()));
+    setAmount("");
+    reloadWallet();
+  }
+
+  const [unwrapHash, setUnwrapHash] = useState("");
+  async function unwrapResult() {
+    if (!transfer) return;
+    setBusy("send"); setError("");
+    try { setUnwrapHash(await unwrapNear(network, transfer.amountOut)); reloadWallet(); }
+    catch (e) { setError(e instanceof Error ? e.message : "That didn't go through."); }
+    finally { setBusy(""); }
+  }
+
+  async function wrapOrUnwrap() {
+    const coin = (pub?.holdings ?? []).find((h) => walletAssetId(h.id) === fromId);
+    if (!coin) throw new Error(t("Choose a coin your wallet holds."));
+    const minor = parseAmount(amount, 24);
+    if (minor <= 0n) throw new Error(t("Enter an amount."));
+    if (minor > spendable(coin)) throw new Error(coin.id === "near" ? "Keep about 0.02 NEAR in your wallet for network fees. Lower the amount." : `Your wallet holds ${coin.display} ${coin.symbol}.`);
+    setSentHash(fromId === NATIVE ? await wrapNear(network, minor.toString()) : await unwrapNear(network, minor.toString()));
     setAmount("");
     reloadWallet();
   }
@@ -121,7 +150,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
           if (check?.registered === false) await registerWithToken(network, outContract, transfer.recipient);
         }
         const contract = transfer.fromAsset.assetId.replace(/^nep141:/, "");
-        txHash = await sendToken(network, contract, transfer.deposit.address, transfer.amountIn, contract === "wrap.near");
+        txHash = await sendToken(network, contract, transfer.deposit.address, transfer.amountIn, fromId === NATIVE); // the wallet's own NEAR is wrapped first; wNEAR pays as it is
         setPaidTx(txHash);
         reloadWallet();
       }
@@ -203,7 +232,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
             <div className="tp-main">
               <input className="tp-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" aria-label={t("Amount")} required />
               {mode === "address"
-                ? <AssetPicker pill balances={balances} label={t("They receive")} assets={assets} value={toId} onChange={setToId} />
+                ? <AssetPicker pill balances={balances} label={t("They receive")} assets={allAssets} value={toId} onChange={setToId} />
                 : <AssetPicker pill balances={balances} label={t("Coin to send")} assets={fromAssets} value={fromId} onChange={setFromId} empty={ready && holdings.length === 0 ? "No coins yet" : undefined} />}
             </div>
             <div className="tp-sub">{amountUsd !== null ? `≈ ${usd(amountUsd)}` : "\u00a0"}</div>
@@ -215,7 +244,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
                 <div className="tp-top"><span>{t("You get")}</span></div>
                 <div className="tp-main">
                   <span className="tp-amount quiet">—</span>
-                  <AssetPicker pill balances={balances} label={t("You get")} assets={assets.filter((a) => a.assetId !== fromId && (!fromWallet || a.chain === "near"))} value={toId} onChange={setToId} />
+                  <AssetPicker pill balances={balances} label={t("You get")} assets={allAssets.filter((a) => a.assetId !== fromId && (!fromWallet || a.chain === "near"))} value={toId} onChange={setToId} />
                 </div>
                 <div className="tp-sub">{t("You see the price on the next step.")}</div>
               </div>
@@ -241,7 +270,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
           {mode !== "swap" && <input className="tp-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder={`${t("Note")} (${t("optional, only you can see it")})`} aria-label={t("Note")} />}
           {error && <p className="form-error" role="alert">{error}</p>}
           {sentHash && <div className="notice good">{t("Sent from your wallet.")} <span className="muted mono">Receipt {sentHash.slice(0, 10)}…</span> <Link href="/app/activity">{t("Activity")}</Link></div>}
-          <button className="btn btn-primary btn-lg trade-go" disabled={busy !== "" || !ready}>{busy === "price" && <Spinner />} {direct ? t("Send with my wallet") : t("See the price")}</button>
+          <button className="btn btn-primary btn-lg trade-go" disabled={busy !== "" || !ready}>{busy === "price" && <Spinner />} {wrapping ? (fromId === NATIVE ? t("Wrap with my wallet") : t("Unwrap with my wallet")) : direct ? t("Send with my wallet") : t("See the price")}</button>
           {fromWallet && <p className="trade-note">{t("Your wallet opens in a new tab. After you approve, come back to this tab.")}</p>}
         </form>
       ) : (
@@ -280,7 +309,13 @@ export function SendSwap({ initial }: { initial: Mode }) {
           )}
           {transfer.status === "processing" && <div className="notice info status-line"><StatusMark state="moving" size={28} /><span className="text">{isLate(transfer) ? (transfer.fromWallet ? t("This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your wallet.") : t("This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your balance.")) : t("On its way. You can leave this page; it will show up in your activity.")}</span></div>}
           {transfer.status === "success" && <div className="notice good status-line"><StatusMark state="done" size={40} /><div className="text"><b>{t("Done")}</b> {transfer.kind === "swap" ? transfer.fromWallet ? `Your new coins are in your wallet${transfer.toAsset.symbol === "wNEAR" ? " as wrapped NEAR" : ""}.` : "Your new coins are in your private balance." : "The money has arrived."}
-            {transfer.resultHashes[0] && <> <span className="muted mono">Receipt {transfer.resultHashes[0].slice(0, 10)}…</span></>}</div></div>}
+            {transfer.resultHashes[0] && <> <span className="muted mono">Receipt {transfer.resultHashes[0].slice(0, 10)}…</span></>}
+            {/* Asked for NEAR: NEAR Intents delivers wNEAR, so one tap turns it into NEAR. */}
+            {transfer.fromWallet && transfer.kind === "swap" && transfer.toAsset.assetId === WNEAR && toId === NATIVE && (
+              unwrapHash
+                ? <div className="muted" style={{ marginTop: 6 }}>{t("Now in your wallet as NEAR.")} <span className="mono">Receipt {unwrapHash.slice(0, 10)}…</span></div>
+                : <div style={{ marginTop: 8 }}><button type="button" className="btn btn-primary btn-sm" disabled={busy !== ""} onClick={unwrapResult}>{busy === "send" && <Spinner />} {t("Unwrap to NEAR")}</button></div>
+            )}</div></div>}
           {["failed", "refunded", "expired"].includes(transfer.status) && <div className="notice danger">{transfer.status === "refunded" ? `This couldn't be completed, and your money was returned to your ${transfer.fromWallet ? "wallet" : "balance"}.` : `This didn't go through. Nothing was taken from your ${transfer.fromWallet ? "wallet" : "balance"}.`}</div>}
           {TERMINAL.has(transfer.status) && <div className="between"><Link href="/app" className="btn btn-ghost">{t("Home")}</Link><button className="btn btn-primary" onClick={() => { setTransfer(null); setPaidTx(""); setAmount(""); toast(t("Ready for another")); }}>Do another</button></div>}
         </div>

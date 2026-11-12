@@ -441,5 +441,10 @@ const messages: Record<string, string> = {
   "Your coins": "Coinleriniz",
   "All coins": "Tüm coinler",
   "It holds {amount} {coin} you can spend.": "Harcanabilir bakiye {amount} {coin}.",
+  "They get": "Alacakları",
+  "From": "Gönderen",
+  "Copy transaction ID": "İşlem kimliğini kopyala",
+  "Track on NEAR Intents ↗": "NEAR Intents'te izle ↗",
+  "Inside your private balance, so there is no public receipt.": "Özel bakiyenizin içinde, bu yüzden herkese açık makbuz yok.",
 };
 export default messages;

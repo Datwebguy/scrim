@@ -441,5 +441,10 @@ const messages: Record<string, string> = {
   "Your coins": "내 코인",
   "All coins": "모든 코인",
   "It holds {amount} {coin} you can spend.": "사용 가능한 잔액은 {amount} {coin}입니다.",
+  "They get": "받는 금액",
+  "From": "보낸 사람",
+  "Copy transaction ID": "거래 ID 복사",
+  "Track on NEAR Intents ↗": "NEAR Intents에서 보기 ↗",
+  "Inside your private balance, so there is no public receipt.": "비공개 잔액 안에서 이뤄져 공개 영수증이 없습니다.",
 };
 export default messages;

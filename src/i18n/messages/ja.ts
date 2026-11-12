@@ -441,5 +441,10 @@ const messages: Record<string, string> = {
   "Your coins": "あなたのコイン",
   "All coins": "すべてのコイン",
   "It holds {amount} {coin} you can spend.": "使える残高は {amount} {coin} です。",
+  "They get": "相手が受け取る額",
+  "From": "送信元",
+  "Copy transaction ID": "取引IDをコピー",
+  "Track on NEAR Intents ↗": "NEAR Intentsで確認 ↗",
+  "Inside your private balance, so there is no public receipt.": "プライベート残高の中の取引なので、公開の記録はありません。",
 };
 export default messages;

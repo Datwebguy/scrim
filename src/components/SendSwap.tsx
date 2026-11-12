@@ -198,7 +198,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
           <div className="tp">
             <div className="tp-top">
               <span>{mode === "swap" ? t("You pay") : mode === "address" ? t("They receive") : t("Amount")}</span>
-              {mode !== "address" && held && <button type="button" className="tp-max" onClick={() => setAmount(held.display.replace(/,/g, ""))}>{t("Balance")} {held.display} · <b>{t("Max")}</b></button>}
+              {(mode !== "address" || (fromWallet && toId === fromId && to?.chain === "near")) && held && <button type="button" className="tp-max" onClick={() => setAmount(held.display.replace(/,/g, ""))}>{t("Balance")} {held.display} · <b>{t("Max")}</b></button>}
             </div>
             <div className="tp-main">
               <input className="tp-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" aria-label={t("Amount")} required />

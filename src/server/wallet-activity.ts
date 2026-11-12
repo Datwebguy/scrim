@@ -76,7 +76,7 @@ const ACTIONS: Record<string, string> = {
 };
 const words = (method: string) => ACTIONS[method] ?? method.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
 
-export async function describe(network: Network, me: string, signer: string, receiver: string, actions: Action[]): Promise<Omit<WalletActivity, "hash" | "at" | "ok">> {
+async function describe(network: Network, me: string, signer: string, receiver: string, actions: Action[]): Promise<Omit<WalletActivity, "hash" | "at" | "ok">> {
   // A transaction often sets up the token first, then sends. Describe what it was for: the payment, else the first real action.
   const fn = (a: Action) => (typeof a === "string" ? "" : a.FunctionCall?.method_name ?? "");
   const first = actions.find((a) => typeof a !== "string" && (a.Transfer || ["ft_transfer", "ft_transfer_call"].includes(fn(a))))

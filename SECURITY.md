@@ -35,6 +35,15 @@ NEAR Intents, NEAR AI Cloud, OutLayer and wallets are run by others; report issu
 
 In October 2026 the code was reviewed in four parts: sign-in and web security; every money flow; agents, x402, MCP and webhooks; and the protocol, cryptography and proofs. The review found no critical issues. Every confirmed issue was fixed, with a regression test in [tests/security.test.ts](tests/security.test.ts) that replays the attack.
 
+In November 2026 the whole backend was reviewed again by GLM 5.3 running on NEAR AI Cloud, then each finding was checked by hand against the code. Most did not hold up, because the code already guarded against them. These held up and were fixed:
+
+- A wallet sign-in key check now confirms that a key presented for an implicit account is that account's own key, or one on record at intents.near.
+- A team payout whose submission timed out is no longer reopened for payment while the network may still carry it out. It is followed by the balance and closed only after its deadline passes.
+- An agent's spending window now also counts cancelled or expired requests where money may already have left.
+- A seller's x402 price that is not a whole number is refused, and a re-offered route must keep the same signature lifetime and, on Solana, the exact same token.
+- Outgoing requests to addresses someone else gave us stop reading an oversized answer and have a time limit for the whole request.
+- The MCP endpoint refuses an oversized request before reading it.
+
 ## For operators
 
 Production refuses to start without `SCRIM_SECRET_KEY`, `SCRIM_PROOF_KEY` and `SCRIM_AUTH_RECIPIENT`. Generate the keys with `npm run keys`, store them as sensitive variables, and never reuse development keys.

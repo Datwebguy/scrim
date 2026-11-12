@@ -9,7 +9,7 @@ import { rpcQuery } from "./near-rpc";
 
 // What an email account may send from its own public balance. An email account signs with no wallet window asking
 // first, so Scrim signs only the plain things money needs: a NEAR transfer, a token transfer, the tiny one-off
-// registration a token asks for, and wrapping NEAR. Anything else (keys, contracts, staking, deleting the account) is refused.
+// registration a token asks for, and wrapping or unwrapping NEAR. Anything else (keys, contracts, staking, deleting the account) is refused.
 
 export type WalletAction = { type?: string; params?: Record<string, unknown> };
 
@@ -65,6 +65,12 @@ export function allowedActions(network: Network, receiverIdInput: string, input:
         onlyKeys(args, []);
         if (receiverId !== WRAP[network] || deposit <= 0n || callGas > 30n * TERA) throw badRequest("Only NEAR can be wrapped, and only by the wrapped NEAR contract.");
         return actionCreators.functionCall("near_deposit", {}, callGas, deposit);
+      }
+      case "near_withdraw": {
+        onlyKeys(args, ["amount"]);
+        if (receiverId !== WRAP[network] || deposit !== 1n || callGas > 30n * TERA) throw badRequest("Only wrapped NEAR can be unwrapped, and only by the wrapped NEAR contract.");
+        if (digits(args.amount, "The amount") <= 0n) throw badRequest("The amount must be more than zero.");
+        return actionCreators.functionCall("near_withdraw", { amount: args.amount }, callGas, deposit);
       }
       default:
         throw badRequest("Scrim doesn't sign that call for an email account.");

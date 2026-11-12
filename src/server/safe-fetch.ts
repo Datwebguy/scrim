@@ -65,18 +65,23 @@ export function safeRequest(
       let size = 0;
       let truncated = false;
       res.on("data", (chunk: Buffer) => {
-        if (size >= maxBytes) { truncated = true; return; }
+        if (size >= maxBytes) { truncated = true; res.destroy(); return; } // stop reading an answer that is too big
         chunks.push(chunk.subarray(0, maxBytes - size));
         size += Math.min(chunk.length, maxBytes - size);
       });
-      res.on("end", () => {
+      const finish = () => {
         const flat: Record<string, string> = {};
         for (const [k, v] of Object.entries(res.headers)) if (v !== undefined) flat[k.toLowerCase()] = Array.isArray(v) ? v.join(", ") : String(v);
         resolve({ status: res.statusCode ?? 0, headers: flat, body: Buffer.concat(chunks).toString("utf8"), truncated });
-      });
-      res.on("error", () => resolve(null));
+      };
+      res.on("end", finish);
+      res.on("close", () => (truncated ? finish() : undefined));
+      res.on("error", () => (truncated ? finish() : resolve(null)));
     });
     req.on("timeout", () => req.destroy());
+    // A whole-request limit too: a server that trickles bytes can't hold the request open.
+    const all = setTimeout(() => req.destroy(), (init.timeoutMs ?? 10_000) * 2);
+    req.on("close", () => clearTimeout(all));
     req.on("error", () => resolve(null));
     req.end(init.body);
   });

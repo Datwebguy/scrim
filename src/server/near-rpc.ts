@@ -59,7 +59,10 @@ export const intentsChain = {
     return value;
   },
   async hasPublicKey(accountId: string, publicKey: string): Promise<boolean> {
-    if (isImplicitAccount(accountId)) return true;
+    // An implicit account always holds the key its name is made from; any other key must be on record at intents.near.
+    if (isImplicitAccount(accountId)) {
+      try { if (Buffer.from(parseEd25519PublicKey(publicKey)).toString("hex") === accountId.toLowerCase()) return true; } catch { return false; }
+    }
     return viewCall<boolean>("mainnet", "intents.near", "has_public_key", { account_id: accountId, public_key: publicKey });
   },
 };

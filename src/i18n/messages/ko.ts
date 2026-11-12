@@ -438,5 +438,7 @@ const messages: Record<string, string> = {
   "Pause all agents": "모든 에이전트 일시 중지",
   "1 agent paused": "에이전트 1개 일시 중지됨",
   "{count} agents paused": "에이전트 {count}개 일시 중지됨",
+  "Your coins": "내 코인",
+  "All coins": "모든 코인",
 };
 export default messages;

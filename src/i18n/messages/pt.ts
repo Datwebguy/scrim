@@ -438,5 +438,7 @@ const messages: Record<string, string> = {
   "Pause all agents": "Pausar todos os agentes",
   "1 agent paused": "1 agente pausado",
   "{count} agents paused": "{count} agentes pausados",
+  "Your coins": "Suas moedas",
+  "All coins": "Todas as moedas",
 };
 export default messages;

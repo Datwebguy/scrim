@@ -5,16 +5,16 @@ import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
 import { registerWithToken, sendNear, sendToken, signTransfer } from "@/client/wallet";
 import { formatBalance, parseAmount } from "@/protocol/amount";
-import { AssetPicker, fmt, Heading, isLate, StateChip, usd, useAssets, type AssetInfo, type TransferView } from "./money";
+import { AssetPicker, fmt, Heading, isLate, StateChip, usd, useAssets, type AssetInfo, type Balances, type TransferView } from "./money";
 import { useSession } from "./session";
 import { Spinner, useToast } from "./ui";
 import { StatusMark } from "./StatusMark";
 import { useT } from "@/i18n/I18n";
 
 type Mode = "swap" | "person" | "address";
-type Holding = { assetId: string; symbol: string; chainName: string; amount: string; display: string };
+type Holding = { assetId: string; symbol: string; chainName: string; amount: string; display: string; usd?: number | null };
 type Source = "private" | "wallet";
-type WalletHolding = { id: string; symbol: string; decimals: number; amount: string; display: string };
+type WalletHolding = { id: string; symbol: string; decimals: number; amount: string; display: string; usd?: number | null };
 // A wallet coin as NEAR Intents names it: the wallet's own NEAR travels as wrapped NEAR.
 const walletAssetId = (id: string) => `nep141:${id === "near" ? "wrap.near" : id}`;
 // NEAR kept back for network fees and token registration when paying with the wallet's own NEAR.
@@ -47,10 +47,11 @@ export function SendSwap({ initial }: { initial: Mode }) {
 
   const holdings: Holding[] = useMemo(() => fromWallet
     // Wrapped NEAR is listed as NEAR: the wallet's own NEAR is what pays.
-    ? (pub?.holdings ?? []).filter((h) => h.id !== "wrap.near").map((h) => ({ assetId: walletAssetId(h.id), symbol: h.symbol, chainName: "NEAR", amount: spendable(h).toString(), display: h.id === "near" ? formatBalance(spendable(h), h.decimals) : h.display }))
+    ? (pub?.holdings ?? []).filter((h) => h.id !== "wrap.near").map((h) => ({ assetId: walletAssetId(h.id), symbol: h.symbol, chainName: "NEAR", amount: spendable(h).toString(), display: h.id === "near" ? formatBalance(spendable(h), h.decimals) : h.display, usd: h.usd ?? null }))
     : priv?.holdings ?? [], [fromWallet, pub, priv]);
   const ready = fromWallet ? Boolean(pub) : priv?.status === "active";
   // The wallet's own NEAR is what pays, so it reads NEAR here, not wNEAR.
+  const balances: Balances = useMemo(() => Object.fromEntries(holdings.map((h) => [h.assetId, { display: h.display, usd: h.usd ?? null }])), [holdings]);
   const fromAssets = useMemo(() => assets.filter((a) => holdings.some((h) => h.assetId === a.assetId)).map((a) => (fromWallet && a.assetId === "nep141:wrap.near" ? { ...a, symbol: "NEAR" } : a)), [assets, holdings, fromWallet]);
   const from = assets.find((a) => a.assetId === fromId);
   const to = assets.find((a) => a.assetId === (mode === "swap" || mode === "address" ? toId : fromId));
@@ -199,8 +200,8 @@ export function SendSwap({ initial }: { initial: Mode }) {
             <div className="tp-main">
               <input className="tp-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" aria-label={t("Amount")} required />
               {mode === "address"
-                ? <AssetPicker pill label={t("They receive")} assets={assets} value={toId} onChange={setToId} />
-                : <AssetPicker pill label={t("Coin to send")} assets={fromAssets} value={fromId} onChange={setFromId} empty={ready && holdings.length === 0 ? "No coins yet" : undefined} />}
+                ? <AssetPicker pill balances={balances} label={t("They receive")} assets={assets} value={toId} onChange={setToId} />
+                : <AssetPicker pill balances={balances} label={t("Coin to send")} assets={fromAssets} value={fromId} onChange={setFromId} empty={ready && holdings.length === 0 ? "No coins yet" : undefined} />}
             </div>
             <div className="tp-sub">{amountUsd !== null ? `≈ ${usd(amountUsd)}` : "\u00a0"}</div>
           </div>
@@ -211,7 +212,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
                 <div className="tp-top"><span>{t("You get")}</span></div>
                 <div className="tp-main">
                   <span className="tp-amount quiet">—</span>
-                  <AssetPicker pill label={t("You get")} assets={assets.filter((a) => a.assetId !== fromId && (!fromWallet || a.chain === "near"))} value={toId} onChange={setToId} />
+                  <AssetPicker pill balances={balances} label={t("You get")} assets={assets.filter((a) => a.assetId !== fromId && (!fromWallet || a.chain === "near"))} value={toId} onChange={setToId} />
                 </div>
                 <div className="tp-sub">{t("You see the price on the next step.")}</div>
               </div>
@@ -230,7 +231,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
               {to?.chain === "zec" && <div className="tp-sub">{t("A shielded address (starting u1 or zs1) works too. It keeps the receiving side private on Zcash.")}</div>}
               <div className="tp-paywith">
                 <span>{fromWallet ? t("From your wallet") : t("From your balance")}{held ? ` · ${t("Balance")} ${held.display}` : ""}</span>
-                <AssetPicker pill label={t("Coin to send")} assets={fromAssets} value={fromId} onChange={setFromId} empty={ready && holdings.length === 0 ? "No coins yet" : undefined} />
+                <AssetPicker pill balances={balances} label={t("Coin to send")} assets={fromAssets} value={fromId} onChange={setFromId} empty={ready && holdings.length === 0 ? "No coins yet" : undefined} />
               </div>
             </div>
           )}

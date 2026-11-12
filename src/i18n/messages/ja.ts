@@ -438,5 +438,7 @@ const messages: Record<string, string> = {
   "Pause all agents": "すべてのエージェントを停止",
   "1 agent paused": "1 件のエージェントを停止しました",
   "{count} agents paused": "{count} 件のエージェントを停止しました",
+  "Your coins": "あなたのコイン",
+  "All coins": "すべてのコイン",
 };
 export default messages;

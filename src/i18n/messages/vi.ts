@@ -438,5 +438,7 @@ const messages: Record<string, string> = {
   "Pause all agents": "Tạm dừng mọi tác nhân",
   "1 agent paused": "Đã tạm dừng 1 tác nhân",
   "{count} agents paused": "Đã tạm dừng {count} tác nhân",
+  "Your coins": "Coin của bạn",
+  "All coins": "Tất cả coin",
 };
 export default messages;

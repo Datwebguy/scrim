@@ -438,5 +438,7 @@ const messages: Record<string, string> = {
   "Pause all agents": "Tüm ajanları duraklat",
   "1 agent paused": "1 ajan duraklatıldı",
   "{count} agents paused": "{count} ajan duraklatıldı",
+  "Your coins": "Coinleriniz",
+  "All coins": "Tüm coinler",
 };
 export default messages;

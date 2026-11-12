@@ -446,5 +446,7 @@ const messages: Record<string, string> = {
   "Copy transaction ID": "复制交易 ID",
   "Track on NEAR Intents ↗": "在 NEAR Intents 查看 ↗",
   "Inside your private balance, so there is no public receipt.": "在你的私密余额内完成，因此没有公开凭证。",
+  "Wrap with my wallet": "用钱包换成 wNEAR",
+  "Unwrap with my wallet": "用钱包换回 NEAR",
 };
 export default messages;

@@ -446,5 +446,7 @@ const messages: Record<string, string> = {
   "Copy transaction ID": "Скопировать ID транзакции",
   "Track on NEAR Intents ↗": "Отследить в NEAR Intents ↗",
   "Inside your private balance, so there is no public receipt.": "Внутри вашего приватного баланса, поэтому публичной квитанции нет.",
+  "Wrap with my wallet": "Обернуть в wNEAR кошельком",
+  "Unwrap with my wallet": "Вернуть в NEAR кошельком",
 };
 export default messages;

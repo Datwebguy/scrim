@@ -446,5 +446,7 @@ const messages: Record<string, string> = {
   "Copy transaction ID": "Salin ID transaksi",
   "Track on NEAR Intents ↗": "Lacak di NEAR Intents ↗",
   "Inside your private balance, so there is no public receipt.": "Di dalam saldo pribadi Anda, jadi tidak ada bukti publik.",
+  "Wrap with my wallet": "Ubah ke wNEAR dengan dompet saya",
+  "Unwrap with my wallet": "Ubah ke NEAR dengan dompet saya",
 };
 export default messages;

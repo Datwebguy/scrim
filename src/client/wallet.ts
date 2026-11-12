@@ -175,8 +175,8 @@ export async function sendNear(network: Network, receiverId: string, yocto: stri
   return sentHash(outcome);
 }
 
-// NEAR holds back about 0.001 NEAR for every unit of gas a transaction asks for, until it finishes, so the gas below is kept small:
-// a payment from native NEAR asks for 50 Tgas and needs about 0.06 NEAR free besides the amount.
+// NEAR holds back the gas a transaction asks for until it finishes, at the gas price (100M yocto per gas on mainnet
+// today, so 50 Tgas holds 0.005 NEAR), and refunds what wasn't used.
 // A plain token transfer on NEAR, signed by the wallet. Registers the receiver with the token first
 // (a tiny one-off storage deposit) so the transfer can't fail for an account the token hasn't seen.
 const register = (account: string) =>
@@ -192,6 +192,24 @@ export async function sendToken(network: Network, contract: string, receiverId: 
       register(receiverId),
       { type: "FunctionCall", params: { methodName: "ft_transfer", args: { receiver_id: receiverId, amount }, gas: "20000000000000", deposit: "1" } },
     ],
+  });
+  return sentHash(outcome);
+}
+
+// NEAR to wNEAR and back, one to one, through the wNEAR contract itself: no swap and no fee beyond gas.
+export async function wrapNear(network: Network, yocto: string): Promise<string> {
+  const { wallet, accountId } = await connectedWallet(network);
+  const outcome = await wallet.signAndSendTransaction({
+    network, signerId: accountId, receiverId: "wrap.near",
+    actions: [register(accountId), { type: "FunctionCall", params: { methodName: "near_deposit", args: {}, gas: "10000000000000", deposit: yocto } }],
+  });
+  return sentHash(outcome);
+}
+export async function unwrapNear(network: Network, yocto: string): Promise<string> {
+  const { wallet, accountId } = await connectedWallet(network);
+  const outcome = await wallet.signAndSendTransaction({
+    network, signerId: accountId, receiverId: "wrap.near",
+    actions: [{ type: "FunctionCall", params: { methodName: "near_withdraw", args: { amount: yocto }, gas: "10000000000000", deposit: "1" } }],
   });
   return sentHash(outcome);
 }

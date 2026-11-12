@@ -5,7 +5,7 @@ import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
 import { registerWithToken, sendNear, sendToken, signTransfer } from "@/client/wallet";
 import { formatBalance, parseAmount } from "@/protocol/amount";
-import { AssetPicker, fmt, Heading, isLate, StateChip, usd, useAssets, type AssetInfo, type Balances, type TransferView } from "./money";
+import { AssetPicker, fmt, trimDecimals, Heading, isLate, StateChip, usd, useAssets, type AssetInfo, type Balances, type TransferView } from "./money";
 import { useSession } from "./session";
 import { Spinner, useToast } from "./ui";
 import { StatusMark } from "./StatusMark";
@@ -245,7 +245,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
         <div className="card card-pad form-grid">
           <div className="between"><h2>{transfer.status === "awaiting_signature" ? "Check and confirm" : "Your transfer"}</h2><StateChip status={transfer.status} /></div>
           <dl className="detail-list">
-            <div><dt>{t("You pay")}</dt><dd>{fmt(transfer.amountIn, transfer.fromAsset.decimals)} {transfer.fromAsset.symbol} <span className="muted">· {transfer.fromAsset.chainName}</span></dd></div>
+            <div><dt>{t("You pay")}</dt><dd>{trimDecimals(fmt(transfer.amountIn, transfer.fromAsset.decimals))} {transfer.fromAsset.symbol} <span className="muted">· {transfer.fromAsset.chainName}</span></dd></div>
             <div><dt>{transfer.kind === "swap" ? "You get" : "They get"}</dt><dd>{fmt(transfer.amountOut, transfer.toAsset.decimals)} {transfer.toAsset.symbol} <span className="muted">· {transfer.toAsset.chainName}</span></dd></div>
             {transfer.minAmountOut && transfer.minAmountOut !== transfer.amountOut && ["awaiting_signature", "awaiting_deposit"].includes(transfer.status) ? <div><dt>{t("At least")}</dt><dd>{fmt(transfer.minAmountOut!, transfer.toAsset.decimals)} {transfer.toAsset.symbol} <span className="muted">· {t("if the price moves")}</span></dd></div> : null}
             {transfer.recipient && <div><dt>{t("To")}</dt><dd className="mono">{transfer.recipient}</dd></div>}
@@ -266,8 +266,8 @@ export function SendSwap({ initial }: { initial: Mode }) {
           )}
           {transfer.fromWallet && transfer.status === "awaiting_deposit" && transfer.deposit && (
             <>
-              {enough === false && <div className="notice danger">{t("Your wallet doesn't hold enough for this. Lower the amount.")}</div>}
-              <p className="muted small-print">Your wallet will send {fmt(transfer.amountIn, transfer.fromAsset.decimals)} {transfer.fromAsset.symbol} to a one-time NEAR Intents address, which delivers the result. This price is held for a few minutes.</p>
+              {enough === false && held && <div className="notice danger">{t("Your wallet doesn't hold enough for this. Lower the amount.")} {t("It holds {amount} {coin} you can spend.", { amount: trimDecimals(held.display), coin: transfer.fromAsset.symbol === "wNEAR" ? "NEAR" : transfer.fromAsset.symbol })}</div>}
+              <p className="muted small-print">Your wallet will send {trimDecimals(fmt(transfer.amountIn, transfer.fromAsset.decimals))} {transfer.fromAsset.symbol} to a one-time NEAR Intents address, which delivers the result. This price is held for a few minutes.</p>
               {error && <p className="form-error" role="alert">{error}</p>}
               <div className="between">
                 <button className="btn btn-ghost" onClick={back} disabled={busy !== ""}>{t("Back")}</button>

@@ -440,5 +440,6 @@ const messages: Record<string, string> = {
   "{count} agents paused": "{count} agentes en pausa",
   "Your coins": "Tus monedas",
   "All coins": "Todas las monedas",
+  "It holds {amount} {coin} you can spend.": "Tiene {amount} {coin} disponibles.",
 };
 export default messages;

@@ -440,5 +440,6 @@ const messages: Record<string, string> = {
   "{count} agents paused": "에이전트 {count}개 일시 중지됨",
   "Your coins": "내 코인",
   "All coins": "모든 코인",
+  "It holds {amount} {coin} you can spend.": "사용 가능한 잔액은 {amount} {coin}입니다.",
 };
 export default messages;

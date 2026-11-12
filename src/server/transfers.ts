@@ -525,7 +525,7 @@ async function refreshRow(row: Row, held: Record<string, bigint> | null = null):
       if (ended === "success" && row.team_request_id && details.public) await walletPayoutSent(row);
       if (ended) {
         details.resultHashes = s?.swapDetails?.destinationChainTxHashes?.map((h) => h.hash) ?? details.resultHashes;
-        if (ended === "success" && row.kind === "add" && s) settleAmounts(details, s);
+        if (ended === "success" && s) settleAmounts(details, s); // show what really arrived, not the quote
         await save(row.id, row.account_id, ended, details);
         if (row.team_request_id) {
           const outcome = ended === "success" ? "settled" : ended === "refunded" || ended === "expired" ? "approved" : "failed";
@@ -582,7 +582,11 @@ export async function listTransfers(session: Session): Promise<Transfer[]> {
   const rows = await sql<Row[]>`SELECT * FROM transfers WHERE account_id = ${session.accountId} AND network = ${session.network} ORDER BY created_at DESC LIMIT 100`;
   // A finished deposit still showing its quoted amount is read once more, so the list shows what arrived.
   const unsettled = (r: Row) => r.kind === "add" && r.status === "success" && !r.intent_hash && !open<Details>(r.details_sealed, aad(r.id, r.account_id)).settled;
-  return Promise.all(rows.map((r) => (unsettled(r) ? refreshRow(r).catch(() => toTransfer(r)) : toTransfer(r))));
+  // A transfer still open is followed here too, so the list never shows a finished swap as waiting.
+  const OPEN = ["awaiting_deposit", "awaiting_signature", "processing"];
+  const open10 = new Set(rows.filter((r) => OPEN.includes(r.status)).slice(0, 10).map((r) => r.id));
+  const held = rows.some((r) => open10.has(r.id) && r.status === "processing" && r.intent_hash) ? await heldPrivately(session).catch(() => null) : null;
+  return Promise.all(rows.map((r) => (unsettled(r) || open10.has(r.id) ? refreshRow(r, held).catch(() => toTransfer(r)) : toTransfer(r))));
 }
 
 export async function cancelTransfer(session: Session, id: string): Promise<Transfer> {

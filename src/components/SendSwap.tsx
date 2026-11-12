@@ -70,13 +70,16 @@ export function SendSwap({ initial }: { initial: Mode }) {
     return () => clearInterval(timer);
   }, [transfer]);
 
+  // A public payment of the same coin to a NEAR account is a plain transfer from the wallet: no swap, no deposit address.
+  const nearAccount = /^([a-z0-9]+[-_.])*[a-z0-9]+$/.test(recipient.trim().toLowerCase()) && (/\.(near|tg)$/.test(recipient.trim().toLowerCase()) || /^[0-9a-f]{64}$/.test(recipient.trim().toLowerCase()));
+  const direct = fromWallet && (mode === "person" || (mode === "address" && toId === fromId && to?.chain === "near" && nearAccount));
   const kind = mode === "swap" ? "swap" : mode === "person" ? "send" : "withdraw";
 
   async function getPrice() {
     setBusy("price");
     setError("");
     try {
-      if (fromWallet && mode === "person") return await sendDirect();
+      if (direct) return await sendDirect();
       const body = { kind, fromAssetId: fromId, toAssetId: mode === "person" ? fromId : toId, amount, recipient, note, privacy: fromWallet ? "public" : "private" };
       setTransfer((await api<{ transfer: TransferView }>("/transfers", { body })).transfer);
     } catch (e) {
@@ -95,7 +98,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
     if (minor > spendable(coin)) throw new Error(coin.id === "near" ? "Keep about 0.02 NEAR in your wallet for network fees. Lower the amount." : `Your wallet holds ${coin.display} ${coin.symbol}.`);
     // Tokens sent to an account that doesn't exist are lost, so check it first.
     const check = await api<{ accountId: string; exists: boolean }>(`/accounts/check?id=${encodeURIComponent(recipient.trim().toLowerCase())}`);
-    if (!check.exists) throw new Error(`${check.accountId} doesn't exist. Check the spelling.`);
+    if (!check.exists && !/^[0-9a-f]{64}$/.test(check.accountId)) throw new Error(`${check.accountId} doesn't exist. Check the spelling.`);
     if (check.accountId === accountId) throw new Error(t("That's your own account."));
     setSentHash(coin.id === "near" ? await sendNear(network, check.accountId, minor.toString()) : await sendToken(network, coin.id, check.accountId, minor.toString()));
     setAmount("");
@@ -238,7 +241,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
           {mode !== "swap" && <input className="tp-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder={`${t("Note")} (${t("optional, only you can see it")})`} aria-label={t("Note")} />}
           {error && <p className="form-error" role="alert">{error}</p>}
           {sentHash && <div className="notice good">{t("Sent from your wallet.")} <span className="muted mono">Receipt {sentHash.slice(0, 10)}…</span> <Link href="/app/activity">{t("Activity")}</Link></div>}
-          <button className="btn btn-primary btn-lg trade-go" disabled={busy !== "" || !ready}>{busy === "price" && <Spinner />} {fromWallet && mode === "person" ? t("Send with my wallet") : t("See the price")}</button>
+          <button className="btn btn-primary btn-lg trade-go" disabled={busy !== "" || !ready}>{busy === "price" && <Spinner />} {direct ? t("Send with my wallet") : t("See the price")}</button>
           {fromWallet && <p className="trade-note">{t("Your wallet opens in a new tab. After you approve, come back to this tab.")}</p>}
         </form>
       ) : (

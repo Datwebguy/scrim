@@ -1,7 +1,7 @@
 "use client";
 import { useApi } from "@/client/use-api";
 import { useState } from "react";
-import { fmt, Heading, KIND_LABEL, StateChip, type TransferView } from "./money";
+import { fmt, Heading, isLate, KIND_LABEL, StateChip, type TransferView } from "./money";
 import { WalletActivityList } from "./TestnetActivity";
 import { useT } from "@/i18n/I18n";
 
@@ -30,7 +30,7 @@ export function Activity() {
                   <td><b>{tr(KIND_LABEL[t.kind] ?? t.kind)}</b><span className="sub">{new Date(t.createdAt).toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span></td>
                   <td className="hide-sm">{t.kind === "swap" ? `${t.fromAsset.symbol} → ${t.toAsset.symbol}` : t.recipient ? <span className="mono" style={{ fontSize: 12 }}>{t.recipient.length > 22 ? `${t.recipient.slice(0, 10)}…${t.recipient.slice(-6)}` : t.recipient}</span> : t.toAsset.chainName}{t.note && <span className="sub">{t.note}</span>}</td>
                   <td className="amt">{fmt(t.amountOut, t.toAsset.decimals)}<small>{t.toAsset.symbol}</small></td>
-                  <td><StateChip status={t.status} /></td>
+                  <td><StateChip status={t.status} late={isLate(t)} /></td>
                 </tr>
               ))}
             </tbody>

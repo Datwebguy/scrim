@@ -5,7 +5,7 @@ import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
 import { registerWithToken, sendNear, sendToken, signTransfer } from "@/client/wallet";
 import { formatBalance, parseAmount } from "@/protocol/amount";
-import { AssetPicker, fmt, Heading, StateChip, usd, useAssets, type AssetInfo, type TransferView } from "./money";
+import { AssetPicker, fmt, Heading, isLate, StateChip, usd, useAssets, type AssetInfo, type TransferView } from "./money";
 import { useSession } from "./session";
 import { Spinner, useToast } from "./ui";
 import { StatusMark } from "./StatusMark";
@@ -273,7 +273,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
               </div>
             </>
           )}
-          {transfer.status === "processing" && <div className="notice info status-line"><StatusMark state="moving" size={28} /><span className="text">{t("On its way. You can leave this page; it will show up in your activity.")}</span></div>}
+          {transfer.status === "processing" && <div className="notice info status-line"><StatusMark state="moving" size={28} /><span className="text">{isLate(transfer) ? (transfer.fromWallet ? t("This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your wallet.") : t("This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your balance.")) : t("On its way. You can leave this page; it will show up in your activity.")}</span></div>}
           {transfer.status === "success" && <div className="notice good status-line"><StatusMark state="done" size={40} /><div className="text"><b>{t("Done")}</b> {transfer.kind === "swap" ? transfer.fromWallet ? `Your new coins are in your wallet${transfer.toAsset.symbol === "wNEAR" ? " as wrapped NEAR" : ""}.` : "Your new coins are in your private balance." : "The money has arrived."}
             {transfer.resultHashes[0] && <> <span className="muted mono">Receipt {transfer.resultHashes[0].slice(0, 10)}…</span></>}</div></div>}
           {["failed", "refunded", "expired"].includes(transfer.status) && <div className="notice danger">{transfer.status === "refunded" ? `This couldn't be completed, and your money was returned to your ${transfer.fromWallet ? "wallet" : "balance"}.` : `This didn't go through. Nothing was taken from your ${transfer.fromWallet ? "wallet" : "balance"}.`}</div>}

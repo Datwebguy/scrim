@@ -5,7 +5,7 @@ import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
 import { registerWithToken, sendNear, sendToken, signTransfer } from "@/client/wallet";
 import { formatBalance, parseAmount } from "@/protocol/amount";
-import { AssetPicker, fmt, Heading, isLate, StateChip, usd, useAssets, type AssetInfo, type Balances, type TransferView } from "./money";
+import { AssetPicker, fmt, trimDecimals, Heading, isLate, StateChip, usd, useAssets, type AssetInfo, type Balances, type TransferView } from "./money";
 import { useSession } from "./session";
 import { Spinner, useToast } from "./ui";
 import { StatusMark } from "./StatusMark";
@@ -18,7 +18,7 @@ type WalletHolding = { id: string; symbol: string; decimals: number; amount: str
 // A wallet coin as NEAR Intents names it: the wallet's own NEAR travels as wrapped NEAR.
 const walletAssetId = (id: string) => `nep141:${id === "near" ? "wrap.near" : id}`;
 // NEAR kept back for network fees and token registration when paying with the wallet's own NEAR.
-const NEAR_RESERVE = 7n * 10n ** 22n; // 0.07 NEAR: token registration (0.0025) plus the gas NEAR holds back for a wrapped payment (50 Tgas ≈ 0.055)
+const NEAR_RESERVE = 2n * 10n ** 22n; // 0.02 NEAR: token registration (0.00125) plus 50 Tgas held while a payment runs (0.005 at 100M yocto per gas), with room to spare
 const spendable = (h: WalletHolding) => (h.id === "near" ? (BigInt(h.amount) > NEAR_RESERVE ? BigInt(h.amount) - NEAR_RESERVE : 0n) : BigInt(h.amount));
 const TERMINAL = new Set(["success", "refunded", "failed", "expired", "cancelled"]);
 
@@ -58,7 +58,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
   const held = holdings.find((h) => h.assetId === fromId);
 
   useEffect(() => {
-    if (!fromId && holdings.length && fromAssets.length) setFromId(holdings.find((h) => fromAssets.some((a) => a.assetId === h.assetId))?.assetId ?? fromAssets[0].assetId);
+    if (!fromId && holdings.length && fromAssets.length) setFromId([...holdings].sort((x, y) => (y.usd ?? 0) - (x.usd ?? 0)).find((h) => fromAssets.some((a) => a.assetId === h.assetId))?.assetId ?? fromAssets[0].assetId); // the coin worth the most
   }, [fromId, fromAssets, holdings]);
   useEffect(() => { setFromId(""); setToId(""); setSentHash(""); }, [source]);
 
@@ -70,13 +70,16 @@ export function SendSwap({ initial }: { initial: Mode }) {
     return () => clearInterval(timer);
   }, [transfer]);
 
+  // A public payment of the same coin to a NEAR account is a plain transfer from the wallet: no swap, no deposit address.
+  const nearAccount = /^([a-z0-9]+[-_.])*[a-z0-9]+$/.test(recipient.trim().toLowerCase()) && (/\.(near|tg)$/.test(recipient.trim().toLowerCase()) || /^[0-9a-f]{64}$/.test(recipient.trim().toLowerCase()));
+  const direct = fromWallet && (mode === "person" || (mode === "address" && toId === fromId && to?.chain === "near" && nearAccount));
   const kind = mode === "swap" ? "swap" : mode === "person" ? "send" : "withdraw";
 
   async function getPrice() {
     setBusy("price");
     setError("");
     try {
-      if (fromWallet && mode === "person") return await sendDirect();
+      if (direct) return await sendDirect();
       const body = { kind, fromAssetId: fromId, toAssetId: mode === "person" ? fromId : toId, amount, recipient, note, privacy: fromWallet ? "public" : "private" };
       setTransfer((await api<{ transfer: TransferView }>("/transfers", { body })).transfer);
     } catch (e) {
@@ -92,10 +95,10 @@ export function SendSwap({ initial }: { initial: Mode }) {
     if (!coin) throw new Error(t("Choose a coin your wallet holds."));
     const minor = parseAmount(amount, coin.decimals);
     if (minor <= 0n) throw new Error(t("Enter an amount."));
-    if (minor > spendable(coin)) throw new Error(coin.id === "near" ? "Keep about 0.07 NEAR in your wallet for network fees. Lower the amount." : `Your wallet holds ${coin.display} ${coin.symbol}.`);
+    if (minor > spendable(coin)) throw new Error(coin.id === "near" ? "Keep about 0.02 NEAR in your wallet for network fees. Lower the amount." : `Your wallet holds ${coin.display} ${coin.symbol}.`);
     // Tokens sent to an account that doesn't exist are lost, so check it first.
     const check = await api<{ accountId: string; exists: boolean }>(`/accounts/check?id=${encodeURIComponent(recipient.trim().toLowerCase())}`);
-    if (!check.exists) throw new Error(`${check.accountId} doesn't exist. Check the spelling.`);
+    if (!check.exists && !/^[0-9a-f]{64}$/.test(check.accountId)) throw new Error(`${check.accountId} doesn't exist. Check the spelling.`);
     if (check.accountId === accountId) throw new Error(t("That's your own account."));
     setSentHash(coin.id === "near" ? await sendNear(network, check.accountId, minor.toString()) : await sendToken(network, coin.id, check.accountId, minor.toString()));
     setAmount("");
@@ -195,7 +198,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
           <div className="tp">
             <div className="tp-top">
               <span>{mode === "swap" ? t("You pay") : mode === "address" ? t("They receive") : t("Amount")}</span>
-              {mode !== "address" && held && <button type="button" className="tp-max" onClick={() => setAmount(held.display.replace(/,/g, ""))}>{t("Balance")} {held.display} · <b>{t("Max")}</b></button>}
+              {(mode !== "address" || (fromWallet && toId === fromId && to?.chain === "near")) && held && <button type="button" className="tp-max" onClick={() => setAmount(held.display.replace(/,/g, ""))}>{t("Balance")} {held.display} · <b>{t("Max")}</b></button>}
             </div>
             <div className="tp-main">
               <input className="tp-amount" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" aria-label={t("Amount")} required />
@@ -238,14 +241,14 @@ export function SendSwap({ initial }: { initial: Mode }) {
           {mode !== "swap" && <input className="tp-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder={`${t("Note")} (${t("optional, only you can see it")})`} aria-label={t("Note")} />}
           {error && <p className="form-error" role="alert">{error}</p>}
           {sentHash && <div className="notice good">{t("Sent from your wallet.")} <span className="muted mono">Receipt {sentHash.slice(0, 10)}…</span> <Link href="/app/activity">{t("Activity")}</Link></div>}
-          <button className="btn btn-primary btn-lg trade-go" disabled={busy !== "" || !ready}>{busy === "price" && <Spinner />} {fromWallet && mode === "person" ? t("Send with my wallet") : t("See the price")}</button>
+          <button className="btn btn-primary btn-lg trade-go" disabled={busy !== "" || !ready}>{busy === "price" && <Spinner />} {direct ? t("Send with my wallet") : t("See the price")}</button>
           {fromWallet && <p className="trade-note">{t("Your wallet opens in a new tab. After you approve, come back to this tab.")}</p>}
         </form>
       ) : (
         <div className="card card-pad form-grid">
           <div className="between"><h2>{transfer.status === "awaiting_signature" ? "Check and confirm" : "Your transfer"}</h2><StateChip status={transfer.status} /></div>
           <dl className="detail-list">
-            <div><dt>{t("You pay")}</dt><dd>{fmt(transfer.amountIn, transfer.fromAsset.decimals)} {transfer.fromAsset.symbol} <span className="muted">· {transfer.fromAsset.chainName}</span></dd></div>
+            <div><dt>{t("You pay")}</dt><dd>{trimDecimals(fmt(transfer.amountIn, transfer.fromAsset.decimals))} {transfer.fromAsset.symbol} <span className="muted">· {transfer.fromAsset.chainName}</span></dd></div>
             <div><dt>{transfer.kind === "swap" ? "You get" : "They get"}</dt><dd>{fmt(transfer.amountOut, transfer.toAsset.decimals)} {transfer.toAsset.symbol} <span className="muted">· {transfer.toAsset.chainName}</span></dd></div>
             {transfer.minAmountOut && transfer.minAmountOut !== transfer.amountOut && ["awaiting_signature", "awaiting_deposit"].includes(transfer.status) ? <div><dt>{t("At least")}</dt><dd>{fmt(transfer.minAmountOut!, transfer.toAsset.decimals)} {transfer.toAsset.symbol} <span className="muted">· {t("if the price moves")}</span></dd></div> : null}
             {transfer.recipient && <div><dt>{t("To")}</dt><dd className="mono">{transfer.recipient}</dd></div>}
@@ -266,8 +269,8 @@ export function SendSwap({ initial }: { initial: Mode }) {
           )}
           {transfer.fromWallet && transfer.status === "awaiting_deposit" && transfer.deposit && (
             <>
-              {enough === false && <div className="notice danger">{t("Your wallet doesn't hold enough for this. Lower the amount.")}</div>}
-              <p className="muted small-print">Your wallet will send {fmt(transfer.amountIn, transfer.fromAsset.decimals)} {transfer.fromAsset.symbol} to a one-time NEAR Intents address, which delivers the result. This price is held for a few minutes.</p>
+              {enough === false && held && <div className="notice danger">{t("Your wallet doesn't hold enough for this. Lower the amount.")} {t("It holds {amount} {coin} you can spend.", { amount: trimDecimals(held.display), coin: transfer.fromAsset.symbol === "wNEAR" ? "NEAR" : transfer.fromAsset.symbol })}</div>}
+              <p className="muted small-print">Your wallet will send {trimDecimals(fmt(transfer.amountIn, transfer.fromAsset.decimals))} {transfer.fromAsset.symbol} to a one-time NEAR Intents address, which delivers the result. This price is held for a few minutes.</p>
               {error && <p className="form-error" role="alert">{error}</p>}
               <div className="between">
                 <button className="btn btn-ghost" onClick={back} disabled={busy !== ""}>{t("Back")}</button>

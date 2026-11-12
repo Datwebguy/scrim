@@ -440,5 +440,6 @@ const messages: Record<string, string> = {
   "{count} agents paused": "已暂停 {count} 个代理",
   "Your coins": "你的币",
   "All coins": "所有币",
+  "It holds {amount} {coin} you can spend.": "可用余额为 {amount} {coin}。",
 };
 export default messages;

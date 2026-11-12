@@ -440,5 +440,6 @@ const messages: Record<string, string> = {
   "{count} agents paused": "{count} 件のエージェントを停止しました",
   "Your coins": "あなたのコイン",
   "All coins": "すべてのコイン",
+  "It holds {amount} {coin} you can spend.": "使える残高は {amount} {coin} です。",
 };
 export default messages;

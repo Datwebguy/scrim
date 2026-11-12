@@ -143,7 +143,7 @@ type Leg = { assetId: string; symbol: string; chainName: string; decimals: numbe
 export type TransferView = {
   id: string; kind: string; status: string; createdAt: string; expiresAt: string;
   fromAsset: Leg; toAsset: Leg;
-  amountIn: string; amountOut: string; recipient: string | null; note: string;
+  amountIn: string; amountOut: string; minAmountOut?: string; recipient: string | null; note: string;
   deposit: { address: string; memo: string | null; chainName: string; minimum: string | null; evm: { chainId: number; token: `0x${string}` | null } | null; solana: { mint: string | null } | null } | null; // evm, solana: let a connected wallet pay it in one tap
   intentToSign: { message: string; nonce: string; recipient: string } | null;
   resultHashes: string[]; etaSeconds: number | null; teamRequestId: string | null; fromWallet?: boolean;

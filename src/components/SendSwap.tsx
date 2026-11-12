@@ -246,6 +246,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
           <dl className="detail-list">
             <div><dt>{t("You pay")}</dt><dd>{fmt(transfer.amountIn, transfer.fromAsset.decimals)} {transfer.fromAsset.symbol} <span className="muted">· {transfer.fromAsset.chainName}</span></dd></div>
             <div><dt>{transfer.kind === "swap" ? "You get" : "They get"}</dt><dd>{fmt(transfer.amountOut, transfer.toAsset.decimals)} {transfer.toAsset.symbol} <span className="muted">· {transfer.toAsset.chainName}</span></dd></div>
+            {transfer.minAmountOut && transfer.minAmountOut !== transfer.amountOut && ["awaiting_signature", "awaiting_deposit"].includes(transfer.status) ? <div><dt>{t("At least")}</dt><dd>{fmt(transfer.minAmountOut!, transfer.toAsset.decimals)} {transfer.toAsset.symbol} <span className="muted">· {t("if the price moves")}</span></dd></div> : null}
             {transfer.recipient && <div><dt>{t("To")}</dt><dd className="mono">{transfer.recipient}</dd></div>}
             {fee !== null && <div><dt>{t("Fee")}</dt><dd>{usd(fee)}</dd></div>}
             {transfer.etaSeconds != null && <div><dt>{t("Arrives in")}</dt><dd>about {transfer.etaSeconds} seconds</dd></div>}

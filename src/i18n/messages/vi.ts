@@ -77,6 +77,7 @@ const messages: Record<string, string> = {
   "Waiting for your deposit": "Đang chờ khoản nạp của bạn",
   "Needs your approval": "Cần bạn phê duyệt",
   "On its way": "Đang trên đường",
+  "if the price moves": "nếu giá thay đổi",
   "Taking longer": "Đang lâu hơn",
   "This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your wallet.": "Việc này lâu hơn bình thường. Nếu không hoàn tất, NEAR Intents sẽ trả coin về ví của bạn.",
   "This is taking longer than usual. If it doesn't complete, NEAR Intents returns your coins to your balance.": "Việc này lâu hơn bình thường. Nếu không hoàn tất, NEAR Intents sẽ trả coin về số dư của bạn.",

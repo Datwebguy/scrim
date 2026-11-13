@@ -14,8 +14,10 @@ export async function POST(request: NextRequest) {
     if (error instanceof HttpError) return NextResponse.json({ jsonrpc: "2.0", id: null, error: { code: -32029, message: error.message } }, { status: error.status, headers });
     throw error;
   }
+  // Refuse a large body before reading it, then check what actually arrived, in bytes.
+  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) return NextResponse.json({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "Request is too large." } }, { status: 413, headers });
   const text = await request.text();
-  if (text.length > MAX_BODY_BYTES) return NextResponse.json({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "Request is too large." } }, { status: 413, headers });
+  if (Buffer.byteLength(text) > MAX_BODY_BYTES) return NextResponse.json({ jsonrpc: "2.0", id: null, error: { code: -32600, message: "Request is too large." } }, { status: 413, headers });
   let body: unknown;
   try {
     body = JSON.parse(text);

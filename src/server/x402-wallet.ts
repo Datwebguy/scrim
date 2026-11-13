@@ -110,8 +110,10 @@ export async function walletAddresses(network: Network, apiKey: string): Promise
 // What the signer is shown: only the one entry Scrim checked, amount and terms included. Whatever else a
 // seller lists can never be chosen by the payment library instead.
 export function onlyChosen(required: PaymentRequired, chosen: PaymentRequirements): PaymentRequired {
-  const same = (e: PaymentRequirements) => e.scheme === chosen.scheme && e.network === chosen.network && e.asset.toLowerCase() === chosen.asset.toLowerCase()
-    && e.payTo === chosen.payTo && e.amount === chosen.amount && JSON.stringify(e.extra ?? {}) === JSON.stringify(chosen.extra ?? {});
+  // EVM addresses ignore letter case; Solana mints don't. The signature's lifetime must be the one that was checked.
+  const sameAsset = (a: string) => (evmId(chosen.network) !== null ? a.toLowerCase() === chosen.asset.toLowerCase() : a === chosen.asset);
+  const same = (e: PaymentRequirements) => e.scheme === chosen.scheme && e.network === chosen.network && sameAsset(e.asset)
+    && e.maxTimeoutSeconds === chosen.maxTimeoutSeconds && e.payTo === chosen.payTo && e.amount === chosen.amount && JSON.stringify(e.extra ?? {}) === JSON.stringify(chosen.extra ?? {});
   const match = required.accepts.find(same);
   if (!match) throw new Error("The approved payment route is no longer offered.");
   return { ...required, accepts: [match] };

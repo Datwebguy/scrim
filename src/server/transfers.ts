@@ -465,6 +465,13 @@ export async function submitSigned(session: Session, id: string, signed: { publi
     if (row.team_request_id) emitPaymentEvent(row.team_request_id, "payment.submitting");
     await sql.begin((tx) => audit(tx, null, { type: "human", id: session.accountId }, `transfer.${row.kind}.submitted`, id));
   } catch (error) {
+    // Refused outright (a 4xx answer): nothing was sent. Otherwise the network may have taken it before failing to answer,
+    // so stay "processing": the balance check confirms it, or closes it as expired once its deadline passes unmoved.
+    const refused = error instanceof oneclick.UpstreamError && error.upstreamStatus >= 400 && error.upstreamStatus < 500 && error.upstreamStatus !== 408 && error.upstreamStatus !== 429;
+    if (!refused && details.before) {
+      await save(row.id, row.account_id, "processing", details, { intentHash: "unconfirmed" }); // followed by balance, like any signed transfer
+      throw new HttpError(503, "upstream", "The payment network didn't confirm in time. Scrim keeps checking; don't send it again.");
+    }
     await save(row.id, row.account_id, "failed", details);
     if (row.team_request_id) await sql.begin((tx) => markTeamRequest(tx, row.team_request_id!, "approved", { type: "system", id: "scrim" }, ["submitting"], row.id));
     throw error;

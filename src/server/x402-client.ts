@@ -183,7 +183,7 @@ export async function requestPurchase(agent: Agent, url: string, idempotencyKey:
     chosen = standard.entry;
     usd = standard.asset.priceUsd ? (Number(standard.entry.amount) / 10 ** standard.asset.decimals) * standard.asset.priceUsd : null;
   }
-  if (usd === null) throw badRequest("Couldn't price what that seller asks for.");
+  if (usd === null || !Number.isFinite(usd) || usd <= 0) throw badRequest("Couldn't price what that seller asks for.");
   const amount = (Math.ceil(usd * FEE_BUFFER * 1e6) / 1e6).toFixed(6);
 
   const payment = await createAgentPayment(agent, { recipient: seller, amount, memo: `x402 ${url}`.slice(0, 140), idempotencyKey, x402: true });
@@ -231,7 +231,7 @@ async function freshQuote(row: Row, approvedAmount: string, refundTo: (entry: En
 
   // Never pay more than was approved (with the same small buffer).
   const quotedUsd = asset.priceUsd ? (Number(quoted.amount) / 10 ** asset.decimals) * asset.priceUsd : null;
-  if (quotedUsd === null || quotedUsd > (Number(approvedAmount) / 1e6) * 1.02) throw conflict("The seller's price is now higher than what was approved.");
+  if (quotedUsd === null || !/^[0-9]{1,40}$/.test(String(quoted.amount)) || !(quotedUsd <= (Number(approvedAmount) / 1e6) * 1.02)) throw conflict("The seller's price is now higher than what was approved.");
 
   // Claim it: of two payers racing, only one gets here; the other changes nothing.
   const claimed = await sql`UPDATE x402_purchases SET status = 'paying', error = NULL, updated_at = now(),

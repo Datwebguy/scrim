@@ -29,6 +29,14 @@ describe("an email account sends plain payments", () => {
     expect(allowedActions("mainnet", "wrap.near", [register("me.near"), wrap, register("dep"), transfer("dep", "5")]).actions).toHaveLength(4);
     expect(allowedActions("testnet", "wrap.testnet", [wrap]).actions).toHaveLength(1);
   });
+
+  it("unwraps wrapped NEAR back to NEAR, only on the wrapped NEAR contract", () => {
+    const unwrap = (deposit = "1") => call("near_withdraw", { amount: "5000" }, { gas: "10000000000000", deposit });
+    expect(allowedActions("mainnet", "wrap.near", [unwrap()]).actions).toHaveLength(1);
+    refuses("evil.near", [unwrap()]);
+    refuses("wrap.near", [unwrap("2")]);
+    refuses("wrap.near", [call("near_withdraw", { amount: "5000", to: "x.near" }, { deposit: "1" })]);
+  });
 });
 
 describe("an email account never signs anything else", () => {

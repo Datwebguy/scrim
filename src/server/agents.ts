@@ -185,9 +185,9 @@ export async function agentSpendInWindow(tx: Tx, agentId: string, windowSeconds:
     WHERE r.agent_id = ${agentId}
       AND r.created_at > now() - make_interval(secs => ${windowSeconds})
       AND (r.status NOT IN ('policy_rejected', 'cancelled', 'expired', 'failed')
-        -- A failure still counts when money may have left: a seller's payment was signed, or the
+        -- A closed request still counts when money may have left: a seller's payment was signed, or the
         -- wallet couldn't confirm whether it sent.
-        OR (r.status = 'failed' AND (
+        OR (r.status IN ('failed', 'cancelled', 'expired') AND (
           EXISTS (SELECT 1 FROM x402_purchases x WHERE x.request_id = r.id AND x.signed_at IS NOT NULL)
           OR EXISTS (SELECT 1 FROM agent_payouts p WHERE p.request_id = r.id AND p.status = 'needs_review'))))`;
   return BigInt(row?.total ?? "0");

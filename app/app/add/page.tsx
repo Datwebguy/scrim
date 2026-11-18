@@ -4,6 +4,7 @@ import { currentSession } from "@/server/http";
 
 export const metadata = { title: "Add money" };
 export default async function Page() {
-  const session = (await currentSession())!;
+  const session = await currentSession();
+  if (!session) return null; // signed out: the layout shows sign in
   return session.network === "testnet" ? <MainnetOnly feature="Adding money" /> : <AddMoney />;
 }

@@ -44,7 +44,9 @@ type BridgeToken = { defuse_asset_identifier: string; intents_token_id: string; 
 
 const bridgeTokens = memo(10 * 60_000, async () => {
   const payload = await getJson<{ result?: { tokens: BridgeToken[] } }>(config.bridgeRpcUrl, 600, {
-    method: "POST", headers: { "content-type": "application/json" },
+    method: "POST",
+    // The bridge can refuse anonymous callers; send the partner key when there is one.
+    headers: { "content-type": "application/json", ...(config.oneClickApiKey ? { authorization: `Bearer ${config.oneClickApiKey}` } : {}) },
     body: JSON.stringify({ jsonrpc: "2.0", id: "scrim", method: "supported_tokens", params: [{}] }),
   });
   return payload.result?.tokens ?? [];
@@ -93,7 +95,10 @@ function chainFacts(slug: string, tokensOnChain: TokenInfo[], bridgeIds: Set<str
 }
 
 const catalogMemo = memo(5 * 60_000, async (): Promise<Asset[]> => {
-  const [list, bridge, plats, byId] = await Promise.all([oneClickTokens(), bridgeTokens(), platforms().catch(() => [] as Platform[]), markets().catch(() => new Map<string, Market>())]);
+  // The bridge only adds deposit details. If it refuses or is down, every coin still works for holding,
+  // sending and swapping; only adding money from another chain waits until it answers again.
+  const bridgeOrNone = bridgeTokens().catch((error) => { console.error("[assets] bridge unavailable:", (error as Error).message); return [] as BridgeToken[]; });
+  const [list, bridge, plats, byId] = await Promise.all([oneClickTokens(), bridgeOrNone, platforms().catch(() => [] as Platform[]), markets().catch(() => new Map<string, Market>())]);
   const bridgeById = new Map<string, { chainId: string; min: string | null }>();
   for (const b of bridge) {
     const [kind, id] = b.defuse_asset_identifier.split(":");

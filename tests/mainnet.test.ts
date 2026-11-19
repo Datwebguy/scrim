@@ -87,7 +87,7 @@ describe("the real coin list", () => {
     expect(base.chainName).toBe("Base");
     expect(assets.find((a) => a.chain === "arb")!.chainName).toMatch(/Arbitrum/);
     const withLogos = assets.filter((a) => a.icon).length;
-    expect(withLogos / assets.length).toBeGreaterThan(0.9);
+    expect(withLogos / assets.length).toBeGreaterThan(0.85); // new coins can arrive before CoinGecko lists their logo
   }, 60_000);
 
   it("checks addresses by the chain they belong to", async () => {

@@ -25,9 +25,6 @@ export const config = {
   get oneClickUrl(): string {
     return trim(process.env.ONECLICK_URL) ?? "https://1click.chaindefuser.com";
   },
-  get bridgeRpcUrl(): string {
-    return trim(process.env.BRIDGE_RPC_URL) ?? "https://bridge.chaindefuser.com/rpc";
-  },
   // Free partner key from partners.near-intents.org. Needed to move money, not to read a balance.
   get oneClickApiKey(): string | undefined {
     return trim(process.env.ONECLICK_API_KEY);

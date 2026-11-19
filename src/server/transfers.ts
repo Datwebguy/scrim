@@ -226,8 +226,8 @@ async function plan(session: Session, input: TransferInput): Promise<Plan> {
     const asset = await assetById(String(input.fromAssetId ?? ""));
     if (!asset.depositChain) throw badRequest("You can't add money from this network yet.");
     return {
-      from: asset, to: asset, amountAsset: asset, recipient: null, needsUserToken: false, deadlineMinutes: 24 * 60, public: false,
-      request: { ...base, swapType: "FLEX_INPUT", originAsset: asset.assetId, depositType: "INTENTS", destinationAsset: asset.assetId,
+      from: asset, to: asset, amountAsset: asset, recipient: null, needsUserToken: true, deadlineMinutes: 24 * 60, public: false,
+      request: { ...base, swapType: "FLEX_INPUT", originAsset: asset.assetId, depositType: "ORIGIN_CHAIN", ...depositModeFor(asset), destinationAsset: asset.assetId,
         amount: quoteAmountFor(asset), refundTo: account, refundType: "CONFIDENTIAL_INTENTS", recipient: account,
         recipientType: "CONFIDENTIAL_INTENTS", quoteWaitingTimeMs: 5000 },
     };
@@ -372,12 +372,8 @@ export async function createTransfer(session: Session, input: TransferInput): Pr
   let address = depositAddress;
   let memo: string | null = q.quote.depositMemo ?? null;
 
-  if (input.kind === "add" && !p.public) {
-    const bridge = await oneclick.bridgeDepositAddress(depositAddress, p.from.depositChain!);
-    address = bridge.address;
-    memo = bridge.memo ?? memo;
-    status = "awaiting_deposit";
-  } else if (p.public) {
+  if (input.kind === "add" || p.public) {
+    // The quote's own address takes the deposit on the coin's chain (NEAR Intents closed the old bridge API).
     status = "awaiting_deposit";
   } else {
     const { intent } = await oneclick.generateIntent(depositAddress, session.accountId);

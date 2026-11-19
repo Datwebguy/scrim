@@ -39,7 +39,7 @@ Optional:
 | `SCRIM_AUTH_RECIPIENT` | The site's address, used in approval messages. Use your domain in production |
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME` | Telegram alerts for approvers (create a bot with @BotFather) |
 | `SCRIM_SITE_URL` | Public address used in alerts. Detected automatically on Vercel |
-| `NEAR_RPC_URL_MAINNET`, `NEAR_RPC_URL_TESTNET`, `NEAR_INDEXER_URL_*`, `ONECLICK_URL`, `BRIDGE_RPC_URL`, `COINGECKO_URL` | Override service addresses |
+| `NEAR_RPC_URL_MAINNET`, `NEAR_RPC_URL_TESTNET`, `NEAR_INDEXER_URL_*`, `ONECLICK_URL`, `COINGECKO_URL` | Override service addresses |
 
 `GET /api/health` reports which features are on per network and names any missing setting. It never shows values.
 

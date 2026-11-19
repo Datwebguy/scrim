@@ -11,7 +11,7 @@ import { formatAmount } from "@/protocol/amount";
 import { normalizeOrigin } from "@/protocol/identifiers";
 import type { Network } from "@/protocol/networks";
 import type { Agent } from "./agents";
-import { assetById, catalog, type Asset } from "./assets";
+import { assetById, catalog, EVM_CHAIN_IDS, type Asset } from "./assets";
 import type { Session } from "./auth";
 import { sql } from "./db";
 import { badRequest, conflict, forbidden, HttpError, notFound } from "./errors";
@@ -19,6 +19,7 @@ import * as oneclick from "./oneclick";
 import * as outlayer from "./outlayer";
 import { createAgentPayment, type Payment } from "./payments";
 import { safeRequest } from "./safe-fetch";
+import { privateAccessToken } from "./private-access";
 import { open, seal } from "./secrets";
 import { createTransfer, usdcSource, type Transfer } from "./transfers";
 import { onChainBalance, ownAddress, payableByWallet, signPayment, SOLANA_MAINNET, walletAddresses, walletChain } from "./x402-wallet";
@@ -63,6 +64,13 @@ function readRequired(res: { headers: Record<string, string>; body: string }): P
   } catch {
     return null;
   }
+}
+
+// The 1Click chain name for an x402 network: "eip155:8453" is "base".
+function blockchainOf(network: string): string | null {
+  if (network === SOLANA_MAINNET) return "sol";
+  const id = network.startsWith("eip155:") ? Number(network.slice(7)) : NaN;
+  return Object.entries(EVM_CHAIN_IDS).find(([, v]) => v === id)?.[0] ?? null;
 }
 
 function originChainOf(network: string): string | null {
@@ -271,7 +279,9 @@ const unpay = (requestId: string) => sql`UPDATE x402_purchases SET status = 'req
 export async function payPurchase(session: Session, request: Payment): Promise<Transfer> {
   const row = await purchaseRow(request.id);
   if (row.route === "wallet") throw badRequest("This seller is paid from the agent's own wallet, not the account balance.");
-  const { quoted, asset } = await freshQuote(row, request.amount, async (entry) => (await oneclick.bridgeDepositAddress(session.accountId, originChainOf(entry.network)!)).address);
+  // Refunds go to the owner's own permanent 1Click deposit address on that chain, which lands in the private balance.
+  const userToken = await privateAccessToken(session);
+  const { quoted, asset } = await freshQuote(row, request.amount, async (entry) => (await oneclick.reusableDepositAddress(userToken, session.accountId, blockchainOf(entry.network)!)).address);
   // From here this call holds the claim, so undoing it on failure is safe.
   try {
     return await createTransfer(session, {

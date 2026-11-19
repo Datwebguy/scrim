@@ -450,5 +450,11 @@ const messages: Record<string, string> = {
   "Unwrap with my wallet": "내 지갑으로 NEAR로 바꾸기",
   "Now in your wallet as NEAR.": "이제 지갑에 NEAR로 있습니다.",
   "Unwrap to NEAR": "NEAR로 바꾸기",
+  "To someone who uses Scrim or NEAR Intents. It lands in their private balance.": "Scrim 또는 NEAR Intents를 쓰는 사람에게. 상대의 비공개 잔액으로 들어갑니다.",
+  "To any wallet or exchange, on any chain. It arrives on the blockchain and can't be traced back to you.": "어느 체인의 어떤 지갑이나 거래소로든. 블록체인으로 도착하며 당신까지 추적되지 않습니다.",
+  "Private sends land in their Scrim or NEAR Intents balance, not their wallet. Sending to an exchange or a wallet? Use To any address.": "비공개 송금은 지갑이 아니라 상대의 Scrim 또는 NEAR Intents 잔액으로 갑니다. 거래소나 지갑으로 보내나요? 아무 주소로를 쓰세요.",
+  "This looks like a wallet or exchange address. A private send would not show up there.": "지갑이나 거래소 주소로 보입니다. 비공개 송금은 거기에 표시되지 않습니다.",
+  "Send to their wallet instead": "상대 지갑으로 보내기",
+  "Move to my wallet": "내 지갑으로 옮기기",
 };
 export default messages;

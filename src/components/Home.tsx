@@ -147,6 +147,7 @@ export function Home() {
               <Link href="/app/send" className="btn btn-light">{t("Send")}</Link>
               <Link href="/app/swap" className="btn btn-light">{t("Swap")}</Link>
               <Link href="/app/requests" className="btn btn-light">{t("Get paid")}</Link>
+              <Link href="/app/send?to=mywallet" className="btn btn-light">{t("Move to my wallet")}</Link>
             </div>
           </section>
 

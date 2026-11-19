@@ -450,5 +450,11 @@ const messages: Record<string, string> = {
   "Unwrap with my wallet": "Cüzdanımla NEAR'a çevir",
   "Now in your wallet as NEAR.": "Artık cüzdanınızda NEAR olarak.",
   "Unwrap to NEAR": "NEAR'a çevir",
+  "To someone who uses Scrim or NEAR Intents. It lands in their private balance.": "Scrim veya NEAR Intents kullanan birine. Özel bakiyesine gelir.",
+  "To any wallet or exchange, on any chain. It arrives on the blockchain and can't be traced back to you.": "Herhangi bir ağda herhangi bir cüzdana veya borsaya. Blokzincir üzerinden ulaşır ve size kadar izlenemez.",
+  "Private sends land in their Scrim or NEAR Intents balance, not their wallet. Sending to an exchange or a wallet? Use To any address.": "Özel gönderimler cüzdana değil, Scrim veya NEAR Intents bakiyesine gelir. Borsaya ya da cüzdana mı gönderiyorsunuz? Herhangi bir adrese seçeneğini kullanın.",
+  "This looks like a wallet or exchange address. A private send would not show up there.": "Bu bir cüzdan veya borsa adresine benziyor. Özel gönderim orada görünmez.",
+  "Send to their wallet instead": "Cüzdanına gönder",
+  "Move to my wallet": "Cüzdanıma aktar",
 };
 export default messages;

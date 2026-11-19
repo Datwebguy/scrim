@@ -450,5 +450,11 @@ const messages: Record<string, string> = {
   "Unwrap with my wallet": "ウォレットで NEAR に戻す",
   "Now in your wallet as NEAR.": "ウォレットに NEAR として入りました。",
   "Unwrap to NEAR": "NEAR に戻す",
+  "To someone who uses Scrim or NEAR Intents. It lands in their private balance.": "Scrim か NEAR Intents を使う人へ。相手のプライベート残高に届きます。",
+  "To any wallet or exchange, on any chain. It arrives on the blockchain and can't be traced back to you.": "どのチェーンのどのウォレットや取引所にも。ブロックチェーン上で届き、あなたまでたどれません。",
+  "Private sends land in their Scrim or NEAR Intents balance, not their wallet. Sending to an exchange or a wallet? Use To any address.": "プライベート送金は相手のウォレットではなく、Scrim か NEAR Intents の残高に届きます。取引所やウォレットへ送るなら「任意のアドレスへ」を使ってください。",
+  "This looks like a wallet or exchange address. A private send would not show up there.": "ウォレットか取引所のアドレスのようです。プライベート送金はそこには表示されません。",
+  "Send to their wallet instead": "相手のウォレットへ送る",
+  "Move to my wallet": "自分のウォレットへ移す",
 };
 export default messages;

@@ -450,5 +450,11 @@ const messages: Record<string, string> = {
   "Unwrap with my wallet": "Ubah ke NEAR dengan dompet saya",
   "Now in your wallet as NEAR.": "Sekarang ada di dompet Anda sebagai NEAR.",
   "Unwrap to NEAR": "Ubah ke NEAR",
+  "To someone who uses Scrim or NEAR Intents. It lands in their private balance.": "Untuk orang yang memakai Scrim atau NEAR Intents. Masuk ke saldo pribadinya.",
+  "To any wallet or exchange, on any chain. It arrives on the blockchain and can't be traced back to you.": "Ke dompet atau bursa mana pun, di jaringan apa pun. Tiba di blockchain dan tidak bisa dilacak ke Anda.",
+  "Private sends land in their Scrim or NEAR Intents balance, not their wallet. Sending to an exchange or a wallet? Use To any address.": "Kiriman pribadi masuk ke saldo Scrim atau NEAR Intents mereka, bukan dompetnya. Mengirim ke bursa atau dompet? Pakai Ke alamat mana pun.",
+  "This looks like a wallet or exchange address. A private send would not show up there.": "Ini tampak seperti alamat dompet atau bursa. Kiriman pribadi tidak akan muncul di sana.",
+  "Send to their wallet instead": "Kirim ke dompetnya saja",
+  "Move to my wallet": "Pindahkan ke dompet saya",
 };
 export default messages;

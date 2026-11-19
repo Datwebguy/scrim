@@ -450,11 +450,12 @@ const messages: Record<string, string> = {
   "Unwrap with my wallet": "ウォレットで NEAR に戻す",
   "Now in your wallet as NEAR.": "ウォレットに NEAR として入りました。",
   "Unwrap to NEAR": "NEAR に戻す",
-  "To someone who uses Scrim or NEAR Intents. It lands in their private balance.": "Scrim か NEAR Intents を使う人へ。相手のプライベート残高に届きます。",
   "To any wallet or exchange, on any chain. It arrives on the blockchain and can't be traced back to you.": "どのチェーンのどのウォレットや取引所にも。ブロックチェーン上で届き、あなたまでたどれません。",
-  "Private sends land in their Scrim or NEAR Intents balance, not their wallet. Sending to an exchange or a wallet? Use To any address.": "プライベート送金は相手のウォレットではなく、Scrim か NEAR Intents の残高に届きます。取引所やウォレットへ送るなら「任意のアドレスへ」を使ってください。",
-  "This looks like a wallet or exchange address. A private send would not show up there.": "ウォレットか取引所のアドレスのようです。プライベート送金はそこには表示されません。",
   "Send to their wallet instead": "相手のウォレットへ送る",
   "Move to my wallet": "自分のウォレットへ移す",
+  "From your private balance to any NEAR account, wallet or exchange. The public can't trace it to you.": "プライベート残高から、どの NEAR アカウント、ウォレット、取引所へも。誰もあなたまでたどれません。",
+  "A NEAR account name like ada.near gets it in their Scrim or NEAR Intents balance. A wallet or exchange address gets it on the blockchain.": "ada.near のような NEAR アカウント名なら Scrim か NEAR Intents の残高に、ウォレットや取引所のアドレスならブロックチェーン上で届きます。",
+  "Wallet or exchange address: Scrim pays it out on the blockchain, so it arrives there. Your balance stays private.": "ウォレットか取引所のアドレス：Scrim がブロックチェーン上で支払うので、そこに届きます。あなたの残高は非公開のままです。",
+  "This is an address on another network. Choose its network under To any address.": "別のネットワークのアドレスです。「任意のアドレスへ」でネットワークを選んでください。",
 };
 export default messages;

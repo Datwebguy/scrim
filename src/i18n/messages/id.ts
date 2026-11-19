@@ -450,11 +450,12 @@ const messages: Record<string, string> = {
   "Unwrap with my wallet": "Ubah ke NEAR dengan dompet saya",
   "Now in your wallet as NEAR.": "Sekarang ada di dompet Anda sebagai NEAR.",
   "Unwrap to NEAR": "Ubah ke NEAR",
-  "To someone who uses Scrim or NEAR Intents. It lands in their private balance.": "Untuk orang yang memakai Scrim atau NEAR Intents. Masuk ke saldo pribadinya.",
   "To any wallet or exchange, on any chain. It arrives on the blockchain and can't be traced back to you.": "Ke dompet atau bursa mana pun, di jaringan apa pun. Tiba di blockchain dan tidak bisa dilacak ke Anda.",
-  "Private sends land in their Scrim or NEAR Intents balance, not their wallet. Sending to an exchange or a wallet? Use To any address.": "Kiriman pribadi masuk ke saldo Scrim atau NEAR Intents mereka, bukan dompetnya. Mengirim ke bursa atau dompet? Pakai Ke alamat mana pun.",
-  "This looks like a wallet or exchange address. A private send would not show up there.": "Ini tampak seperti alamat dompet atau bursa. Kiriman pribadi tidak akan muncul di sana.",
   "Send to their wallet instead": "Kirim ke dompetnya saja",
   "Move to my wallet": "Pindahkan ke dompet saya",
+  "From your private balance to any NEAR account, wallet or exchange. The public can't trace it to you.": "Dari saldo pribadi Anda ke akun NEAR, dompet, atau bursa mana pun. Publik tidak bisa melacaknya ke Anda.",
+  "A NEAR account name like ada.near gets it in their Scrim or NEAR Intents balance. A wallet or exchange address gets it on the blockchain.": "Nama akun NEAR seperti ada.near menerimanya di saldo Scrim atau NEAR Intents. Alamat dompet atau bursa menerimanya di blockchain.",
+  "Wallet or exchange address: Scrim pays it out on the blockchain, so it arrives there. Your balance stays private.": "Alamat dompet atau bursa: Scrim membayarkannya di blockchain, jadi tiba di sana. Saldo Anda tetap pribadi.",
+  "This is an address on another network. Choose its network under To any address.": "Ini alamat di jaringan lain. Pilih jaringannya di Ke alamat mana pun.",
 };
 export default messages;

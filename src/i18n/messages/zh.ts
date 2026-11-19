@@ -450,11 +450,12 @@ const messages: Record<string, string> = {
   "Unwrap with my wallet": "用钱包换回 NEAR",
   "Now in your wallet as NEAR.": "现在已作为 NEAR 存入你的钱包。",
   "Unwrap to NEAR": "换回 NEAR",
-  "To someone who uses Scrim or NEAR Intents. It lands in their private balance.": "发给使用 Scrim 或 NEAR Intents 的人，到账在对方的私密余额。",
   "To any wallet or exchange, on any chain. It arrives on the blockchain and can't be traced back to you.": "发到任何链上的任何钱包或交易所。通过区块链到账，无法追溯到你。",
-  "Private sends land in their Scrim or NEAR Intents balance, not their wallet. Sending to an exchange or a wallet? Use To any address.": "私密发送到账在对方的 Scrim 或 NEAR Intents 余额，而不是钱包。要发到交易所或钱包？请用“发到任意地址”。",
-  "This looks like a wallet or exchange address. A private send would not show up there.": "这看起来是钱包或交易所地址。私密发送不会在那里显示。",
   "Send to their wallet instead": "改为发到对方钱包",
   "Move to my wallet": "转到我的钱包",
+  "From your private balance to any NEAR account, wallet or exchange. The public can't trace it to you.": "从私密余额发到任何 NEAR 账户、钱包或交易所。外人无法追溯到你。",
+  "A NEAR account name like ada.near gets it in their Scrim or NEAR Intents balance. A wallet or exchange address gets it on the blockchain.": "像 ada.near 这样的 NEAR 账户名会收到在 Scrim 或 NEAR Intents 余额里；钱包或交易所地址会通过区块链收到。",
+  "Wallet or exchange address: Scrim pays it out on the blockchain, so it arrives there. Your balance stays private.": "钱包或交易所地址：Scrim 通过区块链付出，所以能到账。你的余额仍然私密。",
+  "This is an address on another network. Choose its network under To any address.": "这是其他网络的地址。请在“发到任意地址”里选择它的网络。",
 };
 export default messages;

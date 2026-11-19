@@ -450,11 +450,12 @@ const messages: Record<string, string> = {
   "Unwrap with my wallet": "Вернуть в NEAR кошельком",
   "Now in your wallet as NEAR.": "Теперь в кошельке как NEAR.",
   "Unwrap to NEAR": "Вернуть в NEAR",
-  "To someone who uses Scrim or NEAR Intents. It lands in their private balance.": "Тому, кто пользуется Scrim или NEAR Intents. Деньги приходят на его приватный баланс.",
   "To any wallet or exchange, on any chain. It arrives on the blockchain and can't be traced back to you.": "На любой кошелёк или биржу в любой сети. Приходит через блокчейн, и его нельзя отследить до вас.",
-  "Private sends land in their Scrim or NEAR Intents balance, not their wallet. Sending to an exchange or a wallet? Use To any address.": "Приватные переводы приходят на баланс Scrim или NEAR Intents, а не в кошелёк. Отправляете на биржу или в кошелёк? Используйте «На любой адрес».",
-  "This looks like a wallet or exchange address. A private send would not show up there.": "Похоже на адрес кошелька или биржи. Приватный перевод туда не придёт.",
   "Send to their wallet instead": "Отправить в кошелёк",
   "Move to my wallet": "Перевести в мой кошелёк",
+  "From your private balance to any NEAR account, wallet or exchange. The public can't trace it to you.": "С приватного баланса на любой аккаунт NEAR, кошелёк или биржу. Никто не сможет отследить это до вас.",
+  "A NEAR account name like ada.near gets it in their Scrim or NEAR Intents balance. A wallet or exchange address gets it on the blockchain.": "Имя аккаунта NEAR вроде ada.near получит на баланс Scrim или NEAR Intents. Адрес кошелька или биржи получит через блокчейн.",
+  "Wallet or exchange address: Scrim pays it out on the blockchain, so it arrives there. Your balance stays private.": "Адрес кошелька или биржи: Scrim выплатит через блокчейн, и деньги туда придут. Ваш баланс остаётся приватным.",
+  "This is an address on another network. Choose its network under To any address.": "Это адрес в другой сети. Выберите сеть в разделе «На любой адрес».",
 };
 export default messages;

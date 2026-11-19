@@ -450,11 +450,12 @@ const messages: Record<string, string> = {
   "Unwrap with my wallet": "Converter em NEAR com minha carteira",
   "Now in your wallet as NEAR.": "Agora está na sua carteira como NEAR.",
   "Unwrap to NEAR": "Converter em NEAR",
-  "To someone who uses Scrim or NEAR Intents. It lands in their private balance.": "Para quem usa Scrim ou NEAR Intents. Chega ao saldo privado da pessoa.",
   "To any wallet or exchange, on any chain. It arrives on the blockchain and can't be traced back to you.": "Para qualquer carteira ou exchange, em qualquer rede. Chega pela blockchain e não pode ser rastreado até você.",
-  "Private sends land in their Scrim or NEAR Intents balance, not their wallet. Sending to an exchange or a wallet? Use To any address.": "Envios privados chegam ao saldo Scrim ou NEAR Intents da pessoa, não à carteira. Enviando para uma exchange ou carteira? Use Para qualquer endereço.",
-  "This looks like a wallet or exchange address. A private send would not show up there.": "Parece um endereço de carteira ou exchange. Um envio privado não apareceria lá.",
   "Send to their wallet instead": "Enviar para a carteira",
   "Move to my wallet": "Mover para minha carteira",
+  "From your private balance to any NEAR account, wallet or exchange. The public can't trace it to you.": "Do seu saldo privado para qualquer conta NEAR, carteira ou exchange. O público não consegue rastrear até você.",
+  "A NEAR account name like ada.near gets it in their Scrim or NEAR Intents balance. A wallet or exchange address gets it on the blockchain.": "Um nome de conta NEAR como ada.near recebe no saldo Scrim ou NEAR Intents. Um endereço de carteira ou exchange recebe na blockchain.",
+  "Wallet or exchange address: Scrim pays it out on the blockchain, so it arrives there. Your balance stays private.": "Endereço de carteira ou exchange: o Scrim paga pela blockchain, então chega lá. Seu saldo continua privado.",
+  "This is an address on another network. Choose its network under To any address.": "É um endereço de outra rede. Escolha a rede em Para qualquer endereço.",
 };
 export default messages;

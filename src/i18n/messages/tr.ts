@@ -450,11 +450,12 @@ const messages: Record<string, string> = {
   "Unwrap with my wallet": "Cüzdanımla NEAR'a çevir",
   "Now in your wallet as NEAR.": "Artık cüzdanınızda NEAR olarak.",
   "Unwrap to NEAR": "NEAR'a çevir",
-  "To someone who uses Scrim or NEAR Intents. It lands in their private balance.": "Scrim veya NEAR Intents kullanan birine. Özel bakiyesine gelir.",
   "To any wallet or exchange, on any chain. It arrives on the blockchain and can't be traced back to you.": "Herhangi bir ağda herhangi bir cüzdana veya borsaya. Blokzincir üzerinden ulaşır ve size kadar izlenemez.",
-  "Private sends land in their Scrim or NEAR Intents balance, not their wallet. Sending to an exchange or a wallet? Use To any address.": "Özel gönderimler cüzdana değil, Scrim veya NEAR Intents bakiyesine gelir. Borsaya ya da cüzdana mı gönderiyorsunuz? Herhangi bir adrese seçeneğini kullanın.",
-  "This looks like a wallet or exchange address. A private send would not show up there.": "Bu bir cüzdan veya borsa adresine benziyor. Özel gönderim orada görünmez.",
   "Send to their wallet instead": "Cüzdanına gönder",
   "Move to my wallet": "Cüzdanıma aktar",
+  "From your private balance to any NEAR account, wallet or exchange. The public can't trace it to you.": "Özel bakiyenizden herhangi bir NEAR hesabına, cüzdana veya borsaya. Kimse size kadar izleyemez.",
+  "A NEAR account name like ada.near gets it in their Scrim or NEAR Intents balance. A wallet or exchange address gets it on the blockchain.": "ada.near gibi bir NEAR hesap adı Scrim veya NEAR Intents bakiyesine alır. Cüzdan ya da borsa adresi blokzincir üzerinden alır.",
+  "Wallet or exchange address: Scrim pays it out on the blockchain, so it arrives there. Your balance stays private.": "Cüzdan veya borsa adresi: Scrim blokzincir üzerinden öder, böylece oraya ulaşır. Bakiyeniz gizli kalır.",
+  "This is an address on another network. Choose its network under To any address.": "Bu başka bir ağdaki adres. Ağını Herhangi bir adrese bölümünden seçin.",
 };
 export default messages;

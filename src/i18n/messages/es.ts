@@ -450,5 +450,12 @@ const messages: Record<string, string> = {
   "Unwrap with my wallet": "Convertir a NEAR con mi billetera",
   "Now in your wallet as NEAR.": "Ya está en tu billetera como NEAR.",
   "Unwrap to NEAR": "Convertir a NEAR",
+  "To any wallet or exchange, on any chain. It arrives on the blockchain and can't be traced back to you.": "A cualquier billetera o exchange, en cualquier cadena. Llega por la blockchain y no se puede rastrear hasta ti.",
+  "Send to their wallet instead": "Enviar a su billetera",
+  "Move to my wallet": "Pasar a mi billetera",
+  "From your private balance to any NEAR account, wallet or exchange. The public can't trace it to you.": "Desde tu saldo privado a cualquier cuenta NEAR, billetera o exchange. El público no puede rastrearlo hasta ti.",
+  "A NEAR account name like ada.near gets it in their Scrim or NEAR Intents balance. A wallet or exchange address gets it on the blockchain.": "Un nombre de cuenta NEAR como ada.near lo recibe en su saldo de Scrim o NEAR Intents. Una dirección de billetera o exchange lo recibe en la blockchain.",
+  "Wallet or exchange address: Scrim pays it out on the blockchain, so it arrives there. Your balance stays private.": "Dirección de billetera o exchange: Scrim lo paga por la blockchain, así llega allí. Tu saldo sigue privado.",
+  "This is an address on another network. Choose its network under To any address.": "Es una dirección de otra red. Elige su red en A cualquier dirección.",
 };
 export default messages;

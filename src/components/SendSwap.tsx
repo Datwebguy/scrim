@@ -82,14 +82,32 @@ export function SendSwap({ initial }: { initial: Mode }) {
   // NEAR to wNEAR or back in the wallet: the wNEAR contract changes it one to one.
   const wrapping = fromWallet && mode === "swap" && ((fromId === NATIVE && toId === WNEAR) || (fromId === WNEAR && toId === NATIVE));
   const kind = mode === "swap" ? "swap" : mode === "person" ? "send" : "withdraw";
+  // A private send stays inside NEAR Intents, so a wallet or exchange address never sees it. A NEAR wallet or
+  // exchange address (64 hex characters) is paid out on the blockchain instead, so it arrives there. An 0x address
+  // isn't on NEAR, so the person picks its network under To any address.
+  const nearWalletAddress = /^[0-9a-f]{64}$/.test(recipient.trim().toLowerCase());
+  const payOutOnChain = !fromWallet && mode === "person" && nearWalletAddress;
+  const blockedPrivateSend = !fromWallet && mode === "person" && /^0x[0-9a-f]{40}$/i.test(recipient.trim());
+  function sendToWalletInstead() {
+    setMode("address");
+    setToId(intentsId(fromId));
+    setError("");
+  }
+  // "Move to my wallet" from Home: To any address, to this account's own NEAR wallet.
+  useEffect(() => {
+    if (typeof window === "undefined" || new URLSearchParams(window.location.search).get("to") !== "mywallet" || !accountId) return;
+    setMode("address");
+    setRecipient(accountId);
+  }, [accountId]);
 
   async function getPrice() {
     setBusy("price");
     setError("");
     try {
+      if (blockedPrivateSend) throw new Error(t("This is an address on another network. Choose its network under To any address."));
       if (direct) return await sendDirect();
       if (wrapping) return await wrapOrUnwrap();
-      const body = { kind, fromAssetId: intentsId(fromId), toAssetId: intentsId(mode === "person" ? fromId : toId), amount, recipient, note, privacy: fromWallet ? "public" : "private" };
+      const body = { kind: payOutOnChain ? "withdraw" : kind, fromAssetId: intentsId(fromId), toAssetId: intentsId(mode === "person" ? fromId : toId), amount, recipient, note, privacy: fromWallet ? "public" : "private" };
       setTransfer((await api<{ transfer: TransferView }>("/transfers", { body })).transfer);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not get a price.");
@@ -190,8 +208,8 @@ export function SendSwap({ initial }: { initial: Mode }) {
     address: ["Send", "Pay out to any address", "From your NEAR wallet to any wallet or exchange."],
   } : {
     swap: ["Swap", "Trade one coin for another", "Inside your private balance. Nobody sees what you traded."],
-    person: ["Send", "Pay someone", "From your private balance. The public sees nothing."],
-    address: ["Send", "Pay out to any address", "To any wallet or exchange, on any chain. It can't be traced back to you."],
+    person: ["Send", "Pay someone", "From your private balance to any NEAR account, wallet or exchange. The public can't trace it to you."],
+    address: ["Send", "Pay out to any address", "To any wallet or exchange, on any chain. It arrives on the blockchain and can't be traced back to you."],
   };
 
   const amtAsset = mode === "address" ? to : from;
@@ -254,6 +272,14 @@ export function SendSwap({ initial }: { initial: Mode }) {
             <div className="tp">
               <div className="tp-top"><span>{t("Send to")}</span></div>
               <input className="tp-text" value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="account.near" autoComplete="off" spellCheck={false} aria-label={t("Send to")} required />
+              {!fromWallet && !payOutOnChain && !blockedPrivateSend && <div className="tp-sub">{t("A NEAR account name like ada.near gets it in their Scrim or NEAR Intents balance. A wallet or exchange address gets it on the blockchain.")}</div>}
+              {payOutOnChain && <div className="notice info" style={{ marginTop: 10 }}>{t("Wallet or exchange address: Scrim pays it out on the blockchain, so it arrives there. Your balance stays private.")}</div>}
+              {blockedPrivateSend && (
+                <div className="notice" style={{ marginTop: 10 }}>
+                  {t("This is an address on another network. Choose its network under To any address.")}{" "}
+                  <button type="button" className="btn btn-primary btn-sm" onClick={sendToWalletInstead}>{t("Send to their wallet instead")}</button>
+                </div>
+              )}
             </div>
           )}
           {mode === "address" && (

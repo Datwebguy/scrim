@@ -450,5 +450,12 @@ const messages: Record<string, string> = {
   "Unwrap with my wallet": "Đổi về NEAR bằng ví",
   "Now in your wallet as NEAR.": "Giờ đã ở trong ví dưới dạng NEAR.",
   "Unwrap to NEAR": "Đổi về NEAR",
+  "To any wallet or exchange, on any chain. It arrives on the blockchain and can't be traced back to you.": "Tới bất kỳ ví hay sàn nào, trên bất kỳ chuỗi nào. Tiền đến qua blockchain và không thể lần ra bạn.",
+  "Send to their wallet instead": "Gửi vào ví của họ",
+  "Move to my wallet": "Chuyển vào ví của tôi",
+  "From your private balance to any NEAR account, wallet or exchange. The public can't trace it to you.": "Từ số dư riêng tư tới bất kỳ tài khoản NEAR, ví hay sàn nào. Không ai lần ra bạn.",
+  "A NEAR account name like ada.near gets it in their Scrim or NEAR Intents balance. A wallet or exchange address gets it on the blockchain.": "Tên tài khoản NEAR như ada.near nhận vào số dư Scrim hoặc NEAR Intents. Địa chỉ ví hay sàn nhận qua blockchain.",
+  "Wallet or exchange address: Scrim pays it out on the blockchain, so it arrives there. Your balance stays private.": "Địa chỉ ví hoặc sàn: Scrim trả qua blockchain nên tiền đến đó. Số dư của bạn vẫn riêng tư.",
+  "This is an address on another network. Choose its network under To any address.": "Đây là địa chỉ trên mạng khác. Hãy chọn mạng ở Tới bất kỳ địa chỉ.",
 };
 export default messages;

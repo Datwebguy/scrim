@@ -40,15 +40,17 @@ async function getJson<T>(url: string, revalidate: number, init: RequestInit = {
   return (await response.json()) as T;
 }
 
-type BridgeToken = { defuse_asset_identifier: string; intents_token_id: string; min_deposit_amount?: string };
-
-const bridgeTokens = memo(10 * 60_000, async () => {
-  const payload = await getJson<{ result?: { tokens: BridgeToken[] } }>(config.bridgeRpcUrl, 600, {
-    method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: "scrim", method: "supported_tokens", params: [{}] }),
-  });
-  return payload.result?.tokens ?? [];
-});
+// The chain id each EVM network uses, so a connected wallet can pay a deposit in one tap. NEAR Intents closed
+// its bridge API on 11 Nov 2026; every token, chain and deposit address now comes from 1Click.
+export const EVM_CHAIN_IDS: Record<string, number> = {
+  eth: 1, base: 8453, arb: 42161, op: 10, pol: 137, bsc: 56, avax: 43114, gnosis: 100, scroll: 534352, bera: 80094, xlayer: 196, abs: 2741,
+};
+// Where money can come in from: "eth:<chain id>" for EVM networks, "<chain>:mainnet" for the rest. Coins on NEAR
+// arrive straight in the wallet instead.
+function depositChainOf(slug: string): string | null {
+  if (slug === "near") return null;
+  return EVM_CHAIN_IDS[slug] ? `eth:${EVM_CHAIN_IDS[slug]}` : `${slug}:mainnet`;
+}
 
 type Platform = { id: string; chain_identifier: number | null; name: string; shortname: string; image?: { small?: string } };
 const platforms = memo(6 * 3_600_000, () => getJson<Platform[]>(`${config.coinGeckoUrl}/asset_platforms`, 21_600));
@@ -93,26 +95,20 @@ function chainFacts(slug: string, tokensOnChain: TokenInfo[], bridgeIds: Set<str
 }
 
 const catalogMemo = memo(5 * 60_000, async (): Promise<Asset[]> => {
-  const [list, bridge, plats, byId] = await Promise.all([oneClickTokens(), bridgeTokens(), platforms().catch(() => [] as Platform[]), markets().catch(() => new Map<string, Market>())]);
-  const bridgeById = new Map<string, { chainId: string; min: string | null }>();
-  for (const b of bridge) {
-    const [kind, id] = b.defuse_asset_identifier.split(":");
-    if (!bridgeById.has(b.intents_token_id)) bridgeById.set(b.intents_token_id, { chainId: `${kind}:${id}`, min: b.min_deposit_amount ?? null });
-  }
+  const [list, plats, byId] = await Promise.all([oneClickTokens(), platforms().catch(() => [] as Platform[]), markets().catch(() => new Map<string, Market>())]);
   const bySlug = new Map<string, TokenInfo[]>();
   for (const t of list) bySlug.set(t.blockchain, [...(bySlug.get(t.blockchain) ?? []), t]);
   const facts = new Map<string, { name: string; icon: string | null }>();
   for (const [slug, onChain] of bySlug) {
-    const ids = new Set(onChain.map((t) => bridgeById.get(t.assetId)?.chainId).filter((id): id is string => Boolean(id)));
+    const ids = new Set([depositChainOf(slug)].filter((id): id is string => Boolean(id)));
     facts.set(slug, chainFacts(slug, onChain, ids, plats, byId));
   }
   return list
     .map((t): Asset => {
-      const b = bridgeById.get(t.assetId);
       const f = facts.get(t.blockchain)!;
       return {
         assetId: t.assetId, symbol: t.symbol, decimals: t.decimals, priceUsd: t.price > 0 ? t.price : null, icon: tokenIcon(t, byId),
-        chain: t.blockchain, chainName: f.name, chainIcon: f.icon, depositChain: b?.chainId ?? null, minDeposit: b?.min ?? null,
+        chain: t.blockchain, chainName: f.name, chainIcon: f.icon, depositChain: depositChainOf(t.blockchain), minDeposit: null,
       };
     })
     .sort((a, b) => a.symbol.localeCompare(b.symbol) || a.chainName.localeCompare(b.chainName));

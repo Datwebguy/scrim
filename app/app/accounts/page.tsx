@@ -8,7 +8,9 @@ import { shellTreasuries } from "@/server/workspace";
 export const metadata = { title: "Accounts" };
 
 export default async function TeamPage() {
-  const teams = await shellTreasuries((await currentSession())!);
+  const session = await currentSession();
+  if (!session) return null; // signed out: the layout shows sign in
+  const teams = await shellTreasuries(session);
   return (
     <div className="narrow wide">
       <div className="page-head">

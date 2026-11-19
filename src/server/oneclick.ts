@@ -1,4 +1,4 @@
-// Client for the NEAR Intents 1Click API and the deposit bridge.
+// Client for the NEAR Intents 1Click API.
 // Partner key (X-API-Key) identifies Scrim; a user session token unlocks one person's private balance.
 import { config } from "./config";
 import { HttpError } from "./errors";
@@ -148,21 +148,28 @@ export function submitDeposit(txHash: string, depositAddress: string, memo?: str
 }
 
 // The bridge gives an address on an external chain that forwards deposits to a NEAR Intents account.
-export async function bridgeDepositAddress(accountId: string, chain: string): Promise<{ address: string; memo?: string }> {
-  for (const mode of ["SIMPLE", "MEMO"]) {
-    let response: Response;
-    try {
-      response = await fetch(config.bridgeRpcUrl, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ jsonrpc: "2.0", id: "scrim", method: "deposit_address", params: [{ account_id: accountId, chain, deposit_mode: mode }] }),
-        signal: AbortSignal.timeout(15_000),
-      });
-    } catch {
-      throw new UpstreamError(503, "The deposit network is not responding. Try again in a moment.");
-    }
-    const payload = (await response.json().catch(() => ({}))) as { result?: { address: string; memo?: string }; error?: unknown };
-    if (payload.result?.address) return { address: payload.result.address, memo: payload.result.memo };
+type ChainAddress = { blockchain: string; address: string; memo?: string };
+type QuoteList = { data?: { attributes?: { originAsset?: string; destinationAsset?: string; chainDepositAddresses?: ChainAddress[] } }[]; links?: { next?: string | null } };
+
+// A person's permanent deposit addresses (one per chain), created once through 1Click and kept by NEAR Intents.
+// Money sent there lands in their private balance. Replaces the bridge's deposit_address, closed on 11 Nov 2026.
+export async function reusableDepositAddress(userToken: string, accountId: string, blockchain: string): Promise<{ address: string; memo?: string }> {
+  const pick = (list: ChainAddress[] | undefined) => list?.find((c) => c.blockchain === blockchain);
+  const find = async () => {
+    const out = await call<QuoteList>("/v0/quotes", { userToken, partner: true, query: { "filter[swapType]": "ANY_INPUT" } });
+    return out.data?.find((q) => q.attributes?.originAsset === "1cs_v1:any" && q.attributes?.destinationAsset === "1cs_v1:original")?.attributes?.chainDepositAddresses;
+  };
+  let list = await find().catch(() => undefined);
+  if (!list) {
+    const created = await call<{ quote: { chainDepositAddresses?: ChainAddress[] } }>("/v0/quote", {
+      userToken, partner: true,
+      body: { dry: false, swapType: "ANY_INPUT", originAsset: "1cs_v1:any", depositType: "INTENTS", destinationAsset: "1cs_v1:original", amount: "0",
+        slippageTolerance: 50, recipient: accountId, recipientType: "CONFIDENTIAL_INTENTS", confidentiality: "basic", refundTo: accountId, refundType: "INTENTS",
+        deadline: "2038-01-01T00:00:00.000Z", referral: "scrim" },
+    }).catch(async () => ({ quote: { chainDepositAddresses: await find() } })); // two creates at once: the other one made it
+    list = created.quote.chainDepositAddresses;
   }
-  throw new UpstreamError(502, "Deposits on this network are not available right now.");
+  const hit = pick(list);
+  if (!hit) throw new UpstreamError(502, "Deposits on this network are not available right now.");
+  return { address: hit.address, memo: hit.memo };
 }

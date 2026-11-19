@@ -27,6 +27,9 @@
 
 <p align="center"><img src="docs/images/home.png" alt="The Scrim home page" width="880"></p>
 
+
+> **Note for judges:** after the submission deadline, NEAR Intents closed the bridge API Scrim used ([their notice](https://docs.near-intents.org/changelog/entries/2026-11-11-bridge-api)). On 19 November we moved those calls to the 1Click API they named as the replacement, so the live site keeps working. No features were added. See [PR #93](https://github.com/Datwebguy/scrim/pull/93).
+
 ## What is Scrim?
 
 Public blockchains show everything: your balance, who paid you and every payment you send. That suits some payments. For others, like a supplier invoice or a salary, you want more discretion.

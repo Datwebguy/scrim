@@ -14,7 +14,7 @@ Users state an outcome; solvers fill it across chains. Confidential Intents adds
 - `GET /v0/status`: follow a transfer to the end.
 - `GET /v0/account/history`: invite-only at present, so Scrim keeps its own record.
 
-**Bridge** (`https://bridge.chaindefuser.com/rpc`): `deposit_address` and `supported_tokens` give one-time deposit addresses for 30+ networks. Some chains (for example Stellar) need a memo.
+**Deposits from other chains** go through the 1Click API too. NEAR Intents closed its bridge API on 11 November 2026, so the token list comes from `GET /v0/tokens`, a deposit address comes with each quote (`quote.depositAddress`, with `depositMemo` on chains such as Stellar), and a person's permanent addresses are reusable 1Click deposit addresses.
 
 **Fees:** protocol fee 0.0001%. 1Click without a partner key adds 0.25%; with a key, typically 0.20% (0.01% on stablecoins). Apply for a free key at https://partners.near-intents.org.
 

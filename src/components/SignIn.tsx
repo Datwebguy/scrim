@@ -25,6 +25,25 @@ const GoogleIcon = () => (
   </svg>
 );
 
+// After signing in, stay on the page that asked for it when an AI app sent the person here to connect.
+const RETURN_KEY = "scrim-return";
+function afterSignIn(): string {
+  try {
+    const saved = sessionStorage.getItem(RETURN_KEY);
+    sessionStorage.removeItem(RETURN_KEY);
+    if (saved && saved.startsWith("/app/connect")) return saved;
+  } catch { /* optional */ }
+  const here = window.location.pathname + window.location.search;
+  return here.startsWith("/app/connect") ? here : "/app";
+}
+
+function rememberReturn() {
+  try {
+    const here = window.location.pathname + window.location.search;
+    if (here.startsWith("/app/connect")) sessionStorage.setItem(RETURN_KEY, here);
+  } catch { /* optional */ }
+}
+
 export function SignIn({ networks }: { networks: Network[] }) {
   const t = useT();
   const router = useRouter();
@@ -71,7 +90,7 @@ export function SignIn({ networks }: { networks: Network[] }) {
     try {
       try { localStorage.setItem(KEY, network); } catch { /* optional */ }
       await signInWithWallet(network);
-      router.replace("/app");
+      router.replace(afterSignIn());
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : t("Sign-in didn't finish. Try again."));
@@ -87,7 +106,7 @@ export function SignIn({ networks }: { networks: Network[] }) {
     setVia("google");
     setBusy(true);
     finishGoogleSignIn(back.code, back.state, back.network ?? network).then(
-      () => { router.replace("/app"); router.refresh(); },
+      () => { router.replace(afterSignIn()); router.refresh(); },
       (e) => { setError(e instanceof Error ? e.message : t("Sign-in didn't finish. Try again.")); setBusy(false); },
     );
     // Runs once, when the page opens.
@@ -100,6 +119,7 @@ export function SignIn({ networks }: { networks: Network[] }) {
     setError("");
     try {
       try { localStorage.setItem(KEY, network); } catch { /* optional */ }
+      rememberReturn();
       await startGoogleSignIn(network);
     } catch (e) {
       setError(e instanceof Error ? e.message : t("Sign-in didn't finish. Try again."));
@@ -129,7 +149,7 @@ export function SignIn({ networks }: { networks: Network[] }) {
         return;
       }
       await signInWithEmail(email, code, network);
-      router.replace("/app");
+      router.replace(afterSignIn());
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : t("Sign-in didn't finish. Try again."));

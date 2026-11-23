@@ -14,6 +14,7 @@ export type Stats = {
   accounts: number;
   agents: number;
   links: number;
+  aiApps: number;
   newPerDay: { day: string; wallets: number }[];
 };
 
@@ -29,11 +30,12 @@ export async function usageStats(): Promise<Stats> {
              count(distinct account_id) filter (where created_at >= date_trunc('day', now()))::int as today,
              count(distinct account_id) filter (where created_at >= now() - interval '7 days')::int as week,
              count(distinct account_id) filter (where created_at >= now() - interval '30 days')::int as month,
-             count(*)::int as sign_ins
+             count(*) filter (where client_id is null)::int as sign_ins
       from sessions`,
     sql<{ network: string; wallets: number; transfers: number }[]>`select network, count(distinct account_id)::int as wallets, count(*)::int as transfers from transfers group by network order by network`,
-    sql<{ accounts: number; agents: number; links: number }[]>`
-      select (select count(*) from treasuries)::int as accounts, (select count(*) from agents)::int as agents, (select count(*) from pay_links)::int as links`,
+    sql<{ accounts: number; agents: number; links: number; ai_apps: number }[]>`
+      select (select count(*) from treasuries)::int as accounts, (select count(*) from agents)::int as agents, (select count(*) from pay_links)::int as links,
+             (select count(*) from sessions where client_id is not null and revoked_at is null and expires_at > now())::int as ai_apps`,
     sql<{ day: string; wallets: number }[]>`
       select to_char(first_seen, 'YYYY-MM-DD') as day, count(*)::int as wallets
       from (select account_id, network, date_trunc('day', min(created_at)) as first_seen from sessions group by account_id, network) f
@@ -43,6 +45,6 @@ export async function usageStats(): Promise<Stats> {
   const c = counts[0];
   return {
     byNetwork, uniqueWallets: t.unique_wallets, withoutOwners: t.without_owners, today: t.today, week: t.week, month: t.month, signIns: t.sign_ins,
-    usedMoney, accounts: c.accounts, agents: c.agents, links: c.links, newPerDay,
+    usedMoney, accounts: c.accounts, agents: c.agents, links: c.links, aiApps: c.ai_apps, newPerDay,
   };
 }

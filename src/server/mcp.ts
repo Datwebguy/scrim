@@ -176,13 +176,14 @@ async function handle(message: Rpc, authorization: string | null): Promise<objec
 
   switch (method) {
     case "initialize": {
-      const caller = await callerFrom(authorization);
+      // Introducing itself needs no key. A key that is sent must be real; the tools always need one.
+      const caller = authorization ? await callerFrom(authorization) : null;
       const requested = String(params.protocolVersion ?? "");
       return ok(id, {
         protocolVersion: SUPPORTED_VERSIONS.includes(requested) ? requested : SUPPORTED_VERSIONS[0],
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: "scrim", title: "Scrim", version: "1.0.0" },
-        instructions: caller.kind === "person" ? PERSONAL_INSTRUCTIONS : "Scrim lets this agent pay within limits its owner set: it asks and people approve, or it pays from its own wallet if the owner allows. It can also find and buy paid APIs (x402). Call get_limits first.",
+        instructions: caller?.kind === "person" ? PERSONAL_INSTRUCTIONS : "Scrim lets this agent pay within limits its owner set: it asks and people approve, or it pays from its own wallet if the owner allows. It can also find and buy paid APIs (x402). Call get_limits first.",
       });
     }
     case "ping":

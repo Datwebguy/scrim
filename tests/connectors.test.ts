@@ -80,7 +80,7 @@ describe("connecting an AI app to your own account", () => {
   });
 
   it("asks AI apps with no token to sign in", async () => {
-    const r = await handleMcp({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }, null);
-    expect(r.status).toBe(401);
+    expect((await handleMcp({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }, null)).status).toBe(200);
+    expect((await handleMcp({ jsonrpc: "2.0", id: 2, method: "tools/list" }, null)).status).toBe(401);
   });
 });

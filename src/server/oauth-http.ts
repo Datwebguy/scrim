@@ -4,14 +4,14 @@ import { HttpError } from "./errors";
 import { rateLimit } from "./rate-limit";
 
 // Plain JSON answers for the OAuth endpoints AI apps call from anywhere. No cookies are read, so any origin may call.
-export const CORS = {
+const CORS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, OPTIONS",
   "access-control-allow-headers": "authorization, content-type, mcp-protocol-version",
   "cache-control": "no-store",
 };
 
-export const origin = (request: NextRequest) => request.nextUrl.origin;
+const origin = (request: NextRequest) => request.nextUrl.origin;
 
 export function metadata(request: NextRequest) {
   const base = origin(request);

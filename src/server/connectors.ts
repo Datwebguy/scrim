@@ -14,7 +14,7 @@ import { sharePrivateAccess } from "./private-access";
 const CONNECTOR_TTL_SECONDS = 30 * 24 * 60 * 60;
 const KEY_TTL_SECONDS = 90 * 24 * 60 * 60;
 const CODE_TTL_SECONDS = 5 * 60;
-export const PERSONAL_KEY_PREFIX = "scrim_pk_";
+const PERSONAL_KEY_PREFIX = "scrim_pk_";
 
 export class OAuthError extends HttpError {
   constructor(readonly oauthCode: string, message: string, status = 400) {

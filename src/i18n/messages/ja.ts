@@ -467,10 +467,8 @@ const messages: Record<string, string> = {
   "Disconnected": "切断しました",
   "For agents that can't sign you in, like Hermes Agent, Grok, bots and scripts. The agent sends the key as a Bearer token to the same address.": "Hermes Agent、Grok、ボット、スクリプトなど、代わりにサインインできないエージェント向け。エージェントは同じアドレスにキーを Bearer トークンとして送ります。",
   "For apps that let you sign in. Add Scrim as a remote MCP server with this address, then sign in here when the app asks.": "サインインできるアプリ向け。このアドレスで Scrim をリモート MCP サーバーとして追加し、アプリに求められたらここでサインインします。",
-  "It can't move money. Sending and swapping from your AI comes next, and you will approve each one in Scrim.": "お金は動かせません。AI からの送金とスワップは次に対応予定で、毎回 Scrim であなたが承認します。",
   "It can:": "できること：",
   "It will use your account": "使うアカウント",
-  "Keep it like a password. Anyone with it can read your balance and activity, but it can't move money. Remove it below at any time.": "パスワードのように保管してください。持っている人は残高と履歴を見られますが、お金は動かせません。いつでも下で削除できます。",
   "Look up coins and price swaps": "コインを探してスワップの価格を見る",
   "Make a key": "キーを作成",
   "Name it": "名前",
@@ -486,5 +484,10 @@ const messages: Record<string, string> = {
   "Your private balance is locked, so apps can't see it yet. Unlock it on the": "非公開残高がロックされているため、アプリからはまだ見えません。ロック解除は",
   "app": "アプリ",
   "key": "キー",
+  "Get an address to add money": "入金用のアドレスを取得する",
+  "Prepare swaps, sends and withdrawals for you to approve": "あなたが承認するスワップ、送金、出金を準備する",
+  "It can't move money by itself. Every swap, send or withdrawal it prepares opens in Scrim, and nothing moves until you confirm it with your wallet.": "自分ではお金を動かせません。準備したスワップ、送金、出金はすべて Scrim で開き、あなたがウォレットで確認するまで何も動きません。",
+  "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "パスワードのように保管してください。持っている人は残高と履歴を見て支払いを準備できますが、あなたが Scrim で確認するまで何も動きません。いつでも下で削除できます。",
+  "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} が入力しました。すべての内容を確認してから価格を見て確定してください。あなたが確定するまで何も動きません。",
 };
 export default messages;

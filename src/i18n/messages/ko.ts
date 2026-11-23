@@ -467,10 +467,8 @@ const messages: Record<string, string> = {
   "Disconnected": "연결 해제됨",
   "For agents that can't sign you in, like Hermes Agent, Grok, bots and scripts. The agent sends the key as a Bearer token to the same address.": "대신 로그인할 수 없는 에이전트용: Hermes Agent, Grok, 봇, 스크립트. 에이전트가 같은 주소로 키를 Bearer 토큰으로 보냅니다.",
   "For apps that let you sign in. Add Scrim as a remote MCP server with this address, then sign in here when the app asks.": "로그인할 수 있는 앱용. 이 주소로 Scrim을 원격 MCP 서버로 추가하고, 앱이 요청하면 여기서 로그인하세요.",
-  "It can't move money. Sending and swapping from your AI comes next, and you will approve each one in Scrim.": "돈을 옮길 수 없어요. AI로 보내기와 스왑은 다음에 추가되며, 매번 Scrim에서 직접 승인합니다.",
   "It can:": "할 수 있는 일:",
   "It will use your account": "사용할 계정",
-  "Keep it like a password. Anyone with it can read your balance and activity, but it can't move money. Remove it below at any time.": "비밀번호처럼 보관하세요. 가진 사람은 잔액과 활동을 볼 수 있지만 돈을 옮길 수는 없어요. 아래에서 언제든 삭제할 수 있어요.",
   "Look up coins and price swaps": "코인을 찾고 스왑 가격 보기",
   "Make a key": "키 만들기",
   "Name it": "이름",
@@ -486,5 +484,10 @@ const messages: Record<string, string> = {
   "Your private balance is locked, so apps can't see it yet. Unlock it on the": "비공개 잔액이 잠겨 있어 앱이 아직 볼 수 없어요. 잠금 해제는",
   "app": "앱",
   "key": "키",
+  "Get an address to add money": "입금 주소 받기",
+  "Prepare swaps, sends and withdrawals for you to approve": "내가 승인할 스왑, 보내기, 출금 준비",
+  "It can't move money by itself. Every swap, send or withdrawal it prepares opens in Scrim, and nothing moves until you confirm it with your wallet.": "스스로 돈을 옮길 수 없어요. 준비한 스왑, 보내기, 출금은 모두 Scrim에서 열리고, 지갑으로 확인하기 전까지 아무것도 움직이지 않아요.",
+  "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "비밀번호처럼 보관하세요. 가진 사람은 잔액과 활동을 보고 결제를 준비할 수 있지만, Scrim에서 확인하기 전까지 아무것도 움직이지 않아요. 아래에서 언제든 삭제할 수 있어요.",
+  "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app}이(가) 대신 입력했어요. 모든 내용을 확인한 뒤 가격을 보고 확인하세요. 확인하기 전까지 아무것도 움직이지 않아요.",
 };
 export default messages;

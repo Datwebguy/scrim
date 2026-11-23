@@ -467,10 +467,8 @@ const messages: Record<string, string> = {
   "Disconnected": "已断开",
   "For agents that can't sign you in, like Hermes Agent, Grok, bots and scripts. The agent sends the key as a Bearer token to the same address.": "适用于无法替你登录的智能体，如 Hermes Agent、Grok、机器人和脚本。智能体将密钥作为 Bearer 令牌发送到同一地址。",
   "For apps that let you sign in. Add Scrim as a remote MCP server with this address, then sign in here when the app asks.": "适用于支持登录的应用。用此地址把 Scrim 添加为远程 MCP 服务器，应用要求时在这里登录。",
-  "It can't move money. Sending and swapping from your AI comes next, and you will approve each one in Scrim.": "它无法转移资金。从 AI 发送和兑换即将推出，每一笔都由你在 Scrim 中批准。",
   "It can:": "它可以：",
   "It will use your account": "它将使用你的账户",
-  "Keep it like a password. Anyone with it can read your balance and activity, but it can't move money. Remove it below at any time.": "像密码一样保管。持有者可查看你的余额和活动，但无法转移资金。可随时在下方删除。",
   "Look up coins and price swaps": "查找币种并查询兑换价格",
   "Make a key": "生成密钥",
   "Name it": "命名",
@@ -486,5 +484,10 @@ const messages: Record<string, string> = {
   "Your private balance is locked, so apps can't see it yet. Unlock it on the": "你的私密余额已锁定，应用暂时看不到。请在此解锁：",
   "app": "应用",
   "key": "密钥",
+  "Get an address to add money": "获取充值地址",
+  "Prepare swaps, sends and withdrawals for you to approve": "准备兑换、发送和提现，由你批准",
+  "It can't move money by itself. Every swap, send or withdrawal it prepares opens in Scrim, and nothing moves until you confirm it with your wallet.": "它无法自行转移资金。它准备的每笔兑换、发送或提现都会在 Scrim 中打开，在你用钱包确认之前不会动用任何资金。",
+  "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "像密码一样保管。持有者可查看你的余额和活动并准备付款，但在你于 Scrim 中确认之前不会动用资金。可随时在下方删除。",
+  "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} 已替你填好。请核对每个细节，再查看价格并确认。在你确认之前不会动用资金。",
 };
 export default messages;

@@ -467,10 +467,8 @@ const messages: Record<string, string> = {
   "Disconnected": "Đã ngắt kết nối",
   "For agents that can't sign you in, like Hermes Agent, Grok, bots and scripts. The agent sends the key as a Bearer token to the same address.": "Cho các tác nhân không thể đăng nhập thay bạn, như Hermes Agent, Grok, bot và script. Tác nhân gửi khóa dưới dạng token Bearer tới cùng địa chỉ.",
   "For apps that let you sign in. Add Scrim as a remote MCP server with this address, then sign in here when the app asks.": "Cho ứng dụng cho phép đăng nhập. Thêm Scrim làm máy chủ MCP từ xa với địa chỉ này, rồi đăng nhập ở đây khi ứng dụng yêu cầu.",
-  "It can't move money. Sending and swapping from your AI comes next, and you will approve each one in Scrim.": "Nó không thể chuyển tiền. Gửi và hoán đổi từ AI sẽ có tiếp theo, và bạn sẽ duyệt từng giao dịch trong Scrim.",
   "It can:": "Nó có thể:",
   "It will use your account": "Nó sẽ dùng tài khoản của bạn",
-  "Keep it like a password. Anyone with it can read your balance and activity, but it can't move money. Remove it below at any time.": "Giữ như mật khẩu. Ai có nó có thể xem số dư và hoạt động của bạn, nhưng không thể chuyển tiền. Xóa bên dưới bất cứ lúc nào.",
   "Look up coins and price swaps": "Tìm coin và xem giá hoán đổi",
   "Make a key": "Tạo khóa",
   "Name it": "Đặt tên",
@@ -486,5 +484,10 @@ const messages: Record<string, string> = {
   "Your private balance is locked, so apps can't see it yet. Unlock it on the": "Số dư riêng tư đang khóa nên ứng dụng chưa thấy được. Mở khóa tại",
   "app": "ứng dụng",
   "key": "khóa",
+  "Get an address to add money": "Lấy địa chỉ để nạp tiền",
+  "Prepare swaps, sends and withdrawals for you to approve": "Chuẩn bị hoán đổi, gửi và rút để bạn duyệt",
+  "It can't move money by itself. Every swap, send or withdrawal it prepares opens in Scrim, and nothing moves until you confirm it with your wallet.": "Nó không tự chuyển tiền được. Mỗi giao dịch hoán đổi, gửi hoặc rút nó chuẩn bị sẽ mở trong Scrim, và không gì di chuyển cho đến khi bạn xác nhận bằng ví.",
+  "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "Giữ như mật khẩu. Ai có nó có thể xem số dư, hoạt động và chuẩn bị thanh toán, nhưng không gì di chuyển cho đến khi bạn xác nhận trong Scrim. Xóa bên dưới bất cứ lúc nào.",
+  "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} đã điền sẵn cho bạn. Kiểm tra từng chi tiết, rồi xem giá và xác nhận. Không gì di chuyển cho đến khi bạn làm vậy.",
 };
 export default messages;

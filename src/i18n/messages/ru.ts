@@ -467,10 +467,8 @@ const messages: Record<string, string> = {
   "Disconnected": "Отключено",
   "For agents that can't sign you in, like Hermes Agent, Grok, bots and scripts. The agent sends the key as a Bearer token to the same address.": "Для агентов, которые не умеют входить за вас: Hermes Agent, Grok, боты и скрипты. Агент отправляет ключ как токен Bearer на тот же адрес.",
   "For apps that let you sign in. Add Scrim as a remote MCP server with this address, then sign in here when the app asks.": "Для приложений со входом. Добавьте Scrim как удалённый MCP-сервер с этим адресом и войдите здесь, когда приложение попросит.",
-  "It can't move money. Sending and swapping from your AI comes next, and you will approve each one in Scrim.": "Оно не может переводить деньги. Отправка и обмен через ИИ появятся следующими, и вы будете подтверждать каждую операцию в Scrim.",
   "It can:": "Оно может:",
   "It will use your account": "Оно будет использовать ваш аккаунт",
-  "Keep it like a password. Anyone with it can read your balance and activity, but it can't move money. Remove it below at any time.": "Храните его как пароль. С ним можно видеть ваш баланс и операции, но нельзя переводить деньги. Удалить можно ниже в любой момент.",
   "Look up coins and price swaps": "Искать монеты и узнавать цену обмена",
   "Make a key": "Создать ключ",
   "Name it": "Название",
@@ -486,5 +484,10 @@ const messages: Record<string, string> = {
   "Your private balance is locked, so apps can't see it yet. Unlock it on the": "Ваш приватный баланс заблокирован, поэтому приложения его пока не видят. Разблокируйте его на",
   "app": "приложение",
   "key": "ключ",
+  "Get an address to add money": "Получить адрес для пополнения",
+  "Prepare swaps, sends and withdrawals for you to approve": "Готовить обмены, переводы и выводы, которые вы подтверждаете",
+  "It can't move money by itself. Every swap, send or withdrawal it prepares opens in Scrim, and nothing moves until you confirm it with your wallet.": "Само оно не может переводить деньги. Каждый подготовленный обмен, перевод или вывод открывается в Scrim, и ничего не происходит, пока вы не подтвердите кошельком.",
+  "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "Храните его как пароль. С ним можно видеть ваш баланс и операции и готовить платежи, но ничего не происходит, пока вы не подтвердите в Scrim. Удалить можно ниже в любой момент.",
+  "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} заполнил это за вас. Проверьте каждую деталь, затем посмотрите цену и подтвердите. Ничего не произойдёт без вас.",
 };
 export default messages;

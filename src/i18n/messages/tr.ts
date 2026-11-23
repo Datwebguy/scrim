@@ -467,10 +467,8 @@ const messages: Record<string, string> = {
   "Disconnected": "Bağlantı kesildi",
   "For agents that can't sign you in, like Hermes Agent, Grok, bots and scripts. The agent sends the key as a Bearer token to the same address.": "Sizin yerinize giriş yapamayan ajanlar için: Hermes Agent, Grok, botlar ve betikler. Ajan anahtarı aynı adrese Bearer token olarak gönderir.",
   "For apps that let you sign in. Add Scrim as a remote MCP server with this address, then sign in here when the app asks.": "Giriş yapılabilen uygulamalar için. Scrim'i bu adresle uzak MCP sunucusu olarak ekleyin, uygulama isteyince burada giriş yapın.",
-  "It can't move money. Sending and swapping from your AI comes next, and you will approve each one in Scrim.": "Para taşıyamaz. Yapay zekânızdan gönderme ve takas sırada, her birini Scrim'de siz onaylayacaksınız.",
   "It can:": "Şunları yapabilir:",
   "It will use your account": "Şu hesabınızı kullanacak",
-  "Keep it like a password. Anyone with it can read your balance and activity, but it can't move money. Remove it below at any time.": "Bir parola gibi saklayın. Sahibi bakiyenizi ve hareketlerinizi görebilir ama para taşıyamaz. İstediğiniz zaman aşağıdan kaldırın.",
   "Look up coins and price swaps": "Coin aramak ve takas fiyatı almak",
   "Make a key": "Anahtar oluştur",
   "Name it": "Ad verin",
@@ -486,5 +484,10 @@ const messages: Record<string, string> = {
   "Your private balance is locked, so apps can't see it yet. Unlock it on the": "Özel bakiyeniz kilitli, bu yüzden uygulamalar henüz göremiyor. Kilidi şurada açın:",
   "app": "uygulama",
   "key": "anahtar",
+  "Get an address to add money": "Para eklemek için adres almak",
+  "Prepare swaps, sends and withdrawals for you to approve": "Onaylamanız için takas, gönderme ve çekim hazırlamak",
+  "It can't move money by itself. Every swap, send or withdrawal it prepares opens in Scrim, and nothing moves until you confirm it with your wallet.": "Kendi başına para taşıyamaz. Hazırladığı her takas, gönderme veya çekim Scrim'de açılır ve siz cüzdanınızla onaylayana kadar hiçbir şey hareket etmez.",
+  "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "Bir parola gibi saklayın. Sahibi bakiyenizi ve hareketlerinizi görebilir ve ödeme hazırlayabilir, ama siz Scrim'de onaylayana kadar hiçbir şey hareket etmez. İstediğiniz zaman aşağıdan kaldırın.",
+  "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} bunu sizin için doldurdu. Her ayrıntıyı kontrol edin, sonra fiyatı görüp onaylayın. Siz onaylayana kadar hiçbir şey hareket etmez.",
 };
 export default messages;

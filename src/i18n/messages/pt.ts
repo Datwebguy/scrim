@@ -467,10 +467,8 @@ const messages: Record<string, string> = {
   "Disconnected": "Desconectado",
   "For agents that can't sign you in, like Hermes Agent, Grok, bots and scripts. The agent sends the key as a Bearer token to the same address.": "Para agentes que não conseguem fazer login por você, como Hermes Agent, Grok, bots e scripts. O agente envia a chave como token Bearer para o mesmo endereço.",
   "For apps that let you sign in. Add Scrim as a remote MCP server with this address, then sign in here when the app asks.": "Para apps que permitem login. Adicione o Scrim como servidor MCP remoto com este endereço e faça login aqui quando o app pedir.",
-  "It can't move money. Sending and swapping from your AI comes next, and you will approve each one in Scrim.": "Não pode mover dinheiro. Enviar e trocar pela sua IA vem a seguir, e você aprovará cada operação no Scrim.",
   "It can:": "Ele pode:",
   "It will use your account": "Ele usará sua conta",
-  "Keep it like a password. Anyone with it can read your balance and activity, but it can't move money. Remove it below at any time.": "Guarde como uma senha. Quem tiver a chave pode ver seu saldo e atividade, mas não mover dinheiro. Remova abaixo quando quiser.",
   "Look up coins and price swaps": "Buscar moedas e cotar trocas",
   "Make a key": "Criar uma chave",
   "Name it": "Dê um nome",
@@ -486,5 +484,10 @@ const messages: Record<string, string> = {
   "Your private balance is locked, so apps can't see it yet. Unlock it on the": "Seu saldo privado está bloqueado, então os apps ainda não o veem. Desbloqueie na",
   "app": "app",
   "key": "chave",
+  "Get an address to add money": "Obter um endereço para adicionar dinheiro",
+  "Prepare swaps, sends and withdrawals for you to approve": "Preparar trocas, envios e saques para você aprovar",
+  "It can't move money by itself. Every swap, send or withdrawal it prepares opens in Scrim, and nothing moves until you confirm it with your wallet.": "Não pode mover dinheiro sozinho. Cada troca, envio ou saque que preparar abre no Scrim, e nada se move até você confirmar com sua carteira.",
+  "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "Guarde como uma senha. Quem tiver a chave pode ver seu saldo e atividade e preparar pagamentos, mas nada se move até você confirmar no Scrim. Remova abaixo quando quiser.",
+  "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} preencheu isto para você. Confira cada detalhe, veja o preço e confirme. Nada se move até você fazer isso.",
 };
 export default messages;

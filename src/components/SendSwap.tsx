@@ -93,6 +93,23 @@ export function SendSwap({ initial }: { initial: Mode }) {
     setToId(intentsId(fromId));
     setError("");
   }
+  // An approval link from a connected AI app (see mcp-personal.ts): fill the form in, the person checks and confirms.
+  const [fromAi, setFromAi] = useState("");
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const q = new URLSearchParams(window.location.search);
+    if (!q.get("ai")) return;
+    const m = q.get("mode");
+    if (m === "swap" || m === "person" || m === "address") setMode(m);
+    setSource("private");
+    setFromId(q.get("from") ?? "");
+    setToId(q.get("to") ?? "");
+    setAmount(q.get("amount") ?? "");
+    setRecipient(q.get("recipient") ?? "");
+    setNote(q.get("note") ?? "");
+    setFromAi(q.get("ai")!.slice(0, 60));
+  }, []);
+
   // "Move to my wallet" from Home: To any address, to this account's own NEAR wallet.
   useEffect(() => {
     if (typeof window === "undefined" || new URLSearchParams(window.location.search).get("to") !== "mywallet" || !accountId) return;
@@ -294,6 +311,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
             </div>
           )}
           {mode !== "swap" && <input className="tp-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder={`${t("Note")} (${t("optional, only you can see it")})`} aria-label={t("Note")} />}
+          {fromAi && <div className="notice">{t("{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.", { app: fromAi })}</div>}
           {error && <p className="form-error" role="alert">{error}</p>}
           {sentHash && <div className="notice good">{t("Sent from your wallet.")} <span className="muted mono">Receipt {sentHash.slice(0, 10)}…</span> <Link href="/app/activity">{t("Activity")}</Link></div>}
           <button className="btn btn-primary btn-lg trade-go" disabled={busy !== "" || !ready}>{busy === "price" && <Spinner />} {wrapping ? (fromId === NATIVE ? t("Wrap with my wallet") : t("Unwrap with my wallet")) : direct ? t("Send with my wallet") : t("See the price")}</button>

@@ -9,7 +9,7 @@ import { Spinner, useToast } from "./ui";
 type Connector = { id: string; name: string; kind: "app" | "key"; connectedAt: string; expiresAt: string };
 type Request = { name: string; params: Record<string, string | undefined>; denyUrl: string };
 
-const CAN = ["See your private balance and recent activity", "Look up coins and price swaps"];
+const CAN = ["See your private balance and recent activity", "Look up coins and price swaps", "Get an address to add money", "Prepare swaps, sends and withdrawals for you to approve"];
 
 // One page to use Scrim from any AI app: approve an app that asked to connect, make a key for agents that
 // can't sign in, see setup steps for each app, and disconnect anything.
@@ -77,7 +77,7 @@ export function ConnectAI({ mcpUrl, accountId, unlocked, request, problem }: { m
           <h2>{t("Connect {name}?", { name: request.name })}</h2>
           <p className="muted">{t("It will use your account")} <b style={{ overflowWrap: "anywhere" }}>{accountId}</b>. {t("It can:")}</p>
           <ul>{CAN.map((c) => <li key={c}>{t(c)}</li>)}</ul>
-          <p className="muted">{t("It can't move money. Sending and swapping from your AI comes next, and you will approve each one in Scrim.")}</p>
+          <p className="muted">{t("It can't move money by itself. Every swap, send or withdrawal it prepares opens in Scrim, and nothing moves until you confirm it with your wallet.")}</p>
           {lockedNote}
           <div className="row" style={{ gap: 8 }}>
             <button className="btn btn-signal btn-lg" onClick={allow} disabled={busy}>{busy && <Spinner />} {t("Connect")}</button>
@@ -105,7 +105,7 @@ export function ConnectAI({ mcpUrl, accountId, unlocked, request, problem }: { m
         {freshKey ? (
           <>
             <CopyField value={freshKey} label={t("Your key. It's shown only once.")} />
-            <p className="muted small-print">{t("Keep it like a password. Anyone with it can read your balance and activity, but it can't move money. Remove it below at any time.")}</p>
+            <p className="muted small-print">{t("Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.")}</p>
             <code className="small-print">{`Authorization: Bearer ${freshKey.slice(0, 14)}…`}</code>
             <button className="btn btn-ghost" style={{ justifySelf: "start" }} onClick={() => setFreshKey(null)}>{t("Done")}</button>
           </>

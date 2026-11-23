@@ -467,10 +467,8 @@ const messages: Record<string, string> = {
   "Disconnected": "Terputus",
   "For agents that can't sign you in, like Hermes Agent, Grok, bots and scripts. The agent sends the key as a Bearer token to the same address.": "Untuk agen yang tidak bisa memasukkan Anda, seperti Hermes Agent, Grok, bot dan skrip. Agen mengirim kunci sebagai token Bearer ke alamat yang sama.",
   "For apps that let you sign in. Add Scrim as a remote MCP server with this address, then sign in here when the app asks.": "Untuk aplikasi yang bisa memasukkan Anda. Tambahkan Scrim sebagai server MCP jarak jauh dengan alamat ini, lalu masuk di sini saat aplikasi meminta.",
-  "It can't move money. Sending and swapping from your AI comes next, and you will approve each one in Scrim.": "Tidak bisa memindahkan uang. Mengirim dan menukar dari AI Anda akan hadir berikutnya, dan Anda menyetujui setiap transaksi di Scrim.",
   "It can:": "Ia dapat:",
   "It will use your account": "Ia akan memakai akun Anda",
-  "Keep it like a password. Anyone with it can read your balance and activity, but it can't move money. Remove it below at any time.": "Simpan seperti kata sandi. Siapa pun yang memilikinya bisa melihat saldo dan aktivitas Anda, tapi tidak bisa memindahkan uang. Hapus di bawah kapan saja.",
   "Look up coins and price swaps": "Mencari koin dan melihat harga tukar",
   "Make a key": "Buat kunci",
   "Name it": "Beri nama",
@@ -486,5 +484,10 @@ const messages: Record<string, string> = {
   "Your private balance is locked, so apps can't see it yet. Unlock it on the": "Saldo pribadi Anda terkunci, jadi aplikasi belum bisa melihatnya. Buka kuncinya di",
   "app": "aplikasi",
   "key": "kunci",
+  "Get an address to add money": "Mendapatkan alamat untuk menambah uang",
+  "Prepare swaps, sends and withdrawals for you to approve": "Menyiapkan tukar, kirim dan tarik untuk Anda setujui",
+  "It can't move money by itself. Every swap, send or withdrawal it prepares opens in Scrim, and nothing moves until you confirm it with your wallet.": "Tidak bisa memindahkan uang sendiri. Setiap tukar, kirim atau tarik yang disiapkan terbuka di Scrim, dan tidak ada yang bergerak sampai Anda mengonfirmasi dengan dompet Anda.",
+  "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "Simpan seperti kata sandi. Siapa pun yang memilikinya bisa melihat saldo dan aktivitas Anda dan menyiapkan pembayaran, tapi tidak ada yang bergerak sampai Anda mengonfirmasi di Scrim. Hapus di bawah kapan saja.",
+  "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} mengisi ini untuk Anda. Periksa setiap detail, lalu lihat harga dan konfirmasi. Tidak ada yang bergerak sampai Anda melakukannya.",
 };
 export default messages;

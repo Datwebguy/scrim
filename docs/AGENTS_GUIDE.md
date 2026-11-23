@@ -22,6 +22,13 @@ An **agent** is a helper that spends for you, only inside the rules you set: an 
 
 Tools: `get_limits`, `check_payment`, `request_payment`, `find_paid_apis`, `pay_x402`, `list_payments`, `get_payment`.
 
+**Use Scrim from your own AI (any MCP app).** A person can connect Claude, ChatGPT, Codex, Cursor, VS Code, Grok, Hermes Agent, bots or scripts to their own account at **AI apps** (`/app/connect`).
+
+- *With a link.* Add `https://<your-site>/api/mcp` as a remote MCP server. The app finds Scrim's sign-in on its own (OAuth 2.1 with PKCE and dynamic registration: `/.well-known/oauth-protected-resource`, `/.well-known/oauth-authorization-server`, `/api/oauth/register`, `/api/oauth/token`), sends the person to `/app/connect` to approve, and gets its own session for 30 days. Claude Code: `claude mcp add --transport http scrim https://<your-site>/api/mcp`. Codex: `codex mcp add scrim --url https://<your-site>/api/mcp`.
+- *With a key.* For agents that can't sign people in, the person makes a `scrim_pk_` key (shown once, valid 90 days) and the agent sends it as `Authorization: Bearer scrim_pk_…`.
+
+Tools: `get_account`, `get_balance`, `get_activity`, `find_coin`, `quote_swap`. They only read. An app's session works only on `/api/mcp`, never as a browser login, and the person can disconnect it on the same page at any time.
+
 **Connect code (HTTPS).**
 
 | Call | What it does |

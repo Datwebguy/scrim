@@ -22,6 +22,7 @@ const NAV: { href: string; label: string; privateMoney?: boolean; match?: (p: st
   { href: "/app/proofs", label: "Proofs", privateMoney: true },
   { href: "/app/activity", label: "Activity" },
   { href: "/app/ask", label: "Ask" },
+  { href: "/app/connect", label: "AI apps" },
   { href: "/app/accounts", label: "Accounts" },
 ];
 

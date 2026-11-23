@@ -95,3 +95,21 @@ export async function privateAccessToken(session: Session): Promise<string> {
     throw error;
   }
 }
+
+// Gives a connected AI app's session the same read access to the private balance as a browser session of the
+// same person. Picks the given session, or else the person's most recent unlocked browser session.
+export async function sharePrivateAccess(to: Session, from?: Session): Promise<PrivateStatus> {
+  if (to.network !== "mainnet") return "mainnet_only";
+  const [row] = await sql<(Row & { session_id: string })[]>`
+    SELECT p.session_id, p.status, p.tokens_sealed, p.access_expires_at, p.refresh_expires_at, p.public_key, p.detail
+    FROM private_access p JOIN sessions s ON s.id = p.session_id
+    WHERE p.account_id = ${to.accountId} AND s.network = ${to.network} AND s.client_id IS NULL
+      AND p.status = 'active' AND p.tokens_sealed IS NOT NULL AND (p.refresh_expires_at IS NULL OR p.refresh_expires_at > now())
+      AND (${from?.id ?? null}::uuid IS NULL OR p.session_id = ${from?.id ?? null})
+    ORDER BY p.updated_at DESC LIMIT 1`;
+  if (!row || !row.tokens_sealed) return "none";
+  const source = { ...to, id: row.session_id };
+  const tokens = open<Tokens>(row.tokens_sealed, aad(source));
+  await save(to, row.public_key, "active", { tokens, accessExpiresAt: row.access_expires_at ?? undefined, refreshExpiresAt: row.refresh_expires_at ?? undefined });
+  return "active";
+}

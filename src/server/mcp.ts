@@ -5,10 +5,26 @@ import { HttpError } from "./errors";
 import { checkAgentPayment, createAgentPayment, getAgentPayment, listAgentPayments } from "./payments";
 import { deliverPurchase, findPaidApis, requestPurchase } from "./x402-client";
 import { syncAgentPayout } from "./agent-wallets";
+import { connectorSessionFromToken, type Session } from "./auth";
+import { unauthorized } from "./errors";
+import { PERSONAL_INSTRUCTIONS, PERSONAL_TOOLS, callPersonalTool, personalError } from "./mcp-personal";
+
+// Two kinds of caller: an agent of a shared account (a scrim_sk_ key), or an AI app a person connected to
+// their own account (an OAuth token or a scrim_pk_ personal key).
+type Caller = { kind: "agent"; agent: Agent } | { kind: "person"; session: Session };
+
+async function callerFrom(authorization: string | null): Promise<Caller> {
+  const token = /^Bearer\s+(\S+)$/i.exec(authorization ?? "")?.[1];
+  if (!token) throw unauthorized("Connect Scrim first: sign in through your AI app, or use a key from scrim.exchange/app/connect.");
+  if (token.startsWith("scrim_sk_")) return { kind: "agent", agent: await agentFromApiKey(authorization) };
+  const session = await connectorSessionFromToken(token);
+  if (!session) throw unauthorized("This connection ended. Connect Scrim again from your AI app.");
+  return { kind: "person", session };
+}
 
 // A Model Context Protocol server (Streamable HTTP, stateless, JSON responses).
-// AI agents connect with their Scrim agent key as a Bearer token and get four tools.
-// The tools can only ask to pay; people still approve every payment.
+// Agents of shared accounts connect with their scrim_sk_ key and can only ask to pay; people approve.
+// AI apps a person connects to their own account get the read-only tools in mcp-personal.ts.
 
 const SUPPORTED_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
@@ -160,23 +176,38 @@ async function handle(message: Rpc, authorization: string | null): Promise<objec
 
   switch (method) {
     case "initialize": {
+      const caller = await callerFrom(authorization);
       const requested = String(params.protocolVersion ?? "");
       return ok(id, {
         protocolVersion: SUPPORTED_VERSIONS.includes(requested) ? requested : SUPPORTED_VERSIONS[0],
         capabilities: { tools: { listChanged: false } },
         serverInfo: { name: "scrim", title: "Scrim", version: "1.0.0" },
-        instructions: "Scrim lets this agent pay within limits its owner set: it asks and people approve, or it pays from its own wallet if the owner allows. It can also find and buy paid APIs (x402). Call get_limits first.",
+        instructions: caller.kind === "person" ? PERSONAL_INSTRUCTIONS : "Scrim lets this agent pay within limits its owner set: it asks and people approve, or it pays from its own wallet if the owner allows. It can also find and buy paid APIs (x402). Call get_limits first.",
       });
     }
     case "ping":
       return ok(id, {});
-    case "tools/list":
-      await agentFromApiKey(authorization);
-      return ok(id, { tools: TOOLS });
+    case "tools/list": {
+      const caller = await callerFrom(authorization);
+      return ok(id, { tools: caller.kind === "person" ? PERSONAL_TOOLS : TOOLS });
+    }
     case "tools/call": {
-      const agent = await agentFromApiKey(authorization);
-      const result = await callTool(agent, String(params.name ?? ""), (params.arguments as Record<string, unknown>) ?? {});
-      return result ? ok(id, result) : fail(id, -32602, `Unknown tool: ${String(params.name)}`);
+      const caller = await callerFrom(authorization);
+      const name = String(params.name ?? "");
+      const args = (params.arguments as Record<string, unknown>) ?? {};
+      if (caller.kind === "person") {
+        try {
+          const data = await callPersonalTool(caller.session, name, args);
+          if (data === undefined) return fail(id, -32602, `Unknown tool: ${name}`);
+          return ok(id, toolResult(data, Boolean((data as { error?: unknown }).error)));
+        } catch (error) {
+          const message = personalError(error);
+          if (message === null) throw error;
+          return ok(id, toolResult({ error: message }, true));
+        }
+      }
+      const result = await callTool(caller.agent, name, args);
+      return result ? ok(id, result) : fail(id, -32602, `Unknown tool: ${name}`);
     }
     default:
       if (isNotification) return null;

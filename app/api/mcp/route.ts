@@ -6,7 +6,8 @@ import { rateLimit } from "@/server/rate-limit";
 const MAX_BODY_BYTES = 32 * 1024;
 const headers = { "cache-control": "no-store" };
 
-// MCP endpoint for AI agents. Authenticate with: Authorization: Bearer scrim_sk_…
+// MCP endpoint. Agents of shared accounts send Authorization: Bearer scrim_sk_…; AI apps a person connects
+// sign in with OAuth (see /.well-known/oauth-protected-resource) or send a scrim_pk_ personal key.
 export async function POST(request: NextRequest) {
   try {
     await rateLimit(request.headers, request.nextUrl.pathname);
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
   if (result.status === 202) return new NextResponse(null, { status: 202, headers });
   return NextResponse.json(result.body, {
     status: result.status,
-    headers: result.status === 401 ? { ...headers, "www-authenticate": 'Bearer realm="scrim"' } : headers,
+    headers: result.status === 401 ? { ...headers, "www-authenticate": `Bearer realm="scrim", resource_metadata="${request.nextUrl.origin}/.well-known/oauth-protected-resource/api/mcp"` } : headers,
   });
 }
 

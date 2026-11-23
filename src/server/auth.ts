@@ -18,7 +18,7 @@ type Purpose = "sign_in" | "approve_payment" | "private_access";
 
 export type SignedEnvelope = { challengeId: string; accountId: string; publicKey: string; signature: string };
 
-const hashToken = (token: string) => createHash("sha256").update(token).digest();
+export const hashToken = (token: string) => createHash("sha256").update(token).digest();
 
 export async function issueChallenge(
   tx: Tx,
@@ -131,9 +131,18 @@ export async function sessionFromToken(token: string | undefined | null): Promis
   if (!token) return null;
   const [row] = await sql<{ id: string; account_id: string; public_key: string; network: string; expires_at: Date }[]>`
     SELECT id, account_id, public_key, network, expires_at FROM sessions
-    WHERE token_hash = ${hashToken(token)} AND revoked_at IS NULL AND expires_at > now()`;
+    WHERE token_hash = ${hashToken(token)} AND revoked_at IS NULL AND expires_at > now() AND client_id IS NULL`;
   if (!row || !isNetwork(row.network) || !config.enabledNetworks.includes(row.network)) return null;
   return { id: row.id, accountId: row.account_id, publicKey: row.public_key, network: row.network, expiresAt: row.expires_at };
+}
+
+// The session of an AI app the person connected (see connectors.ts). Only the MCP server accepts it.
+export async function connectorSessionFromToken(token: string): Promise<(Session & { clientId: string }) | null> {
+  const [row] = await sql<{ id: string; account_id: string; public_key: string; network: string; expires_at: Date; client_id: string }[]>`
+    SELECT id, account_id, public_key, network, expires_at, client_id FROM sessions
+    WHERE token_hash = ${hashToken(token)} AND revoked_at IS NULL AND expires_at > now() AND client_id IS NOT NULL`;
+  if (!row || !isNetwork(row.network) || !config.enabledNetworks.includes(row.network)) return null;
+  return { id: row.id, accountId: row.account_id, publicKey: row.public_key, network: row.network, expiresAt: row.expires_at, clientId: row.client_id };
 }
 
 export async function revokeSession(token: string) {

@@ -44,6 +44,7 @@ export default async function Page() {
           {row("Shared accounts", s.accounts)}
           {row("Agents", s.agents)}
           {row("Payment links", s.links)}
+          {row("AI apps connected now", s.aiApps)}
         </dl>
       </section>
 

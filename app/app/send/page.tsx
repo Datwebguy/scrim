@@ -7,5 +7,5 @@ export const metadata = { title: "Send" };
 export default async function Page({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const session = await currentSession();
   if (!session) return null; // signed out: the layout shows sign in
-  return session.network === "testnet" ? <SendNear /> : <SendSwap initial="person" aiApp={verifiedApp(session.accountId, await searchParams)} />;
+  return session.network === "testnet" ? <SendNear /> : <SendSwap initial="person" aiApp={verifiedApp(session.accountId, "send", await searchParams)} />;
 }

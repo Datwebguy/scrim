@@ -148,10 +148,8 @@ async function appName(clientId: string | undefined) {
 
 // The Send or Swap screen, filled in. The person checks it and confirms with their wallet there.
 function approvalUrl(session: Session, page: "send" | "swap", app: string, params: Record<string, string | undefined>) {
-  const all = { ai: app, ...params };
   const q = new URLSearchParams();
-  for (const [k, v] of Object.entries(all)) if (v) q.set(k, v);
-  q.set("sig", signApproval(session.accountId, all));
+  for (const [k, v] of Object.entries(signApproval(session.accountId, page, { ai: app, ...params }))) if (v) q.set(k, v);
   return `${config.siteUrl}/app/${page}?${q}`;
 }
 

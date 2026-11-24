@@ -35,13 +35,16 @@ describe("approval links from AI apps", () => {
     process.env.SCRIM_SECRET_KEY ??= Buffer.alloc(32, 7).toString("base64");
     const { signApproval, verifiedApp } = await import("../src/server/approval-links");
     const params = { ai: "Claude", mode: "person", from: "nep141:usdc", amount: "1", recipient: "ada.near" };
-    const sig = signApproval("me.near", params);
-    expect(verifiedApp("me.near", { ...params, sig })).toBe("Claude");
-    expect(verifiedApp("someone-else.near", { ...params, sig })).toBeNull();
-    expect(verifiedApp("me.near", { ...params, recipient: "attacker.near", sig })).toBeNull();
-    expect(verifiedApp("me.near", { ...params, amount: "100", sig })).toBeNull();
-    expect(verifiedApp("me.near", { ...params, ai: "Scrim support", sig })).toBeNull();
-    expect(verifiedApp("me.near", params)).toBeNull();
+    const signed = signApproval("me.near", "send", params);
+    expect(verifiedApp("me.near", "send", signed)).toBe("Claude");
+    expect(verifiedApp("me.near", "swap", signed)).toBeNull();
+    expect(verifiedApp("someone-else.near", "send", signed)).toBeNull();
+    expect(verifiedApp("me.near", "send", { ...signed, recipient: "attacker.near" })).toBeNull();
+    expect(verifiedApp("me.near", "send", { ...signed, amount: "100" })).toBeNull();
+    expect(verifiedApp("me.near", "send", { ...signed, ai: "Scrim support" })).toBeNull();
+    expect(verifiedApp("me.near", "send", { ...signed, exp: String(Date.now() + 9e9) })).toBeNull();
+    expect(verifiedApp("me.near", "send", signed, Date.now() + 25 * 3600 * 1000)).toBeNull();
+    expect(verifiedApp("me.near", "send", params)).toBeNull();
   });
 });
 

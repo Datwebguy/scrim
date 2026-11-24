@@ -95,6 +95,8 @@ describe("connecting an AI app to your own account", () => {
     await expect(readAuthorizeRequest({ ...base, redirect_uri: "https://evil.example/cb" })).rejects.toThrow(/didn't register/);
     await expect(readAuthorizeRequest({ ...base, code_challenge_method: "plain" })).rejects.toThrow(/S256/);
     await expect(registerClient({ redirect_uris: ["http://evil.example/cb"] })).rejects.toThrow(/https/);
+    expect((await registerClient({ client_name: "Scrim Security", redirect_uris: [REDIRECT] })).client_name).toBe("AI app");
+    expect((await registerClient({ client_name: "S.C.R.I.M", redirect_uris: [REDIRECT] })).client_name).toBe("AI app");
   });
 
   it("gives agents that can't sign in a personal key that only reads, and another person's app sees nothing", async () => {

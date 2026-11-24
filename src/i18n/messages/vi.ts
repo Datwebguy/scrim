@@ -490,5 +490,8 @@ const messages: Record<string, string> = {
   "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "Giữ như mật khẩu. Ai có nó có thể xem số dư, hoạt động và chuẩn bị thanh toán, nhưng không gì di chuyển cho đến khi bạn xác nhận trong Scrim. Xóa bên dưới bất cứ lúc nào.",
   "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} đã điền sẵn cho bạn. Kiểm tra từng chi tiết, rồi xem giá và xác nhận. Không gì di chuyển cho đến khi bạn làm vậy.",
   "A link filled this in, and Scrim didn't make it. Check who gets paid and how much before you confirm.": "Một đường dẫn đã điền sẵn và Scrim không tạo ra nó. Kiểm tra ai nhận tiền và bao nhiêu trước khi xác nhận.",
+  "This app calls itself {name}, but it sends you back to {host}, which isn't {name}'s address. Don't connect it unless you're sure.": "Ứng dụng này tự gọi là {name}, nhưng đưa bạn quay lại {host}, không phải địa chỉ của {name}. Đừng kết nối trừ khi bạn chắc chắn.",
+  "After you connect, you go back to": "Sau khi kết nối, bạn quay lại",
+  "Scrim doesn't check the names apps give themselves. Only connect if you just added Scrim in this app yourself.": "Scrim không kiểm tra tên mà ứng dụng tự đặt. Chỉ kết nối nếu chính bạn vừa thêm Scrim vào ứng dụng này.",
 };
 export default messages;

@@ -490,5 +490,8 @@ const messages: Record<string, string> = {
   "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "パスワードのように保管してください。持っている人は残高と履歴を見て支払いを準備できますが、あなたが Scrim で確認するまで何も動きません。いつでも下で削除できます。",
   "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} が入力しました。すべての内容を確認してから価格を見て確定してください。あなたが確定するまで何も動きません。",
   "A link filled this in, and Scrim didn't make it. Check who gets paid and how much before you confirm.": "リンクが入力しましたが、Scrim が作ったリンクではありません。確定する前に、支払先と金額を確認してください。",
+  "This app calls itself {name}, but it sends you back to {host}, which isn't {name}'s address. Don't connect it unless you're sure.": "このアプリは {name} と名乗っていますが、戻り先は {name} のアドレスではない {host} です。確信がなければ接続しないでください。",
+  "After you connect, you go back to": "接続後の戻り先は",
+  "Scrim doesn't check the names apps give themselves. Only connect if you just added Scrim in this app yourself.": "Scrim はアプリが名乗る名前を確認しません。このアプリにあなた自身が今 Scrim を追加した場合だけ接続してください。",
 };
 export default messages;

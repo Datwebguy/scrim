@@ -1,4 +1,5 @@
 import { ConnectAI } from "@/components/ConnectAI";
+import { looksImpersonated, returnHost } from "@/protocol/oauth";
 import { OAuthError, denyRedirect, readAuthorizeRequest } from "@/server/connectors";
 import { config } from "@/server/config";
 import { currentSession } from "@/server/http";
@@ -16,12 +17,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   if (!session) return null;
   const raw = await searchParams;
   const params = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v]));
-  let request: { name: string; params: Record<string, string | undefined>; denyUrl: string } | null = null;
+  let request: { name: string; params: Record<string, string | undefined>; denyUrl: string; returnsTo: string; suspicious: boolean } | null = null;
   let problem: string | null = null;
   if (params.client_id) {
     try {
       const r = await readAuthorizeRequest(params);
-      request = { name: r.client.name, params, denyUrl: denyRedirect(r) };
+      request = { name: r.client.name, params, denyUrl: denyRedirect(r), returnsTo: returnHost(r.redirectUri), suspicious: looksImpersonated(r.client.name, r.redirectUri) };
     } catch (error) {
       problem = error instanceof OAuthError ? error.message : "This connection request isn't valid. Start again from the app.";
     }

@@ -490,5 +490,8 @@ const messages: Record<string, string> = {
   "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "Bir parola gibi saklayın. Sahibi bakiyenizi ve hareketlerinizi görebilir ve ödeme hazırlayabilir, ama siz Scrim'de onaylayana kadar hiçbir şey hareket etmez. İstediğiniz zaman aşağıdan kaldırın.",
   "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} bunu sizin için doldurdu. Her ayrıntıyı kontrol edin, sonra fiyatı görüp onaylayın. Siz onaylayana kadar hiçbir şey hareket etmez.",
   "A link filled this in, and Scrim didn't make it. Check who gets paid and how much before you confirm.": "Bunu bir bağlantı doldurdu ve Scrim oluşturmadı. Onaylamadan önce kime ve ne kadar ödendiğini kontrol edin.",
+  "This app calls itself {name}, but it sends you back to {host}, which isn't {name}'s address. Don't connect it unless you're sure.": "Bu uygulama kendine {name} diyor ama sizi {name} adresi olmayan {host} adresine geri gönderiyor. Emin değilseniz bağlamayın.",
+  "After you connect, you go back to": "Bağladıktan sonra şuraya dönersiniz:",
+  "Scrim doesn't check the names apps give themselves. Only connect if you just added Scrim in this app yourself.": "Scrim uygulamaların kendilerine verdiği adları kontrol etmez. Yalnızca Scrim'i bu uygulamaya az önce kendiniz eklediyseniz bağlayın.",
 };
 export default messages;

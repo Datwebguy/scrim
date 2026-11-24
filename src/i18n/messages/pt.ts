@@ -490,5 +490,8 @@ const messages: Record<string, string> = {
   "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "Guarde como uma senha. Quem tiver a chave pode ver seu saldo e atividade e preparar pagamentos, mas nada se move até você confirmar no Scrim. Remova abaixo quando quiser.",
   "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} preencheu isto para você. Confira cada detalhe, veja o preço e confirme. Nada se move até você fazer isso.",
   "A link filled this in, and Scrim didn't make it. Check who gets paid and how much before you confirm.": "Um link preencheu isto, e não foi o Scrim que o criou. Confira quem recebe e quanto antes de confirmar.",
+  "This app calls itself {name}, but it sends you back to {host}, which isn't {name}'s address. Don't connect it unless you're sure.": "Este app se chama {name}, mas te leva de volta para {host}, que não é o endereço do {name}. Não conecte a menos que tenha certeza.",
+  "After you connect, you go back to": "Depois de conectar, você volta para",
+  "Scrim doesn't check the names apps give themselves. Only connect if you just added Scrim in this app yourself.": "O Scrim não verifica os nomes que os apps dão a si mesmos. Só conecte se você mesmo acabou de adicionar o Scrim neste app.",
 };
 export default messages;

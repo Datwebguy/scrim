@@ -7,7 +7,10 @@ import { CopyField } from "./money";
 import { Spinner, useToast } from "./ui";
 
 type Connector = { id: string; name: string; kind: "app" | "key"; connectedAt: string; expiresAt: string };
-type Request = { name: string; params: Record<string, string | undefined>; denyUrl: string };
+type Request = { name: string; params: Record<string, string | undefined>; denyUrl: string; returnsTo: string; suspicious: boolean };
+
+// Only ever send the browser to a web address, never a script.
+const safeUrl = (u: string) => { try { return ["https:", "http:"].includes(new URL(u).protocol) ? u : null; } catch { return null; } };
 
 const CAN = ["See your private balance and recent activity", "Look up coins and price swaps", "Get an address to add money", "Prepare swaps, sends and withdrawals for you to approve"];
 
@@ -29,7 +32,9 @@ export function ConnectAI({ mcpUrl, accountId, unlocked, request, problem }: { m
     setBusy(true);
     try {
       const r = await api<{ redirect: string }>("/connectors/authorize", { body: request.params });
-      window.location.assign(r.redirect);
+      const to = safeUrl(r.redirect);
+      if (!to) throw new Error(t("That didn't work. Try again."));
+      window.location.assign(to);
     } catch (e) {
       toast(e instanceof Error ? e.message : t("That didn't work. Try again."), "error");
       setBusy(false);
@@ -75,13 +80,15 @@ export function ConnectAI({ mcpUrl, accountId, unlocked, request, problem }: { m
       {request && (
         <section className="card card-pad form-grid" style={{ marginTop: 16 }}>
           <h2>{t("Connect {name}?", { name: request.name })}</h2>
+          {request.suspicious && <div className="notice danger">{t("This app calls itself {name}, but it sends you back to {host}, which isn't {name}'s address. Don't connect it unless you're sure.", { name: request.name, host: request.returnsTo })}</div>}
+          <p className="muted">{t("After you connect, you go back to")} <b style={{ overflowWrap: "anywhere" }}>{request.returnsTo}</b>. {t("Scrim doesn't check the names apps give themselves. Only connect if you just added Scrim in this app yourself.")}</p>
           <p className="muted">{t("It will use your account")} <b style={{ overflowWrap: "anywhere" }}>{accountId}</b>. {t("It can:")}</p>
           <ul>{CAN.map((c) => <li key={c}>{t(c)}</li>)}</ul>
           <p className="muted">{t("It can't move money by itself. Every swap, send or withdrawal it prepares opens in Scrim, and nothing moves until you confirm it with your wallet.")}</p>
           {lockedNote}
           <div className="row" style={{ gap: 8 }}>
             <button className="btn btn-signal btn-lg" onClick={allow} disabled={busy}>{busy && <Spinner />} {t("Connect")}</button>
-            <a className="btn btn-ghost btn-lg" href={request.denyUrl}>{t("Cancel")}</a>
+            <a className="btn btn-ghost btn-lg" href={safeUrl(request.denyUrl) ?? "/app"}>{t("Cancel")}</a>
           </div>
         </section>
       )}

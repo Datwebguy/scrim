@@ -490,5 +490,8 @@ const messages: Record<string, string> = {
   "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "Simpan seperti kata sandi. Siapa pun yang memilikinya bisa melihat saldo dan aktivitas Anda dan menyiapkan pembayaran, tapi tidak ada yang bergerak sampai Anda mengonfirmasi di Scrim. Hapus di bawah kapan saja.",
   "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} mengisi ini untuk Anda. Periksa setiap detail, lalu lihat harga dan konfirmasi. Tidak ada yang bergerak sampai Anda melakukannya.",
   "A link filled this in, and Scrim didn't make it. Check who gets paid and how much before you confirm.": "Sebuah tautan mengisi ini, dan bukan Scrim yang membuatnya. Periksa siapa yang dibayar dan berapa sebelum mengonfirmasi.",
+  "This app calls itself {name}, but it sends you back to {host}, which isn't {name}'s address. Don't connect it unless you're sure.": "Aplikasi ini menyebut dirinya {name}, tapi mengembalikan Anda ke {host}, yang bukan alamat {name}. Jangan hubungkan kecuali Anda yakin.",
+  "After you connect, you go back to": "Setelah terhubung, Anda kembali ke",
+  "Scrim doesn't check the names apps give themselves. Only connect if you just added Scrim in this app yourself.": "Scrim tidak memeriksa nama yang diberikan aplikasi untuk dirinya. Hubungkan hanya jika Anda sendiri baru saja menambahkan Scrim di aplikasi ini.",
 };
 export default messages;

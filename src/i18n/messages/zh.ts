@@ -490,5 +490,8 @@ const messages: Record<string, string> = {
   "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "像密码一样保管。持有者可查看你的余额和活动并准备付款，但在你于 Scrim 中确认之前不会动用资金。可随时在下方删除。",
   "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} 已替你填好。请核对每个细节，再查看价格并确认。在你确认之前不会动用资金。",
   "A link filled this in, and Scrim didn't make it. Check who gets paid and how much before you confirm.": "这是由一个链接填写的，且不是 Scrim 生成的。确认前请核对收款人和金额。",
+  "This app calls itself {name}, but it sends you back to {host}, which isn't {name}'s address. Don't connect it unless you're sure.": "这个应用自称 {name}，但会把你送回 {host}，这不是 {name} 的地址。除非你确定，否则不要连接。",
+  "After you connect, you go back to": "连接后，你将返回",
+  "Scrim doesn't check the names apps give themselves. Only connect if you just added Scrim in this app yourself.": "Scrim 不核实应用给自己起的名字。只有在你刚刚亲自在该应用中添加了 Scrim 时才连接。",
 };
 export default messages;

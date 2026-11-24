@@ -44,3 +44,15 @@ describe("approval links from AI apps", () => {
     expect(verifiedApp("me.near", params)).toBeNull();
   });
 });
+
+describe("spotting an app that pretends to be another", () => {
+  it("flags a known name that returns somewhere else", async () => {
+    const { looksImpersonated } = await import("../src/protocol/oauth");
+    expect(looksImpersonated("Claude", "https://claude.ai/api/mcp/auth_callback")).toBe(false);
+    expect(looksImpersonated("Claude Code", "http://localhost:33418/callback")).toBe(false);
+    expect(looksImpersonated("ChatGPT", "https://chatgpt.com/connector_platform_oauth_redirect")).toBe(false);
+    expect(looksImpersonated("Claude", "https://claude-ai.evil.example/cb")).toBe(true);
+    expect(looksImpersonated("ChatGPT", "https://openai.com.evil.example/cb")).toBe(true);
+    expect(looksImpersonated("My bot", "https://bot.example/cb")).toBe(false);
+  });
+});

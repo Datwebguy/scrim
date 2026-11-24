@@ -34,3 +34,26 @@ export function redirectWith(uri: string, params: Record<string, string | undefi
   for (const [k, v] of Object.entries(params)) if (v !== undefined && v !== "") url.searchParams.set(k, v);
   return url.toString();
 }
+
+// Known AI apps and where they send people back. A registered name that claims one of these but returns
+// somewhere else is flagged on the consent screen. Apps on the person's own machine (Claude Code, Codex,
+// Cursor, VS Code) return to localhost.
+const KNOWN: [RegExp, string[]][] = [
+  [/claude|anthropic/i, ["claude.ai", "claude.com", "anthropic.com"]],
+  [/chat\s*gpt|openai|codex/i, ["chatgpt.com", "openai.com"]],
+  [/cursor/i, ["cursor.com", "cursor.sh"]],
+  [/grok|x\.ai|xai/i, ["x.ai", "grok.com"]],
+  [/gemini|google/i, ["google.com", "gemini.google.com"]],
+];
+
+export function returnHost(uri: string): string {
+  return new URL(uri).host;
+}
+
+// True when the name looks like a known app but the sign-in goes back somewhere that app doesn't use.
+export function looksImpersonated(name: string, uri: string): boolean {
+  const url = new URL(uri);
+  if (LOOPBACK.has(url.hostname)) return false;
+  const host = url.hostname.toLowerCase();
+  return KNOWN.some(([pattern, hosts]) => pattern.test(name) && !hosts.some((h) => host === h || host.endsWith(`.${h}`)));
+}

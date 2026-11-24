@@ -31,6 +31,10 @@ A prepared payment waits in Scrim (its link, or Home under Waiting for your appr
 | `scrim-get-started` | What the connection can do and what to do when a tool is blocked |
 | `scrim-pay-and-swap` | Which tool to use, and handing the person the link to confirm |
 
+## Agents that pay by themselves
+
+For bots and scripts that pay often, give an agent its own OutLayer wallet with spending limits: in Scrim, Accounts, an account, Agents, New agent. Steps are at [scrim.exchange/ai](https://scrim.exchange/ai#let-an-agent-pay-by-itself).
+
 ## Disconnect
 
 In Scrim, open your account, then Connected apps, then Disconnect.

@@ -1,19 +1,19 @@
 // Tools for an AI app connected to a person's own Scrim account (see connectors.ts).
 // Reads (balance, activity, coins, prices, deposit address) and prepares swaps, sends and withdrawals.
-// Nothing here can move money: a prepared payment is a link to Scrim's own screen, which the person confirms.
+// Nothing here can move money: a prepared payment is a request the person confirms on Scrim's own screen.
 import { formatAmount } from "@/protocol/amount";
 import type { Session } from "./auth";
 import { catalog } from "./assets";
 import { overview } from "./balances";
 import { HttpError } from "./errors";
 import { privateStatus, sharePrivateAccess } from "./private-access";
-import { signApproval } from "./approval-links";
+import { aiRequestForApp, createAiRequest, type AiRequestDetails, type AiRequestKind } from "./ai-requests";
 import { config } from "./config";
 import { sql } from "./db";
 import { createTransfer, listTransfers, preview } from "./transfers";
 
 export const PERSONAL_INSTRUCTIONS =
-  "This is the person's own Scrim account: private money on NEAR. Call get_account first. You can read the private balance and activity, find coins, price swaps and get a deposit address. To swap, send or withdraw, call prepare_swap, prepare_send or prepare_withdraw: each checks the price and returns an approval_url. Give the person that link: they check it in Scrim and confirm with their own wallet. Nothing moves until they do, and you can't confirm for them. Never ask for a seed phrase or private key.";
+  "This is the person's own Scrim account: private money on NEAR. Call get_account first. You can read the private balance and activity, find coins, price swaps and get a deposit address. To swap, send or withdraw, call prepare_swap, prepare_send or prepare_withdraw: each checks the price and files a request in Scrim, returning a request_id and an approval_url. Give the person the link; they review it in Scrim and confirm with their own wallet. Nothing moves until they do, and you can't confirm for them. Follow it with get_request. Never ask for a seed phrase or private key.";
 
 const LOCKED =
   "The private balance is locked. Ask the person to open scrim.exchange/app and tap Unlock, then try again.";
@@ -69,6 +69,13 @@ export const PERSONAL_TOOLS = [
     annotations: { readOnlyHint: true },
   },
   {
+    name: "get_request",
+    title: "Check a prepared payment",
+    description: "Where a swap, send or withdrawal prepared with a prepare_ tool stands: waiting_for_you (the person hasn't confirmed yet), in_progress, done, failed, declined or expired.",
+    inputSchema: { type: "object", properties: { request_id: { type: "string", description: "The request_id a prepare_ tool returned." } }, required: ["request_id"], additionalProperties: false },
+    annotations: { readOnlyHint: true },
+  },
+  {
     name: "get_deposit_address",
     title: "Address to add money",
     description: "A deposit address for adding money to the private balance from another chain, for example USDC on Base or SOL on Solana. Anything sent there arrives in the person's private balance. Get the asset_id (the coin on the chain it is sent from) from find_coin.",
@@ -78,7 +85,7 @@ export const PERSONAL_TOOLS = [
   {
     name: "prepare_swap",
     title: "Swap (needs approval)",
-    description: "Prepares a private swap inside the person's balance and returns its price and an approval_url. The person opens the link, checks it in Scrim and confirms with their wallet. Nothing moves until they do.",
+    description: "Prepares a private swap inside the person's balance and returns its price, a request_id and an approval_url. The person opens the link, checks it in Scrim and confirms with their wallet. Nothing moves until they do.",
     inputSchema: {
       type: "object",
       properties: {
@@ -94,7 +101,7 @@ export const PERSONAL_TOOLS = [
   {
     name: "prepare_send",
     title: "Send to a NEAR account (needs approval)",
-    description: "Prepares a payment from the private balance to a NEAR account (like ada.near) and returns its price and an approval_url. A .near name is paid privately. A 64 character NEAR address, which exchanges use, is paid out on the blockchain so it arrives there. For addresses on other chains, use prepare_withdraw. Nothing moves until the person confirms.",
+    description: "Prepares a payment from the private balance to a NEAR account (like ada.near) and returns its price, a request_id and an approval_url. A .near name is paid privately. A 64 character NEAR address, which exchanges use, is paid out on the blockchain so it arrives there. For addresses on other chains, use prepare_withdraw. Nothing moves until the person confirms.",
     inputSchema: {
       type: "object",
       properties: {
@@ -111,7 +118,7 @@ export const PERSONAL_TOOLS = [
   {
     name: "prepare_withdraw",
     title: "Withdraw to any address (needs approval)",
-    description: "Prepares a payout from the private balance to an address on any chain (for example USDC to a Base address, or SOL to a Solana address) and returns its price and an approval_url. The payout is public on that chain. Nothing moves until the person confirms.",
+    description: "Prepares a payout from the private balance to an address on any chain (for example USDC to a Base address, or SOL to a Solana address) and returns its price, a request_id and an approval_url. The payout is public on that chain. Nothing moves until the person confirms.",
     inputSchema: {
       type: "object",
       properties: {
@@ -146,11 +153,10 @@ async function appName(clientId: string | undefined) {
   return row?.name ?? "Your AI app";
 }
 
-// The Send or Swap screen, filled in. The person checks it and confirms with their wallet there.
-function approvalUrl(session: Session, page: "send" | "swap", app: string, params: Record<string, string | undefined>) {
-  const q = new URLSearchParams();
-  for (const [k, v] of Object.entries(signApproval(session.accountId, page, { ai: app, ...params }))) if (v) q.set(k, v);
-  return `${config.siteUrl}/app/${page}?${q}`;
+// Files the request in Scrim. The person reviews it there (a link, or the waiting list on Home) and confirms with their wallet.
+async function fileRequest(session: Session & { clientId?: string }, kind: AiRequestKind, details: AiRequestDetails, price: { you_pay: string; they_get: string }) {
+  const id = await createAiRequest(session, { clientId: session.clientId, name: await appName(session.clientId) }, kind, details);
+  return { request_id: id, approval_url: `${config.siteUrl}/app/approve/${id}`, state: "waiting_for_you", next: NEEDS_YOU, ...price };
 }
 
 async function priced(session: Session, input: Parameters<typeof preview>[1]) {
@@ -166,7 +172,7 @@ async function priced(session: Session, input: Parameters<typeof preview>[1]) {
   };
 }
 
-const NEEDS_YOU = "Give the person this link. They check it in Scrim and confirm with their wallet. Nothing moves until they do. The final price is set when they confirm.";
+const NEEDS_YOU = "Waiting for the person. They review it in Scrim (this link, or Home) and confirm with their wallet; the final price is set then. Check it with get_request; don't prepare it again.";
 
 export async function callPersonalTool(session: Session & { clientId?: string }, name: string, args: Record<string, unknown>): Promise<unknown | undefined> {
   const text = (key: string) => String(args[key] ?? "").trim();
@@ -188,7 +194,7 @@ export async function callPersonalTool(session: Session & { clientId?: string },
       if ((await ensureAccess(session)) !== "active") return { error: LOCKED };
       const input = { fromAssetId: text("from_asset_id"), toAssetId: text("to_asset_id"), amount: text("amount") };
       const price = await priced(session, { kind: "swap", ...input, privacy: "private" });
-      return { ...price, approval_url: approvalUrl(session, "swap", await appName(session.clientId), { mode: "swap", from: input.fromAssetId, to: input.toAssetId, amount: input.amount }), next: NEEDS_YOU };
+      return { ...await fileRequest(session, "swap", { mode: "swap", from: input.fromAssetId, to: input.toAssetId, amount: input.amount, summary: `Swap ${price.you_pay} for ${price.they_get}` }, price), fee_usd: price.fee_usd, enough_balance: price.enough_balance };
     }
     case "prepare_send": {
       if ((await ensureAccess(session)) !== "active") return { error: LOCKED };
@@ -197,14 +203,16 @@ export async function callPersonalTool(session: Session & { clientId?: string },
       // A 64 hex NEAR address (wallets, exchanges) is paid out on chain so it arrives; a .near name stays private.
       const onChain = /^[0-9a-f]{64}$/.test(to);
       const price = await priced(session, { kind: onChain ? "withdraw" : "send", fromAssetId: asset, toAssetId: asset, amount: text("amount"), recipient: to, note: text("note") || undefined, privacy: "private" });
-      return { ...price, private: !onChain, approval_url: approvalUrl(session, "send", await appName(session.clientId), { mode: "person", from: asset, amount: text("amount"), recipient: to, note: text("note") || undefined }), next: NEEDS_YOU };
+      return { ...await fileRequest(session, "send", { mode: "person", from: asset, amount: text("amount"), recipient: to, note: text("note") || undefined, summary: `Send ${price.they_get} to ${to}` }, price), fee_usd: price.fee_usd, enough_balance: price.enough_balance, private: !onChain };
     }
     case "prepare_withdraw": {
       if ((await ensureAccess(session)) !== "active") return { error: LOCKED };
       const input = { fromAssetId: text("from_asset_id"), toAssetId: text("to_asset_id"), amount: text("amount"), recipient: text("to_address") };
       const price = await priced(session, { kind: "withdraw", ...input, privacy: "private" });
-      return { ...price, public_on_chain: true, approval_url: approvalUrl(session, "send", await appName(session.clientId), { mode: "address", from: input.fromAssetId, to: input.toAssetId, amount: input.amount, recipient: input.recipient }), next: NEEDS_YOU };
+      return { ...await fileRequest(session, "withdraw", { mode: "address", from: input.fromAssetId, to: input.toAssetId, amount: input.amount, recipient: input.recipient, summary: `Pay ${price.they_get} to ${input.recipient}` }, price), fee_usd: price.fee_usd, enough_balance: price.enough_balance, public_on_chain: true };
     }
+    case "get_request":
+      return await aiRequestForApp(session, text("request_id"));
     case "get_account": {
       const status = await ensureAccess(session);
       return {

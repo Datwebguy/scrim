@@ -25,7 +25,10 @@ const NEAR_RESERVE = 2n * 10n ** 22n; // 0.02 NEAR: token registration (0.00125)
 const spendable = (h: WalletHolding) => (h.id === "near" ? (BigInt(h.amount) > NEAR_RESERVE ? BigInt(h.amount) - NEAR_RESERVE : 0n) : BigInt(h.amount));
 const TERMINAL = new Set(["success", "refunded", "failed", "expired", "cancelled"]);
 
-export function SendSwap({ initial, aiApp = null }: { initial: Mode; aiApp?: string | null }) {
+// A payment an AI app prepared (see ai-requests.ts): the screen opens filled in, and the person confirms or declines.
+export type AiRequestProp = { id: string; app: string; details: { mode: Mode; from: string; to?: string; amount: string; recipient?: string; note?: string } };
+
+export function SendSwap({ initial, aiRequest = null }: { initial: Mode; aiRequest?: AiRequestProp | null }) {
   const t = useT();
   const { accountId, network } = useSession();
   const toast = useToast();
@@ -93,24 +96,22 @@ export function SendSwap({ initial, aiApp = null }: { initial: Mode; aiApp?: str
     setToId(intentsId(fromId));
     setError("");
   }
-  // An approval link from a connected AI app (see mcp-personal.ts): fill the form in, the person checks and confirms.
-  const [fromAi, setFromAi] = useState("");
-  const [fromLink, setFromLink] = useState(false);
+  const [declined, setDeclined] = useState(false);
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const q = new URLSearchParams(window.location.search);
-    if (!q.get("ai")) return;
-    const m = q.get("mode");
-    if (m === "swap" || m === "person" || m === "address") setMode(m);
+    if (!aiRequest) return;
+    const d = aiRequest.details;
+    setMode(d.mode);
     setSource("private");
-    setFromId(q.get("from") ?? "");
-    setToId(q.get("to") ?? "");
-    setAmount(q.get("amount") ?? "");
-    setRecipient(q.get("recipient") ?? "");
-    setNote(q.get("note") ?? "");
-    setFromAi(aiApp ?? "");
-    setFromLink(true);
-  }, [aiApp]);
+    setFromId(d.from);
+    setToId(d.to ?? "");
+    setAmount(d.amount);
+    setRecipient(d.recipient ?? "");
+    setNote(d.note ?? "");
+  }, [aiRequest]);
+  async function decline() {
+    if (!aiRequest) return;
+    try { await api(`/ai-requests/${aiRequest.id}/decline`, { method: "POST" }); setDeclined(true); window.location.assign("/app"); } catch (e) { setError(e instanceof Error ? e.message : t("That didn't work. Try again.")); }
+  }
 
   // "Move to my wallet" from Home: To any address, to this account's own NEAR wallet.
   useEffect(() => {
@@ -126,7 +127,7 @@ export function SendSwap({ initial, aiApp = null }: { initial: Mode; aiApp?: str
       if (blockedPrivateSend) throw new Error(t("This is an address on another network. Choose its network under To any address."));
       if (direct) return await sendDirect();
       if (wrapping) return await wrapOrUnwrap();
-      const body = { kind: payOutOnChain ? "withdraw" : kind, fromAssetId: intentsId(fromId), toAssetId: intentsId(mode === "person" ? fromId : toId), amount, recipient, note, privacy: fromWallet ? "public" : "private" };
+      const body = { aiRequestId: aiRequest?.id, kind: payOutOnChain ? "withdraw" : kind, fromAssetId: intentsId(fromId), toAssetId: intentsId(mode === "person" ? fromId : toId), amount, recipient, note, privacy: fromWallet ? "public" : "private" };
       setTransfer((await api<{ transfer: TransferView }>("/transfers", { body })).transfer);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not get a price.");
@@ -250,9 +251,9 @@ export function SendSwap({ initial, aiApp = null }: { initial: Mode; aiApp?: str
 
       {!fromWallet && priv && priv.status !== "active" && <div className="notice">{t("Unlock your private balance on the")} <Link href="/app">{t("home screen")}</Link> first.</div>}
       {fromWallet && pub && holdings.length === 0 && <div className="notice">{t("Your wallet holds no coins on NEAR yet.")}</div>}
-      {fromLink && !transfer && (fromAi
-        ? <div className="notice">{t("{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.", { app: fromAi })}</div>
-        : <div className="notice danger">{t("A link filled this in, and Scrim didn't make it. Check who gets paid and how much before you confirm.")}</div>)}
+      {aiRequest && !transfer && (declined
+        ? <div className="notice">{t("Declined. Nothing was sent.")} <Link href="/app">{t("Home")}</Link></div>
+        : <div className="notice between">{t("{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.", { app: aiRequest.app })} <button type="button" className="btn btn-ghost" onClick={decline}>{t("Decline")}</button></div>)}
       {!fromWallet && priv?.status === "active" && holdings.length === 0 && <div className="notice">{t("Your private balance is empty.")} <Link href="/app/add">{t("Add money")}</Link> to get started.</div>}
 
       {!transfer ? (

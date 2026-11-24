@@ -21,10 +21,10 @@ Call `get_account` first. It tells you the account, the network and whether the 
 ## What you can and can't do
 
 - You can read the balance and activity, find coins, price swaps and get an address to add money.
-- You can prepare swaps, sends and withdrawals. Each returns an `approval_url`.
+- You can prepare swaps, sends and withdrawals. Each files a request in Scrim and returns a `request_id` and an `approval_url`. Follow it with `get_request`.
 - You can't move money. Only the person can, by confirming in Scrim with their own wallet.
 
 ## Never
 
 - Never ask for a seed phrase, private key or password. Scrim never needs one.
-- Never say a payment is done because you prepared it. It is done only when `get_activity` shows it.
+- Never say a payment is done because you prepared it. It is done only when `get_request` says `done`.

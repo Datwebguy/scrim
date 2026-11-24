@@ -93,6 +93,18 @@ export async function signedTransaction(network: Network, accountId: string, pub
 }
 
 // Sends a signed transaction and waits until it has run. The answer has the same shape a wallet app gives back.
+// NEAR's RPC answers "Server error" for every refused transaction and puts the reason in the details: say it plainly.
+export function refusal(error: { message?: string; data?: unknown; cause?: { name?: string; info?: unknown } } | undefined): string {
+  const text = JSON.stringify(error ?? {});
+  if (/NotEnoughBalance|LackBalanceForState|BalanceMismatch/.test(text)) return "the wallet doesn't hold enough NEAR for this and its network fee";
+  if (/InvalidNonce|NonceTooLarge/.test(text)) return "another payment from this wallet went first. Try again";
+  if (/Expired/.test(text)) return "it took too long. Try again";
+  if (/TIMEOUT/i.test(text)) return "the network didn't answer in time. Check Activity before trying again";
+  if (/InvalidSignature|InvalidAccessKey|AccessKeyNotFound/.test(text)) return "the wallet's key was refused";
+  const name = error?.cause?.name;
+  return name ? `${error?.message ?? "error"} (${name})` : error?.message ?? "no answer";
+}
+
 export async function broadcast(network: Network, signed: Uint8Array): Promise<unknown> {
   const response = await fetch(endpoints(network).rpcUrl, {
     method: "POST",
@@ -100,7 +112,10 @@ export async function broadcast(network: Network, signed: Uint8Array): Promise<u
     body: JSON.stringify({ jsonrpc: "2.0", id: "scrim", method: "send_tx", params: { signed_tx_base64: Buffer.from(signed).toString("base64"), wait_until: "EXECUTED" } }),
     signal: AbortSignal.timeout(30_000),
   });
-  const answer = (await response.json()) as { result?: unknown; error?: { message?: string; data?: unknown } };
-  if (!answer.result) throw badRequest(`The network didn't take it: ${answer.error?.message ?? "no answer"}. Nothing was moved.`);
+  const answer = (await response.json()) as { result?: unknown; error?: { message?: string; data?: unknown; cause?: { name?: string; info?: unknown } } };
+  if (!answer.result) {
+    console.error("[email-send] the network refused a transaction", JSON.stringify({ cause: answer.error?.cause, data: answer.error?.data }).slice(0, 2000));
+    throw badRequest(`The network didn't take it: ${refusal(answer.error)}. Nothing was moved.`);
+  }
   return answer.result;
 }

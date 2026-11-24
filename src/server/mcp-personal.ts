@@ -10,7 +10,18 @@ import { privateStatus, sharePrivateAccess } from "./private-access";
 import { aiRequestForApp, createAiRequest, type AiRequestDetails, type AiRequestKind } from "./ai-requests";
 import { config } from "./config";
 import { sql } from "./db";
+import { accountExists, publicHoldings } from "./holdings";
+import { createPayLink, listPayLinks } from "./paylinks";
 import { createTransfer, listTransfers, preview } from "./transfers";
+
+// The NEAR wallet's coins, named the way Scrim's Send and Swap screens name them.
+const NATIVE = "native:near";
+const WNEAR = "nep141:wrap.near";
+const walletId = (id: string) => (id === "near" ? NATIVE : `nep141:${id}`);
+const intentsId = (id: string) => (id === NATIVE ? WNEAR : id);
+function positive(amount: string) {
+  if (!/^\d+(\.\d+)?$/.test(amount) || Number(amount) <= 0) throw new HttpError(400, "invalid_request", "Enter an amount greater than zero, like \"5\" or \"0.5\".");
+}
 
 export const PERSONAL_INSTRUCTIONS =
   "This is the person's own Scrim account: private money on NEAR. Call get_account first. You can read the private balance and activity, find coins, price swaps and get a deposit address. To swap, send or withdraw, call prepare_swap, prepare_send or prepare_withdraw: each checks the price and files a request in Scrim, returning a request_id and an approval_url. Give the person the link; they review it in Scrim and confirm with their own wallet. Nothing moves until they do, and you can't confirm for them. Follow it with get_request. Never ask for a seed phrase or private key.";
@@ -78,20 +89,29 @@ export const PERSONAL_TOOLS = [
   {
     name: "get_deposit_address",
     title: "Address to add money",
-    description: "A deposit address for adding money to the private balance from another chain, for example USDC on Base or SOL on Solana. Anything sent there arrives in the person's private balance. Get the asset_id (the coin on the chain it is sent from) from find_coin.",
-    inputSchema: { type: "object", properties: { asset_id: { type: "string", description: "The coin and chain the money is sent from." } }, required: ["asset_id"], additionalProperties: false },
+    description: "A deposit address for adding money from another chain, for example USDC on Base or SOL on Solana. Anything sent there arrives in the person's private balance, or with into: \"wallet\" in their NEAR wallet. Get the asset_id (the coin on the chain it is sent from) from find_coin.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        asset_id: { type: "string", description: "The coin and chain the money is sent from." },
+        into: { type: "string", enum: ["private", "wallet"], description: "Optional. \"wallet\" lands it in the NEAR wallet, in public (a coin from another chain). Default: the private balance." },
+      },
+      required: ["asset_id"],
+      additionalProperties: false,
+    },
     annotations: { readOnlyHint: false, destructiveHint: false },
   },
   {
     name: "prepare_swap",
     title: "Swap (needs approval)",
-    description: "Prepares a private swap inside the person's balance and returns its price, a request_id and an approval_url. The person opens the link, checks it in Scrim and confirms with their wallet. Nothing moves until they do.",
+    description: "Prepares a swap, private inside the person's balance by default, or from their NEAR wallet with from_wallet. NEAR to wNEAR (or back) from the wallet is a wrap, one to one. Returns its price, a request_id and an approval_url. The person opens the link, checks it in Scrim and confirms with their wallet. Nothing moves until they do.",
     inputSchema: {
       type: "object",
       properties: {
         from_asset_id: { type: "string", description: "The coin to pay with, from get_balance." },
         to_asset_id: { type: "string", description: "The coin to get, from find_coin." },
         amount: { type: "string", description: "How much to pay, in whole coins." },
+        from_wallet: { type: "boolean", description: "Optional. true pays from the NEAR wallet, in public (asset_ids from get_wallet). Default: the private balance." },
       },
       required: ["from_asset_id", "to_asset_id", "amount"],
       additionalProperties: false,
@@ -101,7 +121,7 @@ export const PERSONAL_TOOLS = [
   {
     name: "prepare_send",
     title: "Send to a NEAR account (needs approval)",
-    description: "Prepares a payment from the private balance to a NEAR account (like ada.near) and returns its price, a request_id and an approval_url. A .near name is paid privately. A 64 character NEAR address, which exchanges use, is paid out on the blockchain so it arrives there. For addresses on other chains, use prepare_withdraw. Nothing moves until the person confirms.",
+    description: "Prepares a payment from the private balance (or the NEAR wallet, with from_wallet) to a NEAR account (like ada.near) and returns its price, a request_id and an approval_url. A .near name is paid privately. A 64 character NEAR address, which exchanges use, is paid out on the blockchain so it arrives there. For addresses on other chains, use prepare_withdraw. Nothing moves until the person confirms.",
     inputSchema: {
       type: "object",
       properties: {
@@ -109,6 +129,7 @@ export const PERSONAL_TOOLS = [
         amount: { type: "string", description: "How much they get, in whole coins." },
         to: { type: "string", description: "The NEAR account or 64 character NEAR address." },
         note: { type: "string", description: "Optional, up to 140 characters. Only the person sees it." },
+        from_wallet: { type: "boolean", description: "Optional. true pays from the NEAR wallet, in public (asset_ids from get_wallet). Default: the private balance." },
       },
       required: ["asset_id", "amount", "to"],
       additionalProperties: false,
@@ -118,7 +139,7 @@ export const PERSONAL_TOOLS = [
   {
     name: "prepare_withdraw",
     title: "Withdraw to any address (needs approval)",
-    description: "Prepares a payout from the private balance to an address on any chain (for example USDC to a Base address, or SOL to a Solana address) and returns its price, a request_id and an approval_url. The payout is public on that chain. Nothing moves until the person confirms.",
+    description: "Prepares a payout from the private balance (or the NEAR wallet, with from_wallet) to an address on any chain (for example USDC to a Base address, or SOL to a Solana address) and returns its price, a request_id and an approval_url. The payout is public on that chain. Nothing moves until the person confirms.",
     inputSchema: {
       type: "object",
       properties: {
@@ -126,11 +147,44 @@ export const PERSONAL_TOOLS = [
         to_asset_id: { type: "string", description: "The coin and chain they receive, from find_coin." },
         amount: { type: "string", description: "How much they receive, in whole coins." },
         to_address: { type: "string", description: "The address on that chain." },
+        from_wallet: { type: "boolean", description: "Optional. true pays from the NEAR wallet, in public (asset_ids from get_wallet). Default: the private balance." },
       },
       required: ["from_asset_id", "to_asset_id", "amount", "to_address"],
       additionalProperties: false,
     },
     annotations: { readOnlyHint: false, destructiveHint: false },
+  },
+  {
+    name: "get_wallet",
+    title: "NEAR wallet",
+    description: "What the person's NEAR wallet holds. Unlike the private balance, the wallet is public on the blockchain. Its asset_ids are what the prepare_ tools take with from_wallet.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    annotations: { readOnlyHint: true },
+  },
+  {
+    name: "create_payment_link",
+    title: "Get paid: make a payment link",
+    description: "Makes a link that asks for a set amount. Whoever has it can pay from any chain; it lands in the person's private balance, or with receive: \"wallet\" (coins on NEAR only) in their NEAR wallet. Making a link moves no money.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        asset_id: { type: "string", description: "The coin to be paid in, from find_coin, for example USDC on NEAR." },
+        amount: { type: "string", description: "How much, in whole coins." },
+        note: { type: "string", description: "Optional, up to 140 characters, shown to the payer." },
+        receive: { type: "string", enum: ["private", "wallet"], description: "Optional. Where it lands. Default: private." },
+        days: { type: "integer", enum: [1, 7, 30], description: "Optional. How long it stays open. Default 7." },
+      },
+      required: ["asset_id", "amount"],
+      additionalProperties: false,
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false },
+  },
+  {
+    name: "list_payment_links",
+    title: "My payment links",
+    description: "The person's recent payment links and whether each is open, paid, closed or expired.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    annotations: { readOnlyHint: true },
   },
 ];
 
@@ -178,8 +232,9 @@ export async function callPersonalTool(session: Session & { clientId?: string },
   const text = (key: string) => String(args[key] ?? "").trim();
   switch (name) {
     case "get_deposit_address": {
-      if ((await ensureAccess(session)) !== "active") return { error: LOCKED };
-      const t = await createTransfer(session, { kind: "add", fromAssetId: text("asset_id"), amount: "", privacy: "private" });
+      const intoWallet = args.into === "wallet";
+      if (!intoWallet && (await ensureAccess(session)) !== "active") return { error: LOCKED };
+      const t = await createTransfer(session, { kind: "add", fromAssetId: text("asset_id"), amount: "", privacy: intoWallet ? "public" : "private" });
       if (!t.deposit) return { error: "No deposit address for this coin right now. Try another chain." };
       return {
         send: `${t.fromAsset.symbol} on ${t.deposit.chainName}`,
@@ -187,29 +242,65 @@ export async function callPersonalTool(session: Session & { clientId?: string },
         memo: t.deposit.memo ?? undefined,
         minimum: t.deposit.minimum ? `${formatAmount(t.deposit.minimum, t.fromAsset.decimals, 2)} ${t.fromAsset.symbol}` : undefined,
         valid_until: t.expiresAt,
-        note: `Send only ${t.fromAsset.symbol} on ${t.deposit.chainName} to this address. It arrives in the private balance.`,
+        note: `Send only ${t.fromAsset.symbol} on ${t.deposit.chainName} to this address. It arrives in ${intoWallet ? `the NEAR wallet as ${t.toAsset.symbol}, in public` : "the private balance"}.`,
       };
     }
     case "prepare_swap": {
-      if ((await ensureAccess(session)) !== "active") return { error: LOCKED };
-      const input = { fromAssetId: text("from_asset_id"), toAssetId: text("to_asset_id"), amount: text("amount") };
-      const price = await priced(session, { kind: "swap", ...input, privacy: "private" });
-      return { ...await fileRequest(session, "swap", { mode: "swap", from: input.fromAssetId, to: input.toAssetId, amount: input.amount, summary: `Swap ${price.you_pay} for ${price.they_get}` }, price), fee_usd: price.fee_usd, enough_balance: price.enough_balance };
+      const wallet = args.from_wallet === true;
+      if (!wallet && (await ensureAccess(session)) !== "active") return { error: LOCKED };
+      const from = text("from_asset_id"), to = text("to_asset_id"), amount = text("amount");
+      // NEAR and wNEAR in the wallet: the wNEAR contract changes one for the other, one to one, with no swap.
+      if (wallet && [from, to].sort().join() === [NATIVE, WNEAR].sort().join()) {
+        positive(amount);
+        const what = from === NATIVE ? `Wrap ${amount} NEAR to wNEAR in your wallet` : `Unwrap ${amount} wNEAR to NEAR in your wallet`;
+        return await fileRequest(session, "swap", { mode: "swap", source: "wallet", from, to, amount, summary: what }, { you_pay: `${amount} ${from === NATIVE ? "NEAR" : "wNEAR"}`, they_get: `${amount} ${from === NATIVE ? "wNEAR" : "NEAR"}` });
+      }
+      const price = await priced(session, { kind: "swap", fromAssetId: intentsId(from), toAssetId: intentsId(to), amount, privacy: wallet ? "public" : "private" });
+      return { ...await fileRequest(session, "swap", { mode: "swap", source: wallet ? "wallet" : "private", from, to, amount, summary: `Swap ${price.you_pay} for ${price.they_get}${wallet ? " from your wallet" : ""}` }, price), fee_usd: price.fee_usd, enough_balance: price.enough_balance };
     }
     case "prepare_send": {
-      if ((await ensureAccess(session)) !== "active") return { error: LOCKED };
+      const wallet = args.from_wallet === true;
+      if (!wallet && (await ensureAccess(session)) !== "active") return { error: LOCKED };
       const to = text("to").toLowerCase();
       const asset = text("asset_id");
+      const amount = text("amount");
+      if (wallet) {
+        // From the wallet to a NEAR account is an ordinary transfer the wallet signs: no route, no fee from Scrim.
+        positive(amount);
+        if (to === session.accountId) return { error: "That's their own account." };
+        if (!/^[0-9a-f]{64}$/.test(to) && !(await accountExists(session.network, to))) return { error: `${to} doesn't exist on NEAR. Check the address.` };
+        const coin = (await publicHoldings(session.network, session.accountId)).find((h) => walletId(h.id) === asset);
+        if (!coin) return { error: "The wallet doesn't hold that coin. Call get_wallet for what it holds." };
+        const price = { you_pay: `${amount} ${coin.symbol} (NEAR)`, they_get: `${amount} ${coin.symbol} (NEAR)` };
+        return { ...await fileRequest(session, "send", { mode: "person", source: "wallet", from: asset, amount, recipient: to, summary: `Send ${amount} ${coin.symbol} from your wallet to ${to}` }, price), public_on_chain: true };
+      }
       // A 64 hex NEAR address (wallets, exchanges) is paid out on chain so it arrives; a .near name stays private.
       const onChain = /^[0-9a-f]{64}$/.test(to);
-      const price = await priced(session, { kind: onChain ? "withdraw" : "send", fromAssetId: asset, toAssetId: asset, amount: text("amount"), recipient: to, note: text("note") || undefined, privacy: "private" });
-      return { ...await fileRequest(session, "send", { mode: "person", from: asset, amount: text("amount"), recipient: to, note: text("note") || undefined, summary: `Send ${price.they_get} to ${to}` }, price), fee_usd: price.fee_usd, enough_balance: price.enough_balance, private: !onChain };
+      const price = await priced(session, { kind: onChain ? "withdraw" : "send", fromAssetId: asset, toAssetId: asset, amount, recipient: to, note: text("note") || undefined, privacy: "private" });
+      return { ...await fileRequest(session, "send", { mode: "person", from: asset, amount, recipient: to, note: text("note") || undefined, summary: `Send ${price.they_get} to ${to}` }, price), fee_usd: price.fee_usd, enough_balance: price.enough_balance, private: !onChain };
     }
     case "prepare_withdraw": {
-      if ((await ensureAccess(session)) !== "active") return { error: LOCKED };
-      const input = { fromAssetId: text("from_asset_id"), toAssetId: text("to_asset_id"), amount: text("amount"), recipient: text("to_address") };
-      const price = await priced(session, { kind: "withdraw", ...input, privacy: "private" });
-      return { ...await fileRequest(session, "withdraw", { mode: "address", from: input.fromAssetId, to: input.toAssetId, amount: input.amount, recipient: input.recipient, summary: `Pay ${price.they_get} to ${input.recipient}` }, price), fee_usd: price.fee_usd, enough_balance: price.enough_balance, public_on_chain: true };
+      const wallet = args.from_wallet === true;
+      if (!wallet && (await ensureAccess(session)) !== "active") return { error: LOCKED };
+      const from = text("from_asset_id"), input = { toAssetId: text("to_asset_id"), amount: text("amount"), recipient: text("to_address") };
+      const price = await priced(session, { kind: "withdraw", fromAssetId: intentsId(from), ...input, privacy: wallet ? "public" : "private" });
+      return { ...await fileRequest(session, "withdraw", { mode: "address", source: wallet ? "wallet" : "private", from, to: input.toAssetId, amount: input.amount, recipient: input.recipient, summary: `Pay ${price.they_get} to ${input.recipient}${wallet ? " from your wallet" : ""}` }, price), fee_usd: price.fee_usd, enough_balance: price.enough_balance, public_on_chain: true };
+    }
+    case "get_wallet": {
+      const holdings = await publicHoldings(session.network, session.accountId);
+      return {
+        account: session.accountId,
+        note: "The NEAR wallet is public on the blockchain. Use these asset_ids with from_wallet: true.",
+        holdings: holdings.filter((h) => BigInt(h.amount) > 0n || h.id === "near").map((h) => ({ symbol: h.symbol, amount: h.display, usd: h.usd === null ? null : Number(h.usd.toFixed(2)), asset_id: walletId(h.id) })),
+      };
+    }
+    case "create_payment_link": {
+      const link = await createPayLink(session, { assetId: text("asset_id"), amount: text("amount"), note: text("note") || undefined, days: Number(args.days ?? 7), receive: args.receive === "wallet" ? "wallet" : "private" });
+      return { link: `${config.siteUrl}/pay/${link.code}`, amount: `${link.display} ${link.symbol} (${link.chainName})`, lands_in: link.receive === "wallet" ? "the NEAR wallet, in public" : "the private balance", expires_at: link.expiresAt, note: "Share this link with whoever pays. They can pay from any chain." };
+    }
+    case "list_payment_links": {
+      const links = await listPayLinks(session);
+      return { links: links.slice(0, 20).map((l) => ({ link: `${config.siteUrl}/pay/${l.code}`, amount: `${l.display} ${l.symbol}`, note: l.note || undefined, status: l.status, expires_at: l.expiresAt })) };
     }
     case "get_request":
       return await aiRequestForApp(session, text("request_id"));

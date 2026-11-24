@@ -1,6 +1,6 @@
 // Payments an AI app prepares wait in Scrim until the person confirms, declines or they expire, PayBox style.
 import { beforeAll, describe, expect, it } from "vitest";
-import { aiRequestForApp, attachTransfer, createAiRequest, declineAiRequest, getAiRequest, waitingAiRequests } from "@/server/ai-requests";
+import { aiRequestForApp, attachTransfer, createAiRequest, declineAiRequest, getAiRequest, markSent, waitingAiRequests } from "@/server/ai-requests";
 import { sql } from "@/server/db";
 import { mainnetImplicitWallet, resetDatabase, signInAs } from "./live";
 
@@ -37,5 +37,16 @@ describe("payments an AI app prepares", () => {
     expect(await getAiRequest(me.session, id)).toMatchObject({ state: "expired" });
     expect(await waitingAiRequests(me.session)).toEqual([]);
     await expect(attachTransfer(me.session, id, "00000000-0000-0000-0000-000000000000")).rejects.toThrow(/expired/);
+  });
+});
+
+describe("payments made straight from the wallet", () => {
+  it("records the wallet's transaction and reads as done", async () => {
+    const me = await signInAs(mainnetImplicitWallet());
+    const id = await createAiRequest(me.session, { name: "Claude" }, "swap", { ...details, source: "wallet", from: "native:near", to: "nep141:wrap.near" });
+    await expect(markSent(me.session, id, "not a hash")).rejects.toThrow(/isn't a NEAR transaction/);
+    await markSent(me.session, id, "7Hq5mYyCzHAt3aVDZqP2Y6Ztzm8Lq9Zx3a1qzYb8Wb3K");
+    expect(await getAiRequest(me.session, id)).toMatchObject({ state: "done" });
+    await expect(markSent(me.session, id, "7Hq5mYyCzHAt3aVDZqP2Y6Ztzm8Lq9Zx3a1qzYb8Wb3K")).rejects.toThrow(/isn't waiting/);
   });
 });

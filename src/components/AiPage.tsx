@@ -13,8 +13,10 @@ const apps = (url: string): [string, React.ReactNode][] => [
 const TOOLS: [string, string][] = [
   ["See your money", "Your private balance, what each coin is worth, and your recent activity."],
   ["Find coins and prices", "Any coin Scrim can hold, memes included, and the price of a swap before you make it."],
-  ["Add money", "An address on another chain. Whatever you send there lands in your private balance."],
-  ["Prepare a swap, a send or a withdrawal", "Your AI fills in the payment and checks the price. It waits in Scrim for you."],
+  ["Add money", "An address on another chain. Whatever you send there lands in your private balance, or in your NEAR wallet if you ask."],
+  ["Prepare a swap, a send or a withdrawal", "Private from your balance, or public from your NEAR wallet. Your AI fills in the payment and checks the price. It waits in Scrim for you."],
+  ["Wrap and unwrap NEAR", "NEAR to wNEAR and back in your wallet, one to one."],
+  ["Get paid", "A payment link for a set amount that anyone can pay from any chain, landing privately or in your wallet."],
 ];
 
 // Public: what connecting an AI to Scrim does, how to connect each app, and how approving works.
@@ -53,7 +55,7 @@ export function AiPage({ mcpUrl }: { mcpUrl: string }) {
       <section className="doc-section">
         <h2>How approving works</h2>
         <ol>
-          <li>You ask your AI, for example: "Swap 20 USDC to NEAR" or "Send 5 USDC to ada.near".</li>
+          <li>You ask your AI, for example: "Swap 20 USDC to NEAR", "Send 5 USDC to ada.near" or "From my wallet, wrap 2 NEAR".</li>
           <li>It checks the price with NEAR Intents and files the payment in Scrim. It gives you a link.</li>
           <li>Open the link, or open Scrim: the payment waits on Home under Waiting for your approval.</li>
           <li>Scrim's own Send or Swap screen opens, filled in, with the app's name on it. Check who gets paid and how much, see the final price, and confirm with your wallet. Or decline.</li>
@@ -65,9 +67,9 @@ export function AiPage({ mcpUrl }: { mcpUrl: string }) {
       <section className="doc-section">
         <h2 id="add-money">Add money</h2>
         <ol>
-          <li>Ask your AI, for example: "Give me an address to add USDC from Base" or "Where do I send SOL to add it?"</li>
+          <li>Ask your AI, for example: "Give me an address to add USDC from Base" or "Give me an address to add SOL into my NEAR wallet".</li>
           <li>It gives you an address on that chain. Send only that coin, on that chain, to it.</li>
-          <li>It lands in your private balance, usually within minutes. Your AI can check with your balance or activity.</li>
+          <li>It lands in your private balance, or in your NEAR wallet if you asked for that, usually within minutes.</li>
         </ol>
         <p>You can do the same in Scrim under Add money. Nothing needs approving: money only comes in.</p>
       </section>
@@ -96,7 +98,8 @@ export function AiPage({ mcpUrl }: { mcpUrl: string }) {
       <section className="doc-section">
         <h2>Privacy</h2>
         <p>
-          Swaps and sends to a .near name stay inside your private balance. A send to a 64 character NEAR address, the kind wallets and exchanges
+          Payments your AI prepares come from your private balance unless you ask for your wallet. Payments from your NEAR wallet are public,
+          like any wallet payment. Swaps and sends to a .near name from the private balance stay private. A send to a 64 character NEAR address, the kind wallets and exchanges
           use, is paid out on the blockchain so it arrives there. A withdrawal to another chain is public on that chain. Your AI app sees what you
           ask it to read; Scrim doesn't read your chats.
         </p>

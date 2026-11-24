@@ -27,5 +27,5 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     return <div className="narrow"><div className="notice" style={{ marginTop: 16 }}>{t(ENDED[request.state])} <Link href="/app/activity">{t("Activity")}</Link></div></div>;
   }
   const d = request.details;
-  return <SendSwap initial={d.mode} aiRequest={{ id: request.id, app: request.app, details: { mode: d.mode, from: d.from, to: d.to, amount: d.amount, recipient: d.recipient, note: d.note } }} />;
+  return <SendSwap initial={d.mode} aiRequest={{ id: request.id, app: request.app, details: { mode: d.mode, source: d.source, from: d.from, to: d.to, amount: d.amount, recipient: d.recipient, note: d.note } }} />;
 }

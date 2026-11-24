@@ -28,10 +28,11 @@ Tools: `get_limits`, `check_payment`, `request_payment`, `find_paid_apis`, `pay_
 - *Agents that can't sign people in* use a `scrim_pk_` key (shown once, valid 90 days), made from the account panel under Connected apps, sent as `Authorization: Bearer scrim_pk_…`.
 - Connected apps and keys are listed under the account panel's Connected apps, where the person can disconnect them.
 
-Tools: `get_account`, `get_balance`, `get_activity`, `find_coin`, `quote_swap`, `get_request`, `get_deposit_address`, `prepare_swap`, `prepare_send`, `prepare_withdraw`. A guide for people is at `/ai`.
+Tools: `get_account`, `get_balance`, `get_activity`, `find_coin`, `quote_swap`, `get_request`, `get_deposit_address`, `prepare_swap`, `prepare_send`, `prepare_withdraw`, `get_wallet`, `create_payment_link`, `list_payment_links`. A guide for people is at `/ai`.
 
 - The first five only read.
-- `get_deposit_address` gives an address on another chain; money sent there arrives in the private balance.
+- `get_deposit_address` gives an address on another chain; money sent there arrives in the private balance, or with `into: "wallet"` in the NEAR wallet.
+- With `from_wallet: true` the `prepare_` tools pay from the public NEAR wallet instead (asset_ids from `get_wallet`); NEAR to wNEAR and back is a wrap. `create_payment_link` and `list_payment_links` handle getting paid.
 - The three `prepare_` tools check the price with NEAR Intents and file a request in Scrim, returning a `request_id` and an `approval_url` (`/app/approve/<id>`). The request also waits on Home under Waiting for your approval. It opens Scrim's own Send or Swap screen, filled in from the saved request, with the app's name. The person confirms with their own wallet or declines. Nothing moves before that, and an app can't confirm for them. `get_request` reports `waiting_for_you`, `in_progress`, `done`, `failed`, `declined` or `expired`; requests expire after a day.
 - `prepare_send` to a `.near` name stays private. To a 64 character NEAR address (wallets and exchanges use these), it is paid out on the blockchain so it arrives there. `prepare_withdraw` pays out to an address on any chain, in public on that chain.
 

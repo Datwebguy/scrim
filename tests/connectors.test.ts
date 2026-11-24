@@ -41,7 +41,7 @@ describe("connecting an AI app to your own account", () => {
     expect(await connectorSessionFromToken(browserToken)).toBeNull();
 
     const list = await rpc(issued.access_token, "tools/list");
-    expect(list.body.result!.tools!.map((t) => t.name)).toEqual(["get_account", "get_balance", "get_activity", "find_coin", "quote_swap", "get_request", "get_deposit_address", "prepare_swap", "prepare_send", "prepare_withdraw"]);
+    expect(list.body.result!.tools!.map((t) => t.name)).toEqual(["get_account", "get_balance", "get_activity", "find_coin", "quote_swap", "get_request", "get_deposit_address", "prepare_swap", "prepare_send", "prepare_withdraw", "get_wallet", "create_payment_link", "list_payment_links"]);
     const account = await rpc(issued.access_token, "tools/call", { name: "get_account", arguments: {} });
     expect(account.body.result!.structuredContent).toMatchObject({ account: session.accountId, network: "mainnet", private_balance: "unlocked" });
     const balance = await rpc(issued.access_token, "tools/call", { name: "get_balance", arguments: {} });
@@ -49,6 +49,25 @@ describe("connecting an AI app to your own account", () => {
     expect(balance.body.result!.structuredContent).toMatchObject({ total_usd: 0, holdings: [] });
     const coins = await rpc(issued.access_token, "tools/call", { name: "find_coin", arguments: { query: "USDC" } });
     expect((coins.body.result!.structuredContent!.coins as { symbol: string }[])[0].symbol).toBe("USDC");
+
+    // From the NEAR wallet: wrapping and a send to a NEAR account need no route, so they are filed without a price.
+    const wallet = await rpc(issued.access_token, "tools/call", { name: "get_wallet", arguments: {} });
+    expect(wallet.body.result!.structuredContent!.account).toBe(session.accountId);
+    const wrap = await rpc(issued.access_token, "tools/call", { name: "prepare_swap", arguments: { from_asset_id: "native:near", to_asset_id: "nep141:wrap.near", amount: "0.5", from_wallet: true } });
+    expect(wrap.body.result!.structuredContent).toMatchObject({ state: "waiting_for_you", you_pay: "0.5 NEAR", they_get: "0.5 wNEAR" });
+    const badWrap = await rpc(issued.access_token, "tools/call", { name: "prepare_swap", arguments: { from_asset_id: "native:near", to_asset_id: "nep141:wrap.near", amount: "-1", from_wallet: true } });
+    expect(badWrap.body.result!.isError).toBe(true);
+    const walletSend = await rpc(issued.access_token, "tools/call", { name: "prepare_send", arguments: { asset_id: "native:near", amount: "0.1", to: "near", from_wallet: true } });
+    expect(walletSend.body.result!.structuredContent).toMatchObject({ state: "waiting_for_you", public_on_chain: true });
+    const nowhere = await rpc(issued.access_token, "tools/call", { name: "prepare_send", arguments: { asset_id: "native:near", amount: "0.1", to: "no-such-account-scrim-test.near", from_wallet: true } });
+    expect(String(nowhere.body.result!.structuredContent!.error)).toMatch(/doesn't exist/);
+    const links = await rpc(issued.access_token, "tools/call", { name: "list_payment_links", arguments: {} });
+    expect(links.body.result!.structuredContent).toEqual({ links: [] });
+    const usdc = ((await rpc(issued.access_token, "tools/call", { name: "find_coin", arguments: { query: "USDC", limit: 25 } })).body.result!.structuredContent!.coins as { asset_id: string; chain: string }[]).find((c) => c.chain.toLowerCase() === "near")!.asset_id;
+    const made = await rpc(issued.access_token, "tools/call", { name: "create_payment_link", arguments: { asset_id: usdc, amount: "25", note: "Design work", receive: "wallet" } });
+    expect(made.body.result!.structuredContent).toMatchObject({ amount: "25.00 USDC (NEAR)", lands_in: "the NEAR wallet, in public" });
+    expect(String(made.body.result!.structuredContent!.link)).toMatch(/\/pay\/[a-z2-9]{12}$/);
+    expect(((await rpc(issued.access_token, "tools/call", { name: "list_payment_links", arguments: {} })).body.result!.structuredContent!.links as unknown[]).length).toBe(1);
 
     if (process.env.ONECLICK_API_KEY) {
       // Preparing a payment checks the price and returns a link to Scrim's own screen; nothing is created or moved.

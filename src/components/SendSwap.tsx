@@ -26,7 +26,7 @@ const spendable = (h: WalletHolding) => (h.id === "near" ? (BigInt(h.amount) > N
 const TERMINAL = new Set(["success", "refunded", "failed", "expired", "cancelled"]);
 
 // A payment an AI app prepared (see ai-requests.ts): the screen opens filled in, and the person confirms or declines.
-export type AiRequestProp = { id: string; app: string; details: { mode: Mode; from: string; to?: string; amount: string; recipient?: string; note?: string } };
+export type AiRequestProp = { id: string; app: string; details: { mode: Mode; source?: "private" | "wallet"; from: string; to?: string; amount: string; recipient?: string; note?: string } };
 
 export function SendSwap({ initial, aiRequest = null }: { initial: Mode; aiRequest?: AiRequestProp | null }) {
   const t = useT();
@@ -97,17 +97,28 @@ export function SendSwap({ initial, aiRequest = null }: { initial: Mode; aiReque
     setError("");
   }
   const [declined, setDeclined] = useState(false);
+  // Two steps: pick the source first (changing it clears the coins), then fill the fields once it is set.
+  const wantSource: Source = aiRequest?.details.source === "wallet" ? "wallet" : "private";
+  const [prefilled, setPrefilled] = useState(false);
   useEffect(() => {
     if (!aiRequest) return;
+    setMode(aiRequest.details.mode);
+    setSource(wantSource);
+  }, [aiRequest, wantSource]);
+  useEffect(() => {
+    if (!aiRequest || prefilled || source !== wantSource) return;
     const d = aiRequest.details;
-    setMode(d.mode);
-    setSource("private");
     setFromId(d.from);
     setToId(d.to ?? "");
     setAmount(d.amount);
     setRecipient(d.recipient ?? "");
     setNote(d.note ?? "");
-  }, [aiRequest]);
+    setPrefilled(true);
+  }, [aiRequest, prefilled, source, wantSource]);
+  // Paid straight from the wallet: tell the request, so the AI app sees it went through.
+  useEffect(() => {
+    if (aiRequest && sentHash) api(`/ai-requests/${aiRequest.id}/sent`, { body: { txHash: sentHash } }).catch(() => {});
+  }, [aiRequest, sentHash]);
   async function decline() {
     if (!aiRequest) return;
     try { await api(`/ai-requests/${aiRequest.id}/decline`, { method: "POST" }); setDeclined(true); window.location.assign("/app"); } catch (e) { setError(e instanceof Error ? e.message : t("That didn't work. Try again.")); }

@@ -13,7 +13,10 @@ license: MIT
 | Trade one coin for another inside their private balance | `prepare_swap` |
 | Pay a NEAR account (`ada.near`) or a NEAR exchange address (64 characters) | `prepare_send` |
 | Pay an address on another chain (Base, Solana, Ethereum and more) | `prepare_withdraw` |
-| Add money from another chain | `get_deposit_address` |
+| Add money from another chain | `get_deposit_address` (`into: "wallet"` for the NEAR wallet) |
+| Pay from the public NEAR wallet instead | any `prepare_` tool with `from_wallet: true`, asset_ids from `get_wallet` |
+| Wrap or unwrap NEAR in the wallet | `prepare_swap` from `native:near` to `nep141:wrap.near` (or back), `from_wallet: true` |
+| Get paid | `create_payment_link`, and `list_payment_links` to see them |
 
 ## Steps
 
@@ -27,6 +30,7 @@ license: MIT
 
 - A send to a `.near` name stays private. A send to a 64 character NEAR address is paid out on the blockchain so the exchange or wallet sees it.
 - A withdrawal is public on the chain it lands on.
+- Anything with `from_wallet: true` is public, like any wallet payment. Only use it when the person asks for their wallet.
 - `enough_balance: false` means they hold too little. Suggest a smaller amount or `get_deposit_address`.
 - A request expires after a day. Prepare a new one if they come back later.
 - An address that looks wrong for its chain is refused. Ask the person to check it.

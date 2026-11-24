@@ -1,7 +1,9 @@
 // Payments an AI app prepares wait in Scrim until the person confirms, declines or they expire, PayBox style.
+import { randomUUID } from "node:crypto";
 import { beforeAll, describe, expect, it } from "vitest";
 import { aiRequestForApp, attachTransfer, createAiRequest, declineAiRequest, getAiRequest, markSent, waitingAiRequests } from "@/server/ai-requests";
 import { sql } from "@/server/db";
+import { seal } from "@/server/secrets";
 import { mainnetImplicitWallet, resetDatabase, signInAs } from "./live";
 
 const details = { mode: "swap" as const, from: "nep141:a", to: "nep141:b", amount: "5", summary: "Swap 5 A for 1 B" };
@@ -37,6 +39,32 @@ describe("payments an AI app prepares", () => {
     expect(await getAiRequest(me.session, id)).toMatchObject({ state: "expired" });
     expect(await waitingAiRequests(me.session)).toEqual([]);
     await expect(attachTransfer(me.session, id, "00000000-0000-0000-0000-000000000000")).rejects.toThrow(/expired/);
+  });
+});
+
+describe("a price the person hasn't paid yet", () => {
+  it("keeps the request waiting, and a new price replaces and cancels the old one", async () => {
+    const me = await signInAs(mainnetImplicitWallet());
+    const id = await createAiRequest(me.session, { name: "Claude" }, "swap", { ...details, source: "wallet" });
+    const transfer = async (status: string) => {
+      const tid = randomUUID();
+      await sql`INSERT INTO transfers (id, account_id, network, kind, status, deposit_address, details_sealed, expires_at)
+        VALUES (${tid}, ${me.session.accountId}, 'mainnet', 'swap', ${status}, ${"a".repeat(64)}, ${seal({}, `transfer:${tid}:${me.session.accountId}`)}, now() + interval '1 hour')`;
+      return tid;
+    };
+    const first = await transfer("awaiting_deposit");
+    await attachTransfer(me.session, id, first);
+    // Waiting for the wallet to pay is still waiting for the person: the link keeps working and Home still lists it.
+    expect(await getAiRequest(me.session, id)).toMatchObject({ state: "waiting_for_you" });
+    expect((await waitingAiRequests(me.session)).map((r) => r.id)).toEqual([id]);
+
+    const second = await transfer("awaiting_deposit");
+    await attachTransfer(me.session, id, second);
+    expect((await sql`SELECT status FROM transfers WHERE id = ${first}`)[0].status).toBe("cancelled");
+
+    await sql`UPDATE transfers SET status = 'processing' WHERE id = ${second}`;
+    expect(await getAiRequest(me.session, id)).toMatchObject({ state: "in_progress" });
+    await expect(attachTransfer(me.session, id, await transfer("awaiting_deposit"))).rejects.toThrow(/isn't waiting/);
   });
 });
 

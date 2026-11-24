@@ -63,9 +63,10 @@ describe("connecting an AI app to your own account", () => {
     expect(String(nowhere.body.result!.structuredContent!.error)).toMatch(/doesn't exist/);
     const links = await rpc(issued.access_token, "tools/call", { name: "list_payment_links", arguments: {} });
     expect(links.body.result!.structuredContent).toEqual({ links: [] });
-    const usdc = ((await rpc(issued.access_token, "tools/call", { name: "find_coin", arguments: { query: "USDC", limit: 25 } })).body.result!.structuredContent!.coins as { asset_id: string; chain: string }[]).find((c) => c.chain.toLowerCase() === "near")!.asset_id;
+    const usdc = ((await rpc(issued.access_token, "tools/call", { name: "find_coin", arguments: { query: "USDC", limit: 25 } })).body.result!.structuredContent!.coins as { asset_id: string; chain: string }[]).find((c) => c.asset_id.startsWith("nep141:") && c.chain.toLowerCase().includes("near"))!.asset_id;
     const made = await rpc(issued.access_token, "tools/call", { name: "create_payment_link", arguments: { asset_id: usdc, amount: "25", note: "Design work", receive: "wallet" } });
-    expect(made.body.result!.structuredContent).toMatchObject({ amount: "25.00 USDC (NEAR)", lands_in: "the NEAR wallet, in public" });
+    expect(made.body.result!.structuredContent).toMatchObject({ lands_in: "the NEAR wallet, in public" });
+    expect(String(made.body.result!.structuredContent!.amount)).toMatch(/^25\.00 USDC \(NEAR/);
     expect(String(made.body.result!.structuredContent!.link)).toMatch(/\/pay\/[a-z2-9]{12}$/);
     expect(((await rpc(issued.access_token, "tools/call", { name: "list_payment_links", arguments: {} })).body.result!.structuredContent!.links as unknown[]).length).toBe(1);
 

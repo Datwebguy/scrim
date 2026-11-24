@@ -175,22 +175,27 @@ export async function sendNear(network: Network, receiverId: string, yocto: stri
   return sentHash(outcome);
 }
 
-// NEAR holds back the gas a transaction asks for until it finishes, at the gas price (100M yocto per gas on mainnet
-// today, so 50 Tgas holds 0.005 NEAR), and refunds what wasn't used.
-// A plain token transfer on NEAR, signed by the wallet. Registers the receiver with the token first
-// (a tiny one-off storage deposit) so the transfer can't fail for an account the token hasn't seen.
+// NEAR sets aside the gas a transaction asks for, at a cautious price (about ten times today's), until it runs, and
+// refunds what isn't used. So the gas asked for decides how much NEAR a wallet must hold (see near-fees.ts): ask for
+// what the calls need with a safe margin, not more. Measured on mainnet: registering with USDC and a USDC transfer
+// together burned 4.25 Tgas.
+const REGISTER_GAS = "5000000000000"; // 5 Tgas
+const TRANSFER_GAS = "10000000000000"; // 10 Tgas
+// The one-off storage deposit a token asks for before it can hold coins for an account.
 const register = (account: string) =>
-  ({ type: "FunctionCall" as const, params: { methodName: "storage_deposit", args: { account_id: account, registration_only: true }, gas: "10000000000000", deposit: "1250000000000000000000" } });
+  ({ type: "FunctionCall" as const, params: { methodName: "storage_deposit", args: { account_id: account, registration_only: true }, gas: REGISTER_GAS, deposit: "1250000000000000000000" } });
 
+// A plain token transfer on NEAR, signed by the wallet. Registers the receiver with the token first unless it is
+// known to be registered already, so the transfer can't fail for an account the token hasn't seen.
 // wrapNative: pay with the wallet's own NEAR, wrapped first (NEAR Intents takes wrapped NEAR).
-export async function sendToken(network: Network, contract: string, receiverId: string, amount: string, wrapNative = false): Promise<string> {
+export async function sendToken(network: Network, contract: string, receiverId: string, amount: string, wrapNative = false, receiverRegistered = false): Promise<string> {
   const { wallet, accountId } = await connectedWallet(network);
   const outcome = await wallet.signAndSendTransaction({
     network, signerId: accountId, receiverId: contract,
     actions: [
       ...(wrapNative ? [register(accountId), { type: "FunctionCall" as const, params: { methodName: "near_deposit", args: {}, gas: "10000000000000", deposit: amount } }] : []),
-      register(receiverId),
-      { type: "FunctionCall", params: { methodName: "ft_transfer", args: { receiver_id: receiverId, amount }, gas: "20000000000000", deposit: "1" } },
+      ...(receiverRegistered ? [] : [register(receiverId)]),
+      { type: "FunctionCall", params: { methodName: "ft_transfer", args: { receiver_id: receiverId, amount }, gas: TRANSFER_GAS, deposit: "1" } },
     ],
   });
   return sentHash(outcome);

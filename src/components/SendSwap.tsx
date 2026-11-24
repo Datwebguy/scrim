@@ -161,11 +161,11 @@ export function SendSwap({ initial, aiRequest = null }: { initial: Mode; aiReque
     if (minor <= 0n) throw new Error(t("Enter an amount."));
     if (minor > spendable(coin, nearReserve)) throw new Error(coin.id === "near" ? `Keep about ${nearText(nearReserve)} NEAR in your wallet for network fees. Lower the amount.` : `Your wallet holds ${coin.display} ${coin.symbol}.`);
     // Tokens sent to an account that doesn't exist are lost, so check it first.
-    const check = await api<{ accountId: string; exists: boolean }>(`/accounts/check?id=${encodeURIComponent(recipient.trim().toLowerCase())}`);
+    const check = await api<{ accountId: string; exists: boolean; registered?: boolean }>(`/accounts/check?id=${encodeURIComponent(recipient.trim().toLowerCase())}${coin.id === "near" ? "" : `&token=${encodeURIComponent(coin.id)}`}`);
     if (!check.exists && !/^[0-9a-f]{64}$/.test(check.accountId)) throw new Error(`${check.accountId} doesn't exist. Check the spelling.`);
     if (check.accountId === accountId) throw new Error(t("That's your own account."));
-    if (coin.id !== "near") needNear(NEAR_NEEDED.tokenSend);
-    setSentHash(coin.id === "near" ? await sendNear(network, check.accountId, minor.toString()) : await sendToken(network, coin.id, check.accountId, minor.toString()));
+    if (coin.id !== "near") needNear(check.registered ? NEAR_NEEDED.tokenSendRegistered : NEAR_NEEDED.tokenSend);
+    setSentHash(coin.id === "near" ? await sendNear(network, check.accountId, minor.toString()) : await sendToken(network, coin.id, check.accountId, minor.toString(), false, check.registered === true));
     setAmount("");
     reloadWallet();
   }
@@ -199,8 +199,11 @@ export function SendSwap({ initial, aiRequest = null }: { initial: Mode; aiReque
     try {
       let txHash = paidTx;
       if (!txHash) {
+        const contract = transfer.fromAsset.assetId.replace(/^nep141:/, "");
+        // A deposit address the token already knows needs no registration, which makes the payment cheaper to send.
+        const known = fromId === NATIVE ? false : (await api<{ registered?: boolean }>(`/accounts/check?id=${encodeURIComponent(transfer.deposit.address)}&token=${encodeURIComponent(contract)}`).catch(() => null))?.registered === true;
         if (fromId === NATIVE) needNear(BigInt(transfer.amountIn) + NEAR_NEEDED.nearPay);
-        else needNear(NEAR_NEEDED.tokenSend);
+        else needNear(known ? NEAR_NEEDED.tokenSendRegistered : NEAR_NEEDED.tokenSend);
         // A NEAR token can only land in an account registered with it. Register the receiver first if needed
         // (for a swap, the person's own wallet), or the result can't be delivered to the wallet.
         const outContract = transfer.toAsset.assetId.replace(/^nep141:/, "");
@@ -208,8 +211,7 @@ export function SendSwap({ initial, aiRequest = null }: { initial: Mode; aiReque
           const check = await api<{ registered?: boolean }>(`/accounts/check?id=${encodeURIComponent(transfer.recipient)}&token=${encodeURIComponent(outContract)}`).catch(() => null);
           if (check?.registered === false) await registerWithToken(network, outContract, transfer.recipient);
         }
-        const contract = transfer.fromAsset.assetId.replace(/^nep141:/, "");
-        txHash = await sendToken(network, contract, transfer.deposit.address, transfer.amountIn, fromId === NATIVE); // the wallet's own NEAR is wrapped first; wNEAR pays as it is
+        txHash = await sendToken(network, contract, transfer.deposit.address, transfer.amountIn, fromId === NATIVE, known); // the wallet's own NEAR is wrapped first; wNEAR pays as it is
         setPaidTx(txHash);
         reloadWallet();
       }
@@ -272,12 +274,15 @@ export function SendSwap({ initial, aiRequest = null }: { initial: Mode; aiReque
 
       {!fromWallet && priv && priv.status !== "active" && <div className="notice">{t("Unlock your private balance on the")} <Link href="/app">{t("home screen")}</Link> first.</div>}
       {fromWallet && pub && holdings.length === 0 && <div className="notice">{t("Your wallet holds no coins on NEAR yet.")}</div>}
-      {aiRequest && !transfer && (declined
+      {aiRequest && !transfer && !sentHash && (declined
         ? <div className="notice">{t("Declined. Nothing was sent.")} <Link href="/app">{t("Home")}</Link></div>
         : <div className="notice between">{t("{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.", { app: aiRequest.app })} <button type="button" className="btn btn-ghost" onClick={decline}>{t("Decline")}</button></div>)}
       {!fromWallet && priv?.status === "active" && holdings.length === 0 && <div className="notice">{t("Your private balance is empty.")} <Link href="/app/add">{t("Add money")}</Link> to get started.</div>}
 
-      {!transfer ? (
+      {aiRequest && sentHash ? (
+        // Paid straight from the wallet: the request is finished, so no form is left to pay it a second time.
+        <div className="notice good">{t("Sent from your wallet.")} <span className="muted mono">Receipt {sentHash.slice(0, 10)}…</span> <Link href="/app/activity">{t("Activity")}</Link> · <Link href="/app">{t("Home")}</Link></div>
+      ) : !transfer ? (
         <form className="trade" onSubmit={(e) => { e.preventDefault(); getPrice(); }}>
           {network === "mainnet" && (
             <div className="trade-src" role="radiogroup" aria-label={t("Pay from")}>

@@ -1,4 +1,4 @@
-import { formatAmount } from "@/protocol/amount";
+import { formatBalance } from "@/protocol/amount";
 import { catalog, usdValue } from "./assets";
 import type { Session } from "./auth";
 import * as oneclick from "./oneclick";
@@ -19,7 +19,7 @@ export async function overview(session: Session): Promise<Overview> {
     if (!asset) continue;
     holdings.push({
       assetId: asset.assetId, symbol: asset.symbol, chainName: asset.chainName, amount: minor.toString(),
-      display: formatAmount(minor, asset.decimals, 2), usd: asset.priceUsd === null ? null : usdValue(asset, minor), icon: asset.icon, chainIcon: asset.chainIcon,
+      display: formatBalance(minor, asset.decimals), usd: asset.priceUsd === null ? null : usdValue(asset, minor), icon: asset.icon, chainIcon: asset.chainIcon,
     });
   }
   holdings.sort((a, b) => (b.usd ?? 0) - (a.usd ?? 0));

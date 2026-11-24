@@ -41,12 +41,20 @@ describe("payments an AI app prepares", () => {
 });
 
 describe("payments made straight from the wallet", () => {
-  it("records the wallet's transaction and reads as done", async () => {
+  it("is done only with a real, successful transaction from this account to this payment", async () => {
     const me = await signInAs(mainnetImplicitWallet());
     const id = await createAiRequest(me.session, { name: "Claude" }, "swap", { ...details, source: "wallet", from: "native:near", to: "nep141:wrap.near" });
     await expect(markSent(me.session, id, "not a hash")).rejects.toThrow(/isn't a NEAR transaction/);
-    await markSent(me.session, id, "7Hq5mYyCzHAt3aVDZqP2Y6Ztzm8Lq9Zx3a1qzYb8Wb3K");
-    expect(await getAiRequest(me.session, id)).toMatchObject({ state: "done" });
-    await expect(markSent(me.session, id, "7Hq5mYyCzHAt3aVDZqP2Y6Ztzm8Lq9Zx3a1qzYb8Wb3K")).rejects.toThrow(/isn't waiting/);
+    // Well formed, but not a transaction from this account on NEAR: refused, and the request keeps waiting.
+    await expect(markSent(me.session, id, "7Hq5mYyCzHAt3aVDZqP2Y6Ztzm8Lq9Zx3a1qzYb8Wb3K")).rejects.toThrow(/couldn't find that transaction/);
+    expect(await getAiRequest(me.session, id)).toMatchObject({ state: "waiting_for_you" });
+  });
+});
+
+describe("limits", () => {
+  it("keeps at most 20 payments waiting for one person", async () => {
+    const me = await signInAs(mainnetImplicitWallet());
+    for (let i = 0; i < 20; i++) await createAiRequest(me.session, { name: "Spammy app" }, "swap", details);
+    await expect(createAiRequest(me.session, { name: "Spammy app" }, "swap", details)).rejects.toThrow(/20 payments are already waiting/);
   });
 });

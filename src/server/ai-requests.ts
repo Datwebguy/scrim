@@ -6,8 +6,10 @@ import { audit } from "./audit";
 import type { Session } from "./auth";
 import { sql } from "./db";
 import { badRequest, notFound } from "./errors";
+import { finalTransaction } from "./near-rpc";
 
 const TTL_MS = 24 * 60 * 60 * 1000;
+const MAX_WAITING = 20; // per account, so an app can't flood the approval list
 
 export type AiRequestKind = "swap" | "send" | "withdraw";
 export type AiRequestDetails = { mode: "swap" | "person" | "address"; source?: "private" | "wallet"; from: string; to?: string; amount: string; recipient?: string; note?: string; summary: string };
@@ -35,6 +37,10 @@ function view(row: Row) {
 }
 
 export async function createAiRequest(session: Session, app: { clientId?: string; name: string }, kind: AiRequestKind, details: AiRequestDetails) {
+  const [{ n }] = await sql<{ n: number }[]>`
+    SELECT count(*)::int AS n FROM ai_requests
+    WHERE account_id = ${session.accountId} AND network = ${session.network} AND status = 'pending' AND transfer_id IS NULL AND expires_at > now()`;
+  if (n >= MAX_WAITING) throw badRequest(`${MAX_WAITING} payments are already waiting for this person. Ask them to review or decline some in Scrim first.`);
   const id = randomUUID();
   await sql`
     INSERT INTO ai_requests (id, account_id, network, client_id, app_name, kind, details, expires_at)
@@ -75,7 +81,14 @@ export async function attachTransfer(session: Session, id: string, transferId: s
   const row = await own(session, id);
   const state = stateOf(row);
   if (state !== "waiting_for_you") throw badRequest(state === "expired" ? "This request expired. Ask your AI app to prepare it again." : "This request isn't waiting any more.");
-  await sql`UPDATE ai_requests SET transfer_id = ${transferId} WHERE id = ${row.id}`;
+  // One step, so two prices taken at the same moment can't both claim it; an earlier unpaid price can be replaced.
+  const done = await sql`
+    UPDATE ai_requests r SET transfer_id = ${transferId}
+    WHERE r.id = ${row.id} AND r.status = 'pending' AND r.expires_at > now()
+      AND (r.transfer_id IS NULL OR NOT EXISTS (
+        SELECT 1 FROM transfers t WHERE t.id = r.transfer_id AND t.status IN ('awaiting_deposit', 'processing', 'success')))
+    RETURNING r.id`;
+  if (done.length === 0) throw badRequest("This request isn't waiting any more.");
 }
 
 // For the AI app: only its own requests, for this account.
@@ -91,6 +104,15 @@ export async function markSent(session: Session, id: string, txHash: string) {
   const row = await own(session, id);
   if (stateOf(row) !== "waiting_for_you") throw badRequest("This request isn't waiting any more.");
   if (!/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(txHash)) throw badRequest("That isn't a NEAR transaction.");
-  await sql`UPDATE ai_requests SET status = 'sent', tx_hash = ${txHash} WHERE id = ${row.id}`;
+  // Read it from NEAR: signed by this account, to where the request pays, and successful.
+  const tx = await finalTransaction(session.network, txHash, session.accountId).catch(() => null);
+  if (!tx || tx.transaction.signer_id !== session.accountId) throw badRequest("Scrim couldn't find that transaction from your wallet on NEAR.");
+  if (tx.status.Failure !== undefined || tx.status.SuccessValue === undefined) throw badRequest("That transaction didn't go through.");
+  const d = row.details;
+  const expected = d.mode === "swap" ? "wrap.near" : d.from === "native:near" ? d.recipient : d.from.replace(/^nep141:/, "");
+  if (tx.transaction.receiver_id !== expected) throw badRequest("That transaction isn't this payment.");
+  const updated = await sql`UPDATE ai_requests SET status = 'sent', tx_hash = ${txHash} WHERE id = ${row.id} AND status = 'pending' RETURNING id`
+    .catch((e: { code?: string }) => { if (e.code === "23505") throw badRequest("That transaction already completed another payment."); throw e; });
+  if (updated.length === 0) throw badRequest("This request isn't waiting any more.");
   await audit(sql, null, { type: "human", id: session.accountId }, "ai_request.sent", row.id, { txHash });
 }

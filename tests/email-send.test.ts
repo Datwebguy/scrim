@@ -4,7 +4,7 @@ import { ed25519 } from "@noble/curves/ed25519.js";
 import bs58 from "bs58";
 import { decodeSignedTransaction } from "near-api-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { allowedActions, signedTransaction, type WalletAction } from "@/server/email-send";
+import { allowedActions, refusal, signedTransaction, type WalletAction } from "@/server/email-send";
 
 const call = (methodName: string, args: Record<string, unknown>, extra: { gas?: string; deposit?: string } = {}): WalletAction => ({
   type: "FunctionCall", params: { methodName, args, gas: extra.gas ?? "20000000000000", deposit: extra.deposit ?? "1" },
@@ -104,5 +104,16 @@ describe("the transaction an email account signs", () => {
     const key = ed25519.getPublicKey(ed25519.utils.randomSecretKey());
     await expect(signedTransaction("mainnet", "a".repeat(64), `ed25519:${bs58.encode(key)}`, "friend.near", allowedActions("mainnet", "friend.near", [{ type: "Transfer", params: { deposit: "1" } }]).actions, async () => new Uint8Array(64)))
       .rejects.toThrow(/nothing on mainnet yet/);
+  });
+});
+
+describe("when the network refuses a transaction", () => {
+  it("says why in plain words instead of NEAR's bare \"Server error\"", () => {
+    const refused = (data: unknown, name = "INVALID_TRANSACTION") => ({ message: "Server error", cause: { name }, data });
+    expect(refusal(refused({ TxExecutionError: { InvalidTxError: { NotEnoughBalance: { balance: "1" } } } }))).toMatch(/doesn't hold enough NEAR/);
+    expect(refusal(refused({ TxExecutionError: { InvalidTxError: { InvalidNonce: {} } } }))).toMatch(/went first/);
+    expect(refusal(refused({ TxExecutionError: { InvalidTxError: "Expired" } }))).toMatch(/too long/);
+    expect(refusal(refused({}, "SOMETHING_NEW"))).toBe("Server error (SOMETHING_NEW)");
+    expect(refusal(undefined)).toBe("no answer");
   });
 });

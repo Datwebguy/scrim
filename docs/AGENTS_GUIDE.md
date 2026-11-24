@@ -22,10 +22,11 @@ An **agent** is a helper that spends for you, only inside the rules you set: an 
 
 Tools: `get_limits`, `check_payment`, `request_payment`, `find_paid_apis`, `pay_x402`, `list_payments`, `get_payment`.
 
-**Use Scrim from your own AI (any MCP app).** A person can connect Claude, ChatGPT, Codex, Cursor, VS Code, Grok, Hermes Agent, bots or scripts to their own account at **AI apps** (`/app/connect`).
+**Use Scrim from your own AI (any MCP app).** The Scrim plugin is in [plugin/](../plugin/README.md): the MCP address, plugin manifests and short skills for the AI, with setup steps for Claude, ChatGPT, Claude Code, Codex, Cursor, VS Code, Grok and agents. Nothing about it shows in the app for people who don't use it.
 
-- *With a link.* Add `https://<your-site>/api/mcp` as a remote MCP server. The app finds Scrim's sign-in on its own (OAuth 2.1 with PKCE and dynamic registration: `/.well-known/oauth-protected-resource`, `/.well-known/oauth-authorization-server`, `/api/oauth/register`, `/api/oauth/token`), sends the person to `/app/connect` to approve, and gets its own session for 30 days. Claude Code: `claude mcp add --transport http scrim https://<your-site>/api/mcp`. Codex: `codex mcp add scrim --url https://<your-site>/api/mcp`.
-- *With a key.* For agents that can't sign people in, the person makes a `scrim_pk_` key (shown once, valid 90 days) and the agent sends it as `Authorization: Bearer scrim_pk_…`.
+- *Apps that sign people in* add `https://<your-site>/api/mcp`. The app finds Scrim's sign-in on its own (OAuth 2.1 with PKCE and dynamic registration: `/.well-known/oauth-protected-resource`, `/.well-known/oauth-authorization-server`, `/api/oauth/register`, `/api/oauth/token`) and sends the person to a short approve screen at `/app/connect`. The app gets its own session for 30 days.
+- *Agents that can't sign people in* use a `scrim_pk_` key (shown once, valid 90 days), made from the account panel under Connected apps, sent as `Authorization: Bearer scrim_pk_…`.
+- Connected apps and keys are listed under the account panel's Connected apps, where the person can disconnect them.
 
 Tools: `get_account`, `get_balance`, `get_activity`, `find_coin`, `quote_swap`, `get_deposit_address`, `prepare_swap`, `prepare_send`, `prepare_withdraw`.
 

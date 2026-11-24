@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useApi } from "@/client/use-api";
@@ -119,6 +120,7 @@ function Panel({ onClose }: { onClose: () => void }) {
             </ul>
           )}
         </div>
+        <Link href="/app/connect" className="panel-foot muted small-print" onClick={onClose}>{t("Connected apps")}</Link>
       </aside>
     </div>
   );

@@ -10,14 +10,15 @@ import { badRequest, notFound } from "./errors";
 const TTL_MS = 24 * 60 * 60 * 1000;
 
 export type AiRequestKind = "swap" | "send" | "withdraw";
-export type AiRequestDetails = { mode: "swap" | "person" | "address"; from: string; to?: string; amount: string; recipient?: string; note?: string; summary: string };
-type Row = { id: string; account_id: string; network: string; client_id: string | null; app_name: string; kind: AiRequestKind; details: AiRequestDetails; status: "pending" | "declined"; transfer_id: string | null; created_at: Date; expires_at: Date; transfer_status: string | null };
+export type AiRequestDetails = { mode: "swap" | "person" | "address"; source?: "private" | "wallet"; from: string; to?: string; amount: string; recipient?: string; note?: string; summary: string };
+type Row = { id: string; account_id: string; network: string; client_id: string | null; app_name: string; kind: AiRequestKind; details: AiRequestDetails; status: "pending" | "declined" | "sent"; tx_hash: string | null; transfer_id: string | null; created_at: Date; expires_at: Date; transfer_status: string | null };
 
 // What the person and the app see: waiting for the person, on its way, done, or ended without paying.
 export type AiRequestState = "waiting_for_you" | "in_progress" | "done" | "failed" | "declined" | "expired";
 
 function stateOf(row: Row): AiRequestState {
   if (row.status === "declined") return "declined";
+  if (row.status === "sent") return "done";
   switch (row.transfer_status) {
     case "success": return "done";
     case "processing": case "awaiting_deposit": return "in_progress";
@@ -82,5 +83,14 @@ export async function aiRequestForApp(session: Session & { clientId?: string }, 
   const row = await own(session, id);
   if (row.client_id !== (session.clientId ?? null)) throw notFound("Request not found.");
   const v = view(row);
-  return { request_id: v.id, kind: v.kind, summary: v.details.summary, state: v.state, expires_at: v.expiresAt };
+  return { request_id: v.id, kind: v.kind, summary: v.details.summary, state: v.state, expires_at: v.expiresAt, transaction: row.tx_hash ?? undefined };
+}
+
+// Paid straight from the person's NEAR wallet (no Scrim transfer): their browser reports the wallet's transaction.
+export async function markSent(session: Session, id: string, txHash: string) {
+  const row = await own(session, id);
+  if (stateOf(row) !== "waiting_for_you") throw badRequest("This request isn't waiting any more.");
+  if (!/^[1-9A-HJ-NP-Za-km-z]{32,64}$/.test(txHash)) throw badRequest("That isn't a NEAR transaction.");
+  await sql`UPDATE ai_requests SET status = 'sent', tx_hash = ${txHash} WHERE id = ${row.id}`;
+  await audit(sql, null, { type: "human", id: session.accountId }, "ai_request.sent", row.id, { txHash });
 }

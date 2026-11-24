@@ -75,10 +75,10 @@ describe("the real coin list", () => {
     const assets = await catalog();
     const btc = assets.find((a) => a.symbol === "BTC" && a.chain === "btc")!;
     // CoinGecko limits shared machines (like CI's) now and then. When it doesn't answer, the catalog
-    // falls back to letters and chain codes instead of failing, and that is what is checked instead.
+    // falls back to letters and known chain names instead of failing, and that is what is checked instead.
     if (btc.icon === null) {
       expect(btc.chainIcon).toBeNull();
-      expect(btc.chainName).toBe("BTC");
+      expect(btc.chainName).toBe("Bitcoin");
       return;
     }
     expect(btc.icon).toMatch(/^https:\/\/.+\.(png|jpg|jpeg|webp|svg)/);

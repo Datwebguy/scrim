@@ -91,8 +91,16 @@ function chainFacts(slug: string, tokensOnChain: TokenInfo[], bridgeIds: Set<str
     const m = byId.get(native.coingeckoId!)!;
     return { name: m.name, icon: small(m.image) };
   }
-  return { name: slug.toUpperCase(), icon: null };
+  return { name: KNOWN_CHAIN_NAMES[slug] ?? slug.toUpperCase(), icon: null };
 }
+
+// Names to fall back on when CoinGecko can't be reached, so a busy or down CoinGecko never shows "BASE" or "ARB".
+const KNOWN_CHAIN_NAMES: Record<string, string> = {
+  eth: "Ethereum", base: "Base", arb: "Arbitrum One", op: "OP Mainnet", pol: "Polygon POS", bsc: "BNB Smart Chain", avax: "Avalanche",
+  gnosis: "Gnosis Chain", scroll: "Scroll", bera: "Berachain", sol: "Solana", btc: "Bitcoin", near: "NEAR Protocol", tron: "TRON", ton: "TON",
+  sui: "Sui", aptos: "Aptos", xrp: "XRP Ledger", doge: "Dogecoin", zec: "Zcash", ltc: "Litecoin", bch: "Bitcoin Cash", stellar: "Stellar",
+  cardano: "Cardano", starknet: "Starknet", monad: "Monad", hood: "Robinhood Chain", xlayer: "X Layer", plasma: "Plasma", abs: "Abstract",
+};
 
 const catalogMemo = memo(5 * 60_000, async (): Promise<Asset[]> => {
   const [list, plats, byId] = await Promise.all([oneClickTokens(), platforms().catch(() => [] as Platform[]), markets().catch(() => new Map<string, Market>())]);

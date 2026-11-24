@@ -20,7 +20,9 @@ The Scrim address for every app is `https://scrim.exchange/api/mcp`. Add it, the
 
 ## Tools
 
-`get_account`, `get_balance`, `get_activity`, `find_coin`, `quote_swap`, `get_deposit_address`, `prepare_swap`, `prepare_send`, `prepare_withdraw`.
+`get_account`, `get_balance`, `get_activity`, `find_coin`, `quote_swap`, `get_request`, `get_deposit_address`, `prepare_swap`, `prepare_send`, `prepare_withdraw`.
+
+A prepared payment waits in Scrim (its link, or Home under Waiting for your approval) until you confirm it with your wallet or decline it. It expires after a day. Full guide: [scrim.exchange/ai](https://scrim.exchange/ai).
 
 ## Skills
 

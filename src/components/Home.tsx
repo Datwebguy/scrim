@@ -27,6 +27,8 @@ export function Home() {
   const router = useRouter();
   const { data, loading, reload } = useApi<Overview>("/private", { every: 30_000 });
   const { data: tx } = useApi<{ transfers: TransferView[] }>("/transfers", { every: 15_000 });
+  // Payments an AI app prepared and the person hasn't confirmed yet. Shown only when there are some.
+  const { data: waiting } = useApi<{ requests: { id: string; app: string; details: { summary: string } }[] }>(network === "mainnet" ? "/ai-requests" : null, { every: 20_000 });
   const [view, setView] = useState<"you" | "public">("you");
   const [busy, setBusy] = useState(false);
   const [byEmail, setByEmail] = useState(false); // signed in with an email: there is no wallet app to approve in
@@ -120,6 +122,18 @@ export function Home() {
             <p className="fine">{t("Want to practice first with free test coins?")} <button type="button" className="link-btn" onClick={() => switchNetwork("testnet")}>Use testnet instead</button></p>
           )}
         </div>
+      )}
+
+      {waiting && waiting.requests.length > 0 && (
+        <section className="card card-pad form-grid" style={{ marginBottom: 16 }} aria-label={t("Waiting for your approval")}>
+          <h3>{t("Waiting for your approval")}</h3>
+          {waiting.requests.map((r) => (
+            <div key={r.id} className="between" style={{ gap: 12 }}>
+              <span><b>{r.app}</b><br /><span className="muted">{r.details.summary}</span></span>
+              <Link className="btn btn-signal" href={`/app/approve/${r.id}`}>{t("Review")}</Link>
+            </div>
+          ))}
+        </section>
       )}
 
       {active && data && (

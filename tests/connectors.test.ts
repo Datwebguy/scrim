@@ -41,7 +41,7 @@ describe("connecting an AI app to your own account", () => {
     expect(await connectorSessionFromToken(browserToken)).toBeNull();
 
     const list = await rpc(issued.access_token, "tools/list");
-    expect(list.body.result!.tools!.map((t) => t.name)).toEqual(["get_account", "get_balance", "get_activity", "find_coin", "quote_swap", "get_deposit_address", "prepare_swap", "prepare_send", "prepare_withdraw"]);
+    expect(list.body.result!.tools!.map((t) => t.name)).toEqual(["get_account", "get_balance", "get_activity", "find_coin", "quote_swap", "get_request", "get_deposit_address", "prepare_swap", "prepare_send", "prepare_withdraw"]);
     const account = await rpc(issued.access_token, "tools/call", { name: "get_account", arguments: {} });
     expect(account.body.result!.structuredContent).toMatchObject({ account: session.accountId, network: "mainnet", private_balance: "unlocked" });
     const balance = await rpc(issued.access_token, "tools/call", { name: "get_balance", arguments: {} });
@@ -58,13 +58,13 @@ describe("connecting an AI app to your own account", () => {
       const before = (await rpc(issued.access_token, "tools/call", { name: "get_activity", arguments: {} })).body.result!.structuredContent!.activity as unknown[];
       const swap = await rpc(issued.access_token, "tools/call", { name: "prepare_swap", arguments: { from_asset_id: usdcNear, to_asset_id: await find("PEPE", "eth"), amount: "5" } });
       expect(swap.body.result!.isError).toBe(false);
-      const swapUrl = new URL(swap.body.result!.structuredContent!.approval_url as string);
-      expect(swapUrl.pathname).toBe("/app/swap");
-      expect(Object.fromEntries(swapUrl.searchParams)).toMatchObject({ ai: "Claude", mode: "swap", from: usdcNear, amount: "5" });
+      const swapId = swap.body.result!.structuredContent!.request_id as string;
+      expect(new URL(swap.body.result!.structuredContent!.approval_url as string).pathname).toBe(`/app/approve/${swapId}`);
+      expect((await rpc(issued.access_token, "tools/call", { name: "get_request", arguments: { request_id: swapId } })).body.result!.structuredContent).toMatchObject({ state: "waiting_for_you" });
       expect(swap.body.result!.structuredContent!.enough_balance).toBe(false);
       const send = await rpc(issued.access_token, "tools/call", { name: "prepare_send", arguments: { asset_id: usdcNear, amount: "1", to: "near" } });
       expect(send.body.result!.structuredContent).toMatchObject({ private: true });
-      expect(new URL(send.body.result!.structuredContent!.approval_url as string).searchParams.get("recipient")).toBe("near");
+      expect(send.body.result!.structuredContent!.summary ?? send.body.result!.structuredContent!.they_get).toBeTruthy();
       const badSend = await rpc(issued.access_token, "tools/call", { name: "prepare_send", arguments: { asset_id: usdcNear, amount: "1", to: "no-such-account-scrim-test.near" } });
       expect(badSend.body.result!.isError).toBe(true);
       expect(String(badSend.body.result!.structuredContent!.error)).toMatch(/doesn't exist/);

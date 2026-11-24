@@ -489,5 +489,6 @@ const messages: Record<string, string> = {
   "It can't move money by itself. Every swap, send or withdrawal it prepares opens in Scrim, and nothing moves until you confirm it with your wallet.": "它无法自行转移资金。它准备的每笔兑换、发送或提现都会在 Scrim 中打开，在你用钱包确认之前不会动用任何资金。",
   "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "像密码一样保管。持有者可查看你的余额和活动并准备付款，但在你于 Scrim 中确认之前不会动用资金。可随时在下方删除。",
   "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} 已替你填好。请核对每个细节，再查看价格并确认。在你确认之前不会动用资金。",
+  "A link filled this in, and Scrim didn't make it. Check who gets paid and how much before you confirm.": "这是由一个链接填写的，且不是 Scrim 生成的。确认前请核对收款人和金额。",
 };
 export default messages;

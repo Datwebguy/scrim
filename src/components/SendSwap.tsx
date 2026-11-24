@@ -25,7 +25,7 @@ const NEAR_RESERVE = 2n * 10n ** 22n; // 0.02 NEAR: token registration (0.00125)
 const spendable = (h: WalletHolding) => (h.id === "near" ? (BigInt(h.amount) > NEAR_RESERVE ? BigInt(h.amount) - NEAR_RESERVE : 0n) : BigInt(h.amount));
 const TERMINAL = new Set(["success", "refunded", "failed", "expired", "cancelled"]);
 
-export function SendSwap({ initial }: { initial: Mode }) {
+export function SendSwap({ initial, aiApp = null }: { initial: Mode; aiApp?: string | null }) {
   const t = useT();
   const { accountId, network } = useSession();
   const toast = useToast();
@@ -95,6 +95,7 @@ export function SendSwap({ initial }: { initial: Mode }) {
   }
   // An approval link from a connected AI app (see mcp-personal.ts): fill the form in, the person checks and confirms.
   const [fromAi, setFromAi] = useState("");
+  const [fromLink, setFromLink] = useState(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
     const q = new URLSearchParams(window.location.search);
@@ -107,8 +108,9 @@ export function SendSwap({ initial }: { initial: Mode }) {
     setAmount(q.get("amount") ?? "");
     setRecipient(q.get("recipient") ?? "");
     setNote(q.get("note") ?? "");
-    setFromAi(q.get("ai")!.slice(0, 60));
-  }, []);
+    setFromAi(aiApp ?? "");
+    setFromLink(true);
+  }, [aiApp]);
 
   // "Move to my wallet" from Home: To any address, to this account's own NEAR wallet.
   useEffect(() => {
@@ -248,6 +250,9 @@ export function SendSwap({ initial }: { initial: Mode }) {
 
       {!fromWallet && priv && priv.status !== "active" && <div className="notice">{t("Unlock your private balance on the")} <Link href="/app">{t("home screen")}</Link> first.</div>}
       {fromWallet && pub && holdings.length === 0 && <div className="notice">{t("Your wallet holds no coins on NEAR yet.")}</div>}
+      {fromLink && !transfer && (fromAi
+        ? <div className="notice">{t("{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.", { app: fromAi })}</div>
+        : <div className="notice danger">{t("A link filled this in, and Scrim didn't make it. Check who gets paid and how much before you confirm.")}</div>)}
       {!fromWallet && priv?.status === "active" && holdings.length === 0 && <div className="notice">{t("Your private balance is empty.")} <Link href="/app/add">{t("Add money")}</Link> to get started.</div>}
 
       {!transfer ? (
@@ -311,7 +316,6 @@ export function SendSwap({ initial }: { initial: Mode }) {
             </div>
           )}
           {mode !== "swap" && <input className="tp-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={140} placeholder={`${t("Note")} (${t("optional, only you can see it")})`} aria-label={t("Note")} />}
-          {fromAi && <div className="notice">{t("{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.", { app: fromAi })}</div>}
           {error && <p className="form-error" role="alert">{error}</p>}
           {sentHash && <div className="notice good">{t("Sent from your wallet.")} <span className="muted mono">Receipt {sentHash.slice(0, 10)}…</span> <Link href="/app/activity">{t("Activity")}</Link></div>}
           <button className="btn btn-primary btn-lg trade-go" disabled={busy !== "" || !ready}>{busy === "price" && <Spinner />} {wrapping ? (fromId === NATIVE ? t("Wrap with my wallet") : t("Unwrap with my wallet")) : direct ? t("Send with my wallet") : t("See the price")}</button>

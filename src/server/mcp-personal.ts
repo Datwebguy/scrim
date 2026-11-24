@@ -7,6 +7,7 @@ import { catalog } from "./assets";
 import { overview } from "./balances";
 import { HttpError } from "./errors";
 import { privateStatus, sharePrivateAccess } from "./private-access";
+import { signApproval } from "./approval-links";
 import { config } from "./config";
 import { sql } from "./db";
 import { createTransfer, listTransfers, preview } from "./transfers";
@@ -146,9 +147,11 @@ async function appName(clientId: string | undefined) {
 }
 
 // The Send or Swap screen, filled in. The person checks it and confirms with their wallet there.
-function approvalUrl(page: "send" | "swap", app: string, params: Record<string, string | undefined>) {
-  const q = new URLSearchParams({ ai: app });
-  for (const [k, v] of Object.entries(params)) if (v) q.set(k, v);
+function approvalUrl(session: Session, page: "send" | "swap", app: string, params: Record<string, string | undefined>) {
+  const all = { ai: app, ...params };
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(all)) if (v) q.set(k, v);
+  q.set("sig", signApproval(session.accountId, all));
   return `${config.siteUrl}/app/${page}?${q}`;
 }
 
@@ -187,7 +190,7 @@ export async function callPersonalTool(session: Session & { clientId?: string },
       if ((await ensureAccess(session)) !== "active") return { error: LOCKED };
       const input = { fromAssetId: text("from_asset_id"), toAssetId: text("to_asset_id"), amount: text("amount") };
       const price = await priced(session, { kind: "swap", ...input, privacy: "private" });
-      return { ...price, approval_url: approvalUrl("swap", await appName(session.clientId), { mode: "swap", from: input.fromAssetId, to: input.toAssetId, amount: input.amount }), next: NEEDS_YOU };
+      return { ...price, approval_url: approvalUrl(session, "swap", await appName(session.clientId), { mode: "swap", from: input.fromAssetId, to: input.toAssetId, amount: input.amount }), next: NEEDS_YOU };
     }
     case "prepare_send": {
       if ((await ensureAccess(session)) !== "active") return { error: LOCKED };
@@ -196,13 +199,13 @@ export async function callPersonalTool(session: Session & { clientId?: string },
       // A 64 hex NEAR address (wallets, exchanges) is paid out on chain so it arrives; a .near name stays private.
       const onChain = /^[0-9a-f]{64}$/.test(to);
       const price = await priced(session, { kind: onChain ? "withdraw" : "send", fromAssetId: asset, toAssetId: asset, amount: text("amount"), recipient: to, note: text("note") || undefined, privacy: "private" });
-      return { ...price, private: !onChain, approval_url: approvalUrl("send", await appName(session.clientId), { mode: "person", from: asset, amount: text("amount"), recipient: to, note: text("note") || undefined }), next: NEEDS_YOU };
+      return { ...price, private: !onChain, approval_url: approvalUrl(session, "send", await appName(session.clientId), { mode: "person", from: asset, amount: text("amount"), recipient: to, note: text("note") || undefined }), next: NEEDS_YOU };
     }
     case "prepare_withdraw": {
       if ((await ensureAccess(session)) !== "active") return { error: LOCKED };
       const input = { fromAssetId: text("from_asset_id"), toAssetId: text("to_asset_id"), amount: text("amount"), recipient: text("to_address") };
       const price = await priced(session, { kind: "withdraw", ...input, privacy: "private" });
-      return { ...price, public_on_chain: true, approval_url: approvalUrl("send", await appName(session.clientId), { mode: "address", from: input.fromAssetId, to: input.toAssetId, amount: input.amount, recipient: input.recipient }), next: NEEDS_YOU };
+      return { ...price, public_on_chain: true, approval_url: approvalUrl(session, "send", await appName(session.clientId), { mode: "address", from: input.fromAssetId, to: input.toAssetId, amount: input.amount, recipient: input.recipient }), next: NEEDS_YOU };
     }
     case "get_account": {
       const status = await ensureAccess(session);

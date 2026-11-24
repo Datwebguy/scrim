@@ -489,5 +489,6 @@ const messages: Record<string, string> = {
   "It can't move money by itself. Every swap, send or withdrawal it prepares opens in Scrim, and nothing moves until you confirm it with your wallet.": "No puede mover dinero por sí sola. Cada intercambio, envío o retiro que prepare se abre en Scrim, y nada se mueve hasta que lo confirmes con tu billetera.",
   "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "Guárdala como una contraseña. Quien la tenga puede ver tu saldo y actividad y preparar pagos, pero nada se mueve hasta que confirmes en Scrim. Puedes quitarla abajo cuando quieras.",
   "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} lo rellenó por ti. Revisa cada detalle, luego mira el precio y confirma. Nada se mueve hasta que lo hagas.",
+  "A link filled this in, and Scrim didn't make it. Check who gets paid and how much before you confirm.": "Un enlace rellenó esto y Scrim no lo creó. Revisa quién recibe el pago y cuánto antes de confirmar.",
 };
 export default messages;

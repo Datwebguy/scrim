@@ -489,5 +489,6 @@ const messages: Record<string, string> = {
   "It can't move money by itself. Every swap, send or withdrawal it prepares opens in Scrim, and nothing moves until you confirm it with your wallet.": "Kendi başına para taşıyamaz. Hazırladığı her takas, gönderme veya çekim Scrim'de açılır ve siz cüzdanınızla onaylayana kadar hiçbir şey hareket etmez.",
   "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "Bir parola gibi saklayın. Sahibi bakiyenizi ve hareketlerinizi görebilir ve ödeme hazırlayabilir, ama siz Scrim'de onaylayana kadar hiçbir şey hareket etmez. İstediğiniz zaman aşağıdan kaldırın.",
   "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} bunu sizin için doldurdu. Her ayrıntıyı kontrol edin, sonra fiyatı görüp onaylayın. Siz onaylayana kadar hiçbir şey hareket etmez.",
+  "A link filled this in, and Scrim didn't make it. Check who gets paid and how much before you confirm.": "Bunu bir bağlantı doldurdu ve Scrim oluşturmadı. Onaylamadan önce kime ve ne kadar ödendiğini kontrol edin.",
 };
 export default messages;

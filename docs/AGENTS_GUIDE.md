@@ -27,7 +27,14 @@ Tools: `get_limits`, `check_payment`, `request_payment`, `find_paid_apis`, `pay_
 - *With a link.* Add `https://<your-site>/api/mcp` as a remote MCP server. The app finds Scrim's sign-in on its own (OAuth 2.1 with PKCE and dynamic registration: `/.well-known/oauth-protected-resource`, `/.well-known/oauth-authorization-server`, `/api/oauth/register`, `/api/oauth/token`), sends the person to `/app/connect` to approve, and gets its own session for 30 days. Claude Code: `claude mcp add --transport http scrim https://<your-site>/api/mcp`. Codex: `codex mcp add scrim --url https://<your-site>/api/mcp`.
 - *With a key.* For agents that can't sign people in, the person makes a `scrim_pk_` key (shown once, valid 90 days) and the agent sends it as `Authorization: Bearer scrim_pk_…`.
 
-Tools: `get_account`, `get_balance`, `get_activity`, `find_coin`, `quote_swap`. They only read. An app's session works only on `/api/mcp`, never as a browser login, and the person can disconnect it on the same page at any time.
+Tools: `get_account`, `get_balance`, `get_activity`, `find_coin`, `quote_swap`, `get_deposit_address`, `prepare_swap`, `prepare_send`, `prepare_withdraw`.
+
+- The first five only read.
+- `get_deposit_address` gives an address on another chain; money sent there arrives in the private balance.
+- The three `prepare_` tools check the price with NEAR Intents and return an `approval_url`. That link opens Scrim's own Send or Swap screen, filled in, with a note saying which app filled it. The person checks it, sees the price and confirms with their own wallet. Nothing moves before that, and an app can't confirm for them.
+- `prepare_send` to a `.near` name stays private. To a 64 character NEAR address (wallets and exchanges use these), it is paid out on the blockchain so it arrives there. `prepare_withdraw` pays out to an address on any chain, in public on that chain.
+
+An app's session works only on `/api/mcp`, never as a browser login, and the person can disconnect it on the same page at any time.
 
 **Connect code (HTTPS).**
 

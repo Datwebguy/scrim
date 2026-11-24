@@ -489,5 +489,6 @@ const messages: Record<string, string> = {
   "It can't move money by itself. Every swap, send or withdrawal it prepares opens in Scrim, and nothing moves until you confirm it with your wallet.": "Nó không tự chuyển tiền được. Mỗi giao dịch hoán đổi, gửi hoặc rút nó chuẩn bị sẽ mở trong Scrim, và không gì di chuyển cho đến khi bạn xác nhận bằng ví.",
   "Keep it like a password. Anyone with it can read your balance and activity and prepare payments, but nothing moves until you confirm in Scrim. Remove it below at any time.": "Giữ như mật khẩu. Ai có nó có thể xem số dư, hoạt động và chuẩn bị thanh toán, nhưng không gì di chuyển cho đến khi bạn xác nhận trong Scrim. Xóa bên dưới bất cứ lúc nào.",
   "{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.": "{app} đã điền sẵn cho bạn. Kiểm tra từng chi tiết, rồi xem giá và xác nhận. Không gì di chuyển cho đến khi bạn làm vậy.",
+  "A link filled this in, and Scrim didn't make it. Check who gets paid and how much before you confirm.": "Một đường dẫn đã điền sẵn và Scrim không tạo ra nó. Kiểm tra ai nhận tiền và bao nhiêu trước khi xác nhận.",
 };
 export default messages;

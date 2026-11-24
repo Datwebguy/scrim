@@ -22,7 +22,11 @@ export function useAssets(): AssetInfo[] {
   return assets;
 }
 
-export const fmt = (minor: string | bigint, decimals: number, min = 2) => formatAmount(BigInt(minor), decimals, min);
+// Coins with 18 or more decimals (wNEAR has 24) show at most six, cut, never rounded up.
+export const fmt = (minor: string | bigint, decimals: number, min = 2) => {
+  const cut = decimals >= 18 ? 10n ** BigInt(decimals - 6) : 1n;
+  return formatAmount((BigInt(minor) / cut) * cut, decimals, min);
+};
 // Shows at most four decimals, for coins with long balances.
 export const trimDecimals = (v: string) => v.replace(/^(\d[\d,]*\.\d{0,4})\d*$/, "$1");
 export const usd = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: n < 1 ? 4 : 2 });

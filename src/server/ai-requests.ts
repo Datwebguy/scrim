@@ -23,7 +23,7 @@ function stateOf(row: Row): AiRequestState {
   if (row.status === "sent") return "done";
   switch (row.transfer_status) {
     case "success": return "done";
-    case "processing": case "awaiting_deposit": return "in_progress";
+    case "processing": return "in_progress";
     case "failed": case "refunded": return "failed";
   }
   return row.expires_at.getTime() < Date.now() ? "expired" : "waiting_for_you";
@@ -76,19 +76,28 @@ export async function declineAiRequest(session: Session, id: string) {
 }
 
 // When the person gets a price on the request's screen, the transfer it creates belongs to the request.
-// Going back and pricing again moves the request to the newer transfer.
+// A price they haven't paid yet (awaiting_signature, or a wallet price awaiting_deposit) still waits for them:
+// pricing again moves the request to the newer transfer and cancels the old price. A wallet payment that
+// reaches a cancelled price late is still picked up and delivered (see transfers.ts), so nothing is lost.
 export async function attachTransfer(session: Session, id: string, transferId: string) {
   const row = await own(session, id);
   const state = stateOf(row);
   if (state !== "waiting_for_you") throw badRequest(state === "expired" ? "This request expired. Ask your AI app to prepare it again." : "This request isn't waiting any more.");
   // One step, so two prices taken at the same moment can't both claim it; an earlier unpaid price can be replaced.
-  const done = await sql`
-    UPDATE ai_requests r SET transfer_id = ${transferId}
-    WHERE r.id = ${row.id} AND r.status = 'pending' AND r.expires_at > now()
-      AND (r.transfer_id IS NULL OR NOT EXISTS (
-        SELECT 1 FROM transfers t WHERE t.id = r.transfer_id AND t.status IN ('awaiting_deposit', 'processing', 'success')))
-    RETURNING r.id`;
-  if (done.length === 0) throw badRequest("This request isn't waiting any more.");
+  const done = await sql.begin(async (tx) => {
+    const [locked] = await tx<{ transfer_id: string | null }[]>`SELECT transfer_id FROM ai_requests WHERE id = ${row.id} FOR UPDATE`;
+    const moved = await tx`
+      UPDATE ai_requests r SET transfer_id = ${transferId}
+      WHERE r.id = ${row.id} AND r.status = 'pending' AND r.expires_at > now()
+        AND (r.transfer_id IS NULL OR NOT EXISTS (
+          SELECT 1 FROM transfers t WHERE t.id = r.transfer_id AND t.status IN ('processing', 'success')))
+      RETURNING r.id`;
+    if (moved.length > 0 && locked?.transfer_id && locked.transfer_id !== transferId) {
+      await tx`UPDATE transfers SET status = 'cancelled', updated_at = now() WHERE id = ${locked.transfer_id} AND status IN ('awaiting_deposit', 'awaiting_signature')`;
+    }
+    return moved.length > 0;
+  });
+  if (!done) throw badRequest("This request isn't waiting any more.");
 }
 
 // For the AI app: only its own requests, for this account.

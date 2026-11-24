@@ -5,12 +5,18 @@ import { endpoints, type Network } from "./config";
 type RpcResult<T> = { result?: T; error?: { cause?: { name?: string }; message?: string } };
 
 export async function rpcQuery<T>(network: Network, params: Record<string, unknown>): Promise<RpcResult<T>> {
-  const response = await fetch(endpoints(network).rpcUrl, {
+  const ask = () => fetch(endpoints(network).rpcUrl, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ jsonrpc: "2.0", id: "scrim", method: "query", params: { finality: "final", ...params } }),
     signal: AbortSignal.timeout(8_000),
   });
+  let response = await ask();
+  // Public NEAR RPCs limit bursts: when told to slow down, wait a moment and ask again, twice at most.
+  for (let wait = 700; response.status === 429 && wait <= 2_100; wait *= 3) {
+    await new Promise((r) => setTimeout(r, wait));
+    response = await ask();
+  }
   if (!response.ok) throw new Error(`NEAR RPC responded ${response.status}`);
   return (await response.json()) as RpcResult<T>;
 }

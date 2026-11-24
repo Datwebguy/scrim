@@ -1,7 +1,7 @@
 // Tools for an AI app connected to a person's own Scrim account (see connectors.ts).
 // Reads (balance, activity, coins, prices, deposit address) and prepares swaps, sends and withdrawals.
 // Nothing here can move money: a prepared payment is a request the person confirms on Scrim's own screen.
-import { formatAmount } from "@/protocol/amount";
+import { formatAmount, formatBalance, parseAmount } from "@/protocol/amount";
 import type { Session } from "./auth";
 import { catalog } from "./assets";
 import { overview } from "./balances";
@@ -18,6 +18,18 @@ import { createTransfer, listTransfers, preview } from "./transfers";
 const NATIVE = "native:near";
 const WNEAR = "nep141:wrap.near";
 const walletId = (id: string) => (id === "near" ? NATIVE : `nep141:${id}`);
+// The app keeps 0.02 NEAR in the wallet for network fees, so that much can't be spent.
+const NEAR_RESERVE = 2n * 10n ** 22n;
+const spendableNear = (amount: string) => (BigInt(amount) > NEAR_RESERVE ? BigInt(amount) - NEAR_RESERVE : 0n);
+
+// Stops a NEAR payment from the wallet that the app would refuse for leaving too little for fees.
+async function checkWalletNear(session: Session, amount: string) {
+  const near = (await publicHoldings(session.network, session.accountId)).find((h) => h.id === "near");
+  const want = parseAmount(amount, 24);
+  const can = spendableNear(near?.amount ?? "0");
+  if (want > can) return `The wallet can spend ${formatBalance(can, 24)} NEAR. It keeps 0.02 NEAR for network fees.`;
+  return null;
+}
 const intentsId = (id: string) => (id === NATIVE ? WNEAR : id);
 function positive(amount: string) {
   if (!/^\d+(\.\d+)?$/.test(amount) || Number(amount) <= 0) throw new HttpError(400, "invalid_request", "Enter an amount greater than zero, like \"5\" or \"0.5\".");
@@ -217,7 +229,7 @@ async function priced(session: Session, input: Parameters<typeof preview>[1]) {
   const p = await preview(session, input);
   const all = await catalog();
   const dec = (id: string) => all.find((a) => a.assetId === id)?.decimals;
-  const fmt = (amount: string, d?: number) => (d === undefined ? amount : formatAmount(amount, d, 2));
+  const fmt = (amount: string, d?: number) => (d === undefined ? amount : formatBalance(amount, d));
   return {
     you_pay: `${fmt(p.youPay.amount, dec(p.youPay.assetId))} ${p.youPay.symbol} (${p.youPay.chainName})`,
     they_get: `${fmt(p.theyGet.amount, dec(p.theyGet.assetId))} ${p.theyGet.symbol} (${p.theyGet.chainName})`,
@@ -252,6 +264,8 @@ export async function callPersonalTool(session: Session & { clientId?: string },
       // NEAR and wNEAR in the wallet: the wNEAR contract changes one for the other, one to one, with no swap.
       if (wallet && [from, to].sort().join() === [NATIVE, WNEAR].sort().join()) {
         positive(amount);
+        const short = from === NATIVE ? await checkWalletNear(session, amount) : null;
+        if (short) return { error: short };
         const what = from === NATIVE ? `Wrap ${amount} NEAR to wNEAR in your wallet` : `Unwrap ${amount} wNEAR to NEAR in your wallet`;
         return await fileRequest(session, "swap", { mode: "swap", source: "wallet", from, to, amount, summary: what }, { you_pay: `${amount} ${from === NATIVE ? "NEAR" : "wNEAR"}`, they_get: `${amount} ${from === NATIVE ? "wNEAR" : "NEAR"}` });
       }
@@ -271,6 +285,8 @@ export async function callPersonalTool(session: Session & { clientId?: string },
         if (!/^[0-9a-f]{64}$/.test(to) && !(await accountExists(session.network, to))) return { error: `${to} doesn't exist on NEAR. Check the address.` };
         const coin = (await publicHoldings(session.network, session.accountId)).find((h) => walletId(h.id) === asset);
         if (!coin) return { error: "The wallet doesn't hold that coin. Call get_wallet for what it holds." };
+        const short = asset === NATIVE ? await checkWalletNear(session, amount) : null;
+        if (short) return { error: short };
         const price = { you_pay: `${amount} ${coin.symbol} (NEAR)`, they_get: `${amount} ${coin.symbol} (NEAR)` };
         return { ...await fileRequest(session, "send", { mode: "person", source: "wallet", from: asset, amount, recipient: to, summary: `Send ${amount} ${coin.symbol} from your wallet to ${to}` }, price), public_on_chain: true };
       }
@@ -291,7 +307,7 @@ export async function callPersonalTool(session: Session & { clientId?: string },
       return {
         account: session.accountId,
         note: "The NEAR wallet is public on the blockchain. Use these asset_ids with from_wallet: true.",
-        holdings: holdings.filter((h) => BigInt(h.amount) > 0n || h.id === "near").map((h) => ({ symbol: h.symbol, amount: h.display, usd: h.usd === null ? null : Number(h.usd.toFixed(2)), asset_id: walletId(h.id) })),
+        holdings: holdings.filter((h) => BigInt(h.amount) > 0n || h.id === "near").map((h) => ({ symbol: h.symbol, amount: h.display, ...(h.id === "near" ? { can_spend: formatBalance(spendableNear(h.amount), 24), note: "0.02 NEAR stays for network fees." } : {}), usd: h.usd === null ? null : Number(h.usd.toFixed(2)), asset_id: walletId(h.id) })),
       };
     }
     case "create_payment_link": {

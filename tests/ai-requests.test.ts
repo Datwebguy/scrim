@@ -6,6 +6,10 @@ import { sql } from "@/server/db";
 import { seal } from "@/server/secrets";
 import { mainnetImplicitWallet, resetDatabase, signInAs } from "./live";
 
+// One signed in person shared by the tests that don't need their own, to keep calls to the public NEAR RPC down.
+let shared: Awaited<ReturnType<typeof signInAs>> | null = null;
+const person = async () => (shared ??= await signInAs(mainnetImplicitWallet()));
+
 const details = { mode: "swap" as const, from: "nep141:a", to: "nep141:b", amount: "5", summary: "Swap 5 A for 1 B" };
 
 describe("payments an AI app prepares", () => {
@@ -44,7 +48,7 @@ describe("payments an AI app prepares", () => {
 
 describe("a price the person hasn't paid yet", () => {
   it("keeps the request waiting, and a new price replaces and cancels the old one", async () => {
-    const me = await signInAs(mainnetImplicitWallet());
+    const me = await person();
     const id = await createAiRequest(me.session, { name: "Claude" }, "swap", { ...details, source: "wallet" });
     const transfer = async (status: string) => {
       const tid = randomUUID();
@@ -70,7 +74,7 @@ describe("a price the person hasn't paid yet", () => {
 
 describe("payments made straight from the wallet", () => {
   it("is done only with a real, successful transaction from this account to this payment", async () => {
-    const me = await signInAs(mainnetImplicitWallet());
+    const me = await person();
     const id = await createAiRequest(me.session, { name: "Claude" }, "swap", { ...details, source: "wallet", from: "native:near", to: "nep141:wrap.near" });
     await expect(markSent(me.session, id, "not a hash")).rejects.toThrow(/isn't a NEAR transaction/);
     // Well formed, but not a transaction from this account on NEAR: refused, and the request keeps waiting.

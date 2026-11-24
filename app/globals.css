@@ -936,6 +936,8 @@ button.chip.on { background: var(--dark); color: #fff; border-color: var(--dark)
 .panel-tabs button { padding: 8px 0; border: 0; border-bottom: 2px solid transparent; background: none; font: inherit; font-size: 14px; font-weight: 700; color: var(--muted); cursor: pointer; }
 .panel-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--orange); }
 .panel-body { flex: 1; overflow-y: auto; padding: 8px 16px 24px; }
+.panel-foot { display: block; padding: 14px 24px; border-top: 1px solid var(--line); text-decoration: none; }
+.panel-foot:hover { color: var(--ink); }
 .panel-total { font-size: 32px; font-weight: 800; letter-spacing: -0.04em; margin: 12px 0 4px; }
 .panel-list { list-style: none; margin: 0; padding: 0; }
 .panel-list li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }

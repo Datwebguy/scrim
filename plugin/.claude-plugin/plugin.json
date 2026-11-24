@@ -1,0 +1,20 @@
+{
+  "name": "scrim",
+  "version": "0.1.0",
+  "description": "Scrim: private money on NEAR. See your private balance, find coins, and prepare private swaps, sends and withdrawals across chains. Nothing moves until you confirm in Scrim with your own wallet.",
+  "author": {
+    "name": "Scrim",
+    "url": "https://scrim.exchange"
+  },
+  "repository": "https://github.com/Datwebguy/scrim",
+  "license": "MIT",
+  "keywords": [
+    "scrim",
+    "private money",
+    "near",
+    "near intents",
+    "private swap",
+    "private payments"
+  ],
+  "homepage": "https://scrim.exchange"
+}

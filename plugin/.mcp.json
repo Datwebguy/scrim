@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "scrim": {
+      "type": "http",
+      "url": "https://scrim.exchange/api/mcp"
+    }
+  }
+}

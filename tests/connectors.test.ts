@@ -41,7 +41,7 @@ describe("connecting an AI app to your own account", () => {
     expect(await connectorSessionFromToken(browserToken)).toBeNull();
 
     const list = await rpc(issued.access_token, "tools/list");
-    expect(list.body.result!.tools!.map((t) => t.name)).toEqual(["get_account", "get_balance", "get_activity", "find_coin", "quote_swap"]);
+    expect(list.body.result!.tools!.map((t) => t.name)).toEqual(["get_account", "get_balance", "get_activity", "find_coin", "quote_swap", "get_deposit_address", "prepare_swap", "prepare_send", "prepare_withdraw"]);
     const account = await rpc(issued.access_token, "tools/call", { name: "get_account", arguments: {} });
     expect(account.body.result!.structuredContent).toMatchObject({ account: session.accountId, network: "mainnet", private_balance: "unlocked" });
     const balance = await rpc(issued.access_token, "tools/call", { name: "get_balance", arguments: {} });
@@ -49,6 +49,38 @@ describe("connecting an AI app to your own account", () => {
     expect(balance.body.result!.structuredContent).toMatchObject({ total_usd: 0, holdings: [] });
     const coins = await rpc(issued.access_token, "tools/call", { name: "find_coin", arguments: { query: "USDC" } });
     expect((coins.body.result!.structuredContent!.coins as { symbol: string }[])[0].symbol).toBe("USDC");
+
+    if (process.env.ONECLICK_API_KEY) {
+      // Preparing a payment checks the price and returns a link to Scrim's own screen; nothing is created or moved.
+      const find = async (query: string, chain: string) => ((await rpc(issued.access_token, "tools/call", { name: "find_coin", arguments: { query, limit: 25 } })).body.result!.structuredContent!.coins as { asset_id: string; chain: string }[]).find((c) => c.chain.toLowerCase().includes(chain))!.asset_id;
+      const usdcNear = await find("USDC", "near");
+      const usdcBase = await find("USDC", "base");
+      const before = (await rpc(issued.access_token, "tools/call", { name: "get_activity", arguments: {} })).body.result!.structuredContent!.activity as unknown[];
+      const swap = await rpc(issued.access_token, "tools/call", { name: "prepare_swap", arguments: { from_asset_id: usdcNear, to_asset_id: await find("PEPE", "eth"), amount: "5" } });
+      expect(swap.body.result!.isError).toBe(false);
+      const swapUrl = new URL(swap.body.result!.structuredContent!.approval_url as string);
+      expect(swapUrl.pathname).toBe("/app/swap");
+      expect(Object.fromEntries(swapUrl.searchParams)).toMatchObject({ ai: "Claude", mode: "swap", from: usdcNear, amount: "5" });
+      expect(swap.body.result!.structuredContent!.enough_balance).toBe(false);
+      const send = await rpc(issued.access_token, "tools/call", { name: "prepare_send", arguments: { asset_id: usdcNear, amount: "1", to: "near" } });
+      expect(send.body.result!.structuredContent).toMatchObject({ private: true });
+      expect(new URL(send.body.result!.structuredContent!.approval_url as string).searchParams.get("recipient")).toBe("near");
+      const badSend = await rpc(issued.access_token, "tools/call", { name: "prepare_send", arguments: { asset_id: usdcNear, amount: "1", to: "no-such-account-scrim-test.near" } });
+      expect(badSend.body.result!.isError).toBe(true);
+      expect(String(badSend.body.result!.structuredContent!.error)).toMatch(/doesn't exist/);
+      const withdraw = await rpc(issued.access_token, "tools/call", { name: "prepare_withdraw", arguments: { from_asset_id: usdcNear, to_asset_id: usdcBase, amount: "2", to_address: "0x00000000000000000000000000000000000000aa" } });
+      expect(withdraw.body.result!.structuredContent).toMatchObject({ public_on_chain: true });
+      const badWithdraw = await rpc(issued.access_token, "tools/call", { name: "prepare_withdraw", arguments: { from_asset_id: usdcNear, to_asset_id: usdcBase, amount: "2", to_address: "not-an-address" } });
+      expect(badWithdraw.body.result!.isError).toBe(true);
+      expect((await rpc(issued.access_token, "tools/call", { name: "get_activity", arguments: {} })).body.result!.structuredContent!.activity).toEqual(before);
+      const deposit = await rpc(issued.access_token, "tools/call", { name: "get_deposit_address", arguments: { asset_id: usdcBase } });
+      expect(deposit.body.result!.structuredContent!.address).toMatch(/^0x[0-9a-fA-F]{40}$/);
+    } else {
+      // Without Scrim's NEAR Intents key (set on the live site), preparing says so plainly instead of failing.
+      const r = await rpc(issued.access_token, "tools/call", { name: "prepare_swap", arguments: { from_asset_id: "nep141:wrap.near", to_asset_id: "nep141:usdt.tether-token.near", amount: "1" } });
+      expect(r.body.result!.isError).toBe(true);
+      expect(String(r.body.result!.structuredContent!.error)).toMatch(/isn't available/);
+    }
 
     const [connected] = await listConnectors(session);
     expect(connected).toMatchObject({ name: "Claude", kind: "app" });
@@ -63,6 +95,8 @@ describe("connecting an AI app to your own account", () => {
     await expect(readAuthorizeRequest({ ...base, redirect_uri: "https://evil.example/cb" })).rejects.toThrow(/didn't register/);
     await expect(readAuthorizeRequest({ ...base, code_challenge_method: "plain" })).rejects.toThrow(/S256/);
     await expect(registerClient({ redirect_uris: ["http://evil.example/cb"] })).rejects.toThrow(/https/);
+    expect((await registerClient({ client_name: "Scrim Security", redirect_uris: [REDIRECT] })).client_name).toBe("AI app");
+    expect((await registerClient({ client_name: "S.C.R.I.M", redirect_uris: [REDIRECT] })).client_name).toBe("AI app");
   });
 
   it("gives agents that can't sign in a personal key that only reads, and another person's app sees nothing", async () => {

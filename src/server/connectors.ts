@@ -35,7 +35,9 @@ export async function registerClient(body: Record<string, unknown>) {
   if (uris.length === 0 || uris.length > 5) throw new OAuthError("invalid_redirect_uri", "Send between one and five redirect_uris.");
   for (const uri of uris) if (!isAllowedRedirect(String(uri))) throw new OAuthError("invalid_redirect_uri", "Each redirect_uri must be https, or http on localhost.");
   const id = `scl_${randomBytes(16).toString("base64url")}`;
-  const name = cleanName(body.client_name, "AI app");
+  // Apps name themselves, so a name that claims to be Scrim is never shown as one.
+  const given = cleanName(body.client_name, "AI app");
+  const name = /s\W*c\W*r\W*[i1l]\W*m/i.test(given.normalize("NFKC")) ? "AI app" : given;
   await sql`INSERT INTO oauth_clients (id, name, redirect_uris) VALUES (${id}, ${name}, ${sql.json(uris.map(String))})`;
   return {
     client_id: id, client_name: name, redirect_uris: uris.map(String), client_id_issued_at: Math.floor(Date.now() / 1000),

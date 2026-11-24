@@ -274,12 +274,15 @@ export function SendSwap({ initial, aiRequest = null }: { initial: Mode; aiReque
 
       {!fromWallet && priv && priv.status !== "active" && <div className="notice">{t("Unlock your private balance on the")} <Link href="/app">{t("home screen")}</Link> first.</div>}
       {fromWallet && pub && holdings.length === 0 && <div className="notice">{t("Your wallet holds no coins on NEAR yet.")}</div>}
-      {aiRequest && !transfer && (declined
+      {aiRequest && !transfer && !sentHash && (declined
         ? <div className="notice">{t("Declined. Nothing was sent.")} <Link href="/app">{t("Home")}</Link></div>
         : <div className="notice between">{t("{app} filled this in for you. Check every detail, then see the price and confirm. Nothing moves until you do.", { app: aiRequest.app })} <button type="button" className="btn btn-ghost" onClick={decline}>{t("Decline")}</button></div>)}
       {!fromWallet && priv?.status === "active" && holdings.length === 0 && <div className="notice">{t("Your private balance is empty.")} <Link href="/app/add">{t("Add money")}</Link> to get started.</div>}
 
-      {!transfer ? (
+      {aiRequest && sentHash ? (
+        // Paid straight from the wallet: the request is finished, so no form is left to pay it a second time.
+        <div className="notice good">{t("Sent from your wallet.")} <span className="muted mono">Receipt {sentHash.slice(0, 10)}…</span> <Link href="/app/activity">{t("Activity")}</Link> · <Link href="/app">{t("Home")}</Link></div>
+      ) : !transfer ? (
         <form className="trade" onSubmit={(e) => { e.preventDefault(); getPrice(); }}>
           {network === "mainnet" && (
             <div className="trade-src" role="radiogroup" aria-label={t("Pay from")}>

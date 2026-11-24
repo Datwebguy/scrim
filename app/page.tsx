@@ -150,6 +150,7 @@ export default async function Home() {
           <nav aria-label="Footer">
             <Link href="/app">{t("App")}</Link>
             <Link href="/verify">{t("Check a proof")}</Link>
+            <Link href="/ai">{t("Use with AI")}</Link>
             <Link href="/roadmap">{t("Roadmap")}</Link>
             <Link href="/whitepaper">{t("Whitepaper")}</Link>
             <a href={REPO}>{t("GitHub")}</a>

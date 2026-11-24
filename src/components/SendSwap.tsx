@@ -5,6 +5,7 @@ import { api } from "@/client/api";
 import { useApi } from "@/client/use-api";
 import { registerWithToken, sendNear, sendToken, signTransfer, unwrapNear, wrapNear } from "@/client/wallet";
 import { formatBalance, parseAmount } from "@/protocol/amount";
+import { NEAR_NEEDED, nearText } from "@/protocol/near-fees";
 import { AssetPicker, fmt, trimDecimals, Heading, isLate, StateChip, usd, useAssets, type AssetInfo, type Balances, type TransferView } from "./money";
 import { useSession } from "./session";
 import { Spinner, useToast } from "./ui";
@@ -20,9 +21,9 @@ const NATIVE = "native:near";
 const WNEAR = "nep141:wrap.near";
 const walletAssetId = (id: string) => (id === "near" ? NATIVE : `nep141:${id}`);
 const intentsId = (id: string) => (id === NATIVE ? WNEAR : id);
-// NEAR kept back for network fees and token registration when paying with the wallet's own NEAR.
-const NEAR_RESERVE = 2n * 10n ** 22n; // 0.02 NEAR: token registration (0.00125) plus 50 Tgas held while a payment runs (0.005 at 100M yocto per gas), with room to spare
-const spendable = (h: WalletHolding) => (h.id === "near" ? (BigInt(h.amount) > NEAR_RESERVE ? BigInt(h.amount) - NEAR_RESERVE : 0n) : BigInt(h.amount));
+// The wallet's own NEAR that can be spent: what's left after the NEAR the network sets aside for this kind of payment.
+const spendable = (h: WalletHolding, reserve: bigint) => (h.id === "near" ? (BigInt(h.amount) > reserve ? BigInt(h.amount) - reserve : 0n) : BigInt(h.amount));
+const feeMessage = (need: bigint) => `Your wallet needs about ${nearText(need)} NEAR for the network fee. NEAR holds it while the payment runs and gives most of it back. Add a little NEAR to your wallet first.`;
 const TERMINAL = new Set(["success", "refunded", "failed", "expired", "cancelled"]);
 
 // A payment an AI app prepared (see ai-requests.ts): the screen opens filled in, and the person confirms or declines.
@@ -51,9 +52,14 @@ export function SendSwap({ initial, aiRequest = null }: { initial: Mode; aiReque
   const [error, setError] = useState("");
   const [transfer, setTransfer] = useState<TransferView | null>(null);
 
+  // NEAR the network sets aside while a wallet payment of this kind runs (see near-fees.ts).
+  const isWrapPair = [fromId, toId].sort().join() === [NATIVE, WNEAR].sort().join();
+  const nearReserve = mode === "person" ? NEAR_NEEDED.nearSend : isWrapPair ? NEAR_NEEDED.wrap : NEAR_NEEDED.nearPay;
+  const walletNear = BigInt((pub?.holdings ?? []).find((h) => h.id === "near")?.amount ?? "0");
+  const needNear = (need: bigint) => { if (walletNear < need) throw new Error(feeMessage(need)); };
   const holdings: Holding[] = useMemo(() => fromWallet
-    ? (pub?.holdings ?? []).filter((h) => BigInt(h.amount) > 0n || h.id === "near").map((h) => ({ assetId: walletAssetId(h.id), symbol: h.symbol, chainName: "NEAR", amount: spendable(h).toString(), display: h.id === "near" ? formatBalance(spendable(h), h.decimals) : h.display, usd: h.usd ?? null }))
-    : priv?.holdings ?? [], [fromWallet, pub, priv]);
+    ? (pub?.holdings ?? []).filter((h) => BigInt(h.amount) > 0n || h.id === "near").map((h) => ({ assetId: walletAssetId(h.id), symbol: h.symbol, chainName: "NEAR", amount: spendable(h, nearReserve).toString(), display: h.id === "near" ? formatBalance(spendable(h, nearReserve), h.decimals) : h.display, usd: h.usd ?? null }))
+    : priv?.holdings ?? [], [fromWallet, pub, priv, nearReserve]);
   const ready = fromWallet ? Boolean(pub) : priv?.status === "active";
   // In the wallet, NEAR and wNEAR are two coins: NEAR is a copy of wNEAR's listing under its own ID.
   const allAssets = useMemo(() => {
@@ -153,11 +159,12 @@ export function SendSwap({ initial, aiRequest = null }: { initial: Mode; aiReque
     if (!coin) throw new Error(t("Choose a coin your wallet holds."));
     const minor = parseAmount(amount, coin.decimals);
     if (minor <= 0n) throw new Error(t("Enter an amount."));
-    if (minor > spendable(coin)) throw new Error(coin.id === "near" ? "Keep about 0.02 NEAR in your wallet for network fees. Lower the amount." : `Your wallet holds ${coin.display} ${coin.symbol}.`);
+    if (minor > spendable(coin, nearReserve)) throw new Error(coin.id === "near" ? `Keep about ${nearText(nearReserve)} NEAR in your wallet for network fees. Lower the amount.` : `Your wallet holds ${coin.display} ${coin.symbol}.`);
     // Tokens sent to an account that doesn't exist are lost, so check it first.
     const check = await api<{ accountId: string; exists: boolean }>(`/accounts/check?id=${encodeURIComponent(recipient.trim().toLowerCase())}`);
     if (!check.exists && !/^[0-9a-f]{64}$/.test(check.accountId)) throw new Error(`${check.accountId} doesn't exist. Check the spelling.`);
     if (check.accountId === accountId) throw new Error(t("That's your own account."));
+    if (coin.id !== "near") needNear(NEAR_NEEDED.tokenSend);
     setSentHash(coin.id === "near" ? await sendNear(network, check.accountId, minor.toString()) : await sendToken(network, coin.id, check.accountId, minor.toString()));
     setAmount("");
     reloadWallet();
@@ -177,7 +184,8 @@ export function SendSwap({ initial, aiRequest = null }: { initial: Mode; aiReque
     if (!coin) throw new Error(t("Choose a coin your wallet holds."));
     const minor = parseAmount(amount, 24);
     if (minor <= 0n) throw new Error(t("Enter an amount."));
-    if (minor > spendable(coin)) throw new Error(coin.id === "near" ? "Keep about 0.02 NEAR in your wallet for network fees. Lower the amount." : `Your wallet holds ${coin.display} ${coin.symbol}.`);
+    if (minor > spendable(coin, nearReserve)) throw new Error(coin.id === "near" ? `Keep about ${nearText(nearReserve)} NEAR in your wallet for network fees. Lower the amount.` : `Your wallet holds ${coin.display} ${coin.symbol}.`);
+    if (fromId !== NATIVE) needNear(NEAR_NEEDED.unwrap);
     setSentHash(fromId === NATIVE ? await wrapNear(network, minor.toString()) : await unwrapNear(network, minor.toString()));
     setAmount("");
     reloadWallet();
@@ -191,6 +199,8 @@ export function SendSwap({ initial, aiRequest = null }: { initial: Mode; aiReque
     try {
       let txHash = paidTx;
       if (!txHash) {
+        if (fromId === NATIVE) needNear(BigInt(transfer.amountIn) + NEAR_NEEDED.nearPay);
+        else needNear(NEAR_NEEDED.tokenSend);
         // A NEAR token can only land in an account registered with it. Register the receiver first if needed
         // (for a swap, the person's own wallet), or the result can't be delivered to the wallet.
         const outContract = transfer.toAsset.assetId.replace(/^nep141:/, "");

@@ -53,15 +53,15 @@ describe("connecting an AI app to your own account", () => {
     // From the NEAR wallet: wrapping and a send to a NEAR account need no route, so they are filed without a price.
     const wallet = await rpc(issued.access_token, "tools/call", { name: "get_wallet", arguments: {} });
     expect(wallet.body.result!.structuredContent!.account).toBe(session.accountId);
+    // This test wallet holds no NEAR for the network fee, so every wallet payment is refused up front, saying how much it needs.
     const unwrap = await rpc(issued.access_token, "tools/call", { name: "prepare_swap", arguments: { from_asset_id: "nep141:wrap.near", to_asset_id: "native:near", amount: "0.5", from_wallet: true } });
-    expect(unwrap.body.result!.structuredContent).toMatchObject({ state: "waiting_for_you", you_pay: "0.5 wNEAR", they_get: "0.5 NEAR" });
-    // This test wallet is empty, and 0.02 NEAR always stays for fees, so a wrap or a NEAR send is refused up front.
+    expect(String(unwrap.body.result!.structuredContent!.error)).toMatch(/needs about 0\.0\d+ NEAR for the network fee/);
     const wrap = await rpc(issued.access_token, "tools/call", { name: "prepare_swap", arguments: { from_asset_id: "native:near", to_asset_id: "nep141:wrap.near", amount: "0.5", from_wallet: true } });
     expect(String(wrap.body.result!.structuredContent!.error)).toMatch(/can spend 0\.00 NEAR/);
     const badWrap = await rpc(issued.access_token, "tools/call", { name: "prepare_swap", arguments: { from_asset_id: "native:near", to_asset_id: "nep141:wrap.near", amount: "-1", from_wallet: true } });
     expect(badWrap.body.result!.isError).toBe(true);
     const walletSend = await rpc(issued.access_token, "tools/call", { name: "prepare_send", arguments: { asset_id: "native:near", amount: "0.1", to: "near", from_wallet: true } });
-    expect(String(walletSend.body.result!.structuredContent!.error)).toMatch(/keeps 0\.02 NEAR for network fees/);
+    expect(String(walletSend.body.result!.structuredContent!.error)).toMatch(/stays for the network fee/);
     const nowhere = await rpc(issued.access_token, "tools/call", { name: "prepare_send", arguments: { asset_id: "native:near", amount: "0.1", to: "no-such-account-scrim-test.near", from_wallet: true } });
     expect(String(nowhere.body.result!.structuredContent!.error)).toMatch(/doesn't exist/);
     const links = await rpc(issued.access_token, "tools/call", { name: "list_payment_links", arguments: {} });
